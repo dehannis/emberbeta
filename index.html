@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>Ember</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #000000;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100dvh;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 400px;
+            padding: 0 32px;
+            gap: 80px;
+        }
+
+        /* Logo & Brand */
+        .brand {
+            text-align: center;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            opacity: 0.9;
+        }
+
+        .logo svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .wordmark {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #ffffff;
+        }
+
+        .tagline {
+            font-size: 15px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+            letter-spacing: 0.01em;
+        }
+
+        /* Actions */
+        .actions {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 12px;
+        }
+
+        .action {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 20px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .action:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .action:active {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .action-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 16px;
+            opacity: 0.7;
+            flex-shrink: 0;
+        }
+
+        .action-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .action-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .action-title {
+            font-size: 17px;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            color: #ffffff;
+        }
+
+        .action-subtitle {
+            font-size: 13px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.01em;
+        }
+
+        .action-arrow {
+            margin-left: auto;
+            opacity: 0.3;
+            flex-shrink: 0;
+        }
+
+        .action-arrow svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            text-align: center;
+        }
+
+        .footer-text {
+            font-size: 11px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.25);
+            letter-spacing: 0.02em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Brand -->
+        <div class="brand">
+            <div class="logo">
+                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="24" cy="24" r="20" stroke="url(#ember-gradient)" stroke-width="2" fill="none"/>
+                    <circle cx="24" cy="24" r="6" fill="url(#ember-gradient)"/>
+                    <defs>
+                        <linearGradient id="ember-gradient" x1="8" y1="8" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#FF6B35"/>
+                            <stop offset="100%" stop-color="#FF8F5C"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h1 class="wordmark">Ember</h1>
+            <p class="tagline">Your memories, preserved.</p>
+        </div>
+
+        <!-- Actions -->
+        <nav class="actions">
+            <!-- Talk -->
+            <a href="#talk" class="action">
+                <div class="action-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 18.5C15.5899 18.5 18.5 15.5899 18.5 12V10C18.5 6.41015 15.5899 3.5 12 3.5C8.41015 3.5 5.5 6.41015 5.5 10V12C5.5 15.5899 8.41015 18.5 12 18.5Z"/>
+                        <path d="M12 18.5V21.5"/>
+                        <path d="M8 21.5H16"/>
+                    </svg>
+                </div>
+                <div class="action-content">
+                    <span class="action-title">Talk</span>
+                    <span class="action-subtitle">Capture a moment</span>
+                </div>
+                <div class="action-arrow">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 4L10 8L6 12"/>
+                    </svg>
+                </div>
+            </a>
+
+            <!-- Build -->
+            <a href="#build" class="action">
+                <div class="action-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                    </svg>
+                </div>
+                <div class="action-content">
+                    <span class="action-title">Build</span>
+                    <span class="action-subtitle">Organize your story</span>
+                </div>
+                <div class="action-arrow">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 4L10 8L6 12"/>
+                    </svg>
+                </div>
+            </a>
+
+            <!-- Share -->
+            <a href="#share" class="action">
+                <div class="action-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"/>
+                        <circle cx="6" cy="12" r="3"/>
+                        <circle cx="18" cy="19" r="3"/>
+                        <path d="M8.59 13.51L15.42 17.49"/>
+                        <path d="M15.41 6.51L8.59 10.49"/>
+                    </svg>
+                </div>
+                <div class="action-content">
+                    <span class="action-title">Share</span>
+                    <span class="action-subtitle">Pass it forward</span>
+                </div>
+                <div class="action-arrow">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 4L10 8L6 12"/>
+                    </svg>
+                </div>
+            </a>
+        </nav>
+    </div>
+
+    <footer class="footer">
+        <p class="footer-text">Made with care</p>
+    </footer>
+</body>
+</html>
