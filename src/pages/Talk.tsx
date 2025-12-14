@@ -17,6 +17,8 @@ const Talk: React.FC = () => {
   const navigate = useNavigate()
   const [isEntering, setIsEntering] = useState(true)
   const [isMuted, setIsMuted] = useState(false)
+  const circleRef = useRef<HTMLDivElement>(null)
+  const [exitAnchor, setExitAnchor] = useState<{ x: number; y: number } | null>(null)
   
   // Initialize color index from localStorage or default to 0
   const getInitialColorIndex = () => {
@@ -99,6 +101,27 @@ const Talk: React.FC = () => {
     setColorIndex((prev) => (prev + 1) % colorSchemes.length)
   }
 
+  // Anchor exit overlay to the orb's true center (no hardcoded offsets).
+  useEffect(() => {
+    if (!showExitOverlay) return
+
+    const measure = () => {
+      const el = circleRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      setExitAnchor({
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      })
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+    return () => {
+      window.removeEventListener('resize', measure)
+    }
+  }, [showExitOverlay])
+
   return (
     <div className={`talk-container ${isEntering ? 'entering' : 'active'}`}>
       {/* Custom Header with intercepted clicks */}
@@ -112,6 +135,7 @@ const Talk: React.FC = () => {
       <div className="circle-wrapper">
         <div 
           className={`circle ${isMuted ? 'muted' : ''}`}
+          ref={circleRef}
           onClick={handleOrbClick}
           style={{
             cursor: 'pointer',
@@ -160,7 +184,19 @@ const Talk: React.FC = () => {
       {/* Exit Overlay */}
       {showExitOverlay && (
         <div className="exit-overlay" onClick={handleCancel}>
-          <div className="exit-overlay-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="exit-overlay-content"
+            onClick={(e) => e.stopPropagation()}
+            style={
+              exitAnchor
+                ? {
+                    left: `${exitAnchor.x}px`,
+                    top: `${exitAnchor.y}px`,
+                    transform: 'translate(-50%, -50%)',
+                  }
+                : undefined
+            }
+          >
             <div className="exit-overlay-buttons">
               <button 
                 className="exit-btn save-btn" 

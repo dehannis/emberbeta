@@ -11,6 +11,7 @@ const VideoLanding: React.FC = () => {
   const [verificationCode, setVerificationCode] = useState('')
   const [showVerification, setShowVerification] = useState(false)
   const [showPostVerificationVideo, setShowPostVerificationVideo] = useState(false)
+  const [postVideoReady, setPostVideoReady] = useState(false)
   const [showFade, setShowFade] = useState(false)
   const [showConnecting, setShowConnecting] = useState(false)
   const [displayedText, setDisplayedText] = useState('')
@@ -36,19 +37,28 @@ const VideoLanding: React.FC = () => {
     }
   }, [])
 
-  // Post-verification video
+  // Preload post-verification video
+  useEffect(() => {
+    const video = postVerificationVideoRef.current
+    if (!video) return
+
+    const handleCanPlay = () => {
+      setPostVideoReady(true)
+    }
+
+    video.addEventListener('canplaythrough', handleCanPlay)
+
+    return () => {
+      video.removeEventListener('canplaythrough', handleCanPlay)
+    }
+  }, [])
+
+  // Post-verification video event handlers
   useEffect(() => {
     if (!showPostVerificationVideo) return
 
     const video = postVerificationVideoRef.current
     if (!video) return
-
-    // Hide auth overlay and show video
-    setVideoEnded(false)
-
-    video.play().catch((error) => {
-      console.log('Post-verification video autoplay prevented:', error)
-    })
 
     const handleTimeUpdate = () => {
       if (video.duration && video.currentTime) {
@@ -78,11 +88,11 @@ const VideoLanding: React.FC = () => {
           
           // Vary timing for natural typing feel
           const char = fullText[currentIndex - 1]
-          let delay = 60 + Math.random() * 40 // Base 60-100ms
+          let delay = 45 + Math.random() * 35 // Base 45-80ms
           
           // Slight pause after spaces and before dots
-          if (char === ' ') delay = 100 + Math.random() * 50
-          if (char === '.') delay = 150 + Math.random() * 50
+          if (char === ' ') delay = 80 + Math.random() * 40
+          if (char === '.') delay = 120 + Math.random() * 40
           
           setTimeout(typeNextChar, delay)
         } else {
@@ -97,7 +107,7 @@ const VideoLanding: React.FC = () => {
       }
       
       // Start typing after brief pause
-      setTimeout(typeNextChar, 400)
+      setTimeout(typeNextChar, 250)
     }
 
     video.addEventListener('timeupdate', handleTimeUpdate)
@@ -119,7 +129,15 @@ const VideoLanding: React.FC = () => {
   const handleVerificationSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (verificationCode.trim()) {
+      // Start playing post-verification video immediately
+      const postVideo = postVerificationVideoRef.current
+      if (postVideo) {
+        postVideo.play().catch((error) => {
+          console.log('Post-verification video autoplay prevented:', error)
+        })
+      }
       setShowPostVerificationVideo(true)
+      setVideoEnded(false)
     }
   }
 
@@ -147,32 +165,28 @@ const VideoLanding: React.FC = () => {
   return (
     <div className="video-landing-container">
       {/* Initial landing video */}
-      {!showPostVerificationVideo && (
-        <video
-          ref={videoRef}
-          className="landing-video"
-          autoPlay
-          muted
-          playsInline
-        >
-          <source src="/landing-video.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-      )}
+      <video
+        ref={videoRef}
+        className={`landing-video ${showPostVerificationVideo ? 'hidden' : ''}`}
+        autoPlay
+        muted
+        playsInline
+      >
+        <source src="/landing-video.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
 
-      {/* Post-verification video */}
-      {showPostVerificationVideo && (
-        <video
-          ref={postVerificationVideoRef}
-          className="landing-video"
-          autoPlay
-          muted
-          playsInline
-        >
-          <source src="/post-verification-video.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-      )}
+      {/* Post-verification video - always in DOM for preloading */}
+      <video
+        ref={postVerificationVideoRef}
+        className={`landing-video ${showPostVerificationVideo ? '' : 'hidden'}`}
+        muted
+        playsInline
+        preload="auto"
+      >
+        <source src="/post-verification-video.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
       
       {/* Auth overlay */}
       {videoEnded && !showPostVerificationVideo && (
