@@ -1,10 +1,8 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import './Share.css'
 
 const Share: React.FC = () => {
-  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: '',
     language: 'English',
@@ -22,7 +20,6 @@ const Share: React.FC = () => {
     console.log('Form submitted:', formData)
     setIsSubmitted(true)
     setInvitationsRemaining((prev) => Math.max(0, prev - 1))
-    // Add form submission logic here
   }
 
   const handleCopy = async () => {
@@ -37,14 +34,12 @@ const Share: React.FC = () => {
   }
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only close if clicking directly on the overlay, not on the url-box
     if (e.target === e.currentTarget) {
       setIsSubmitted(false)
     }
   }
 
   const handleBoxClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Prevent clicks on the box from closing the overlay
     e.stopPropagation()
   }
 
@@ -68,76 +63,80 @@ const Share: React.FC = () => {
       <Header />
       <main className="main-content share-content">
         <div className={`share-form-container ${isSubmitted ? 'faded' : ''}`}>
-          <h1 className="share-title">Share</h1>
+          <div className="share-header">
+            <h1 className="share-title">Share</h1>
+          </div>
           <form onSubmit={handleSubmit} className="share-form">
-            <div className="form-group">
-              <label htmlFor="name" className="form-label">
-                Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Who would you like to hear from?"
-                className="form-input"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="language" className="form-label">
-                Language
-              </label>
-              <div className="select-wrapper">
-                <select
-                  id="language"
-                  name="language"
-                  value={formData.language}
+            <div className="form-box">
+              <div className="form-group">
+                <label htmlFor="name" className="form-label">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
                   onChange={handleChange}
-                  className="form-select"
-                >
-                  <option value="English">English</option>
-                  <option value="Spanish">Spanish</option>
-                  <option value="Korean">Korean</option>
-                  <option value="Japanese">Japanese</option>
-                  <option value="Portuguese">Portuguese</option>
-                  <option value="French">French</option>
-                  <option value="Hindi">Hindi</option>
-                </select>
-                {formData.language === 'English' && (
-                  <span className="select-default-text">(Default)</span>
-                )}
+                  placeholder="Who would you like to hear from?"
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="language" className="form-label">
+                  Language
+                </label>
+                <div className={`select-wrapper ${formData.language === 'English' ? 'has-default' : ''}`}>
+                  <select
+                    id="language"
+                    name="language"
+                    value={formData.language}
+                    onChange={handleChange}
+                    className="form-select"
+                  >
+                    <option value="English">English</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="Korean">Korean</option>
+                    <option value="Japanese">Japanese</option>
+                    <option value="Portuguese">Portuguese</option>
+                    <option value="French">French</option>
+                    <option value="Hindi">Hindi</option>
+                  </select>
+                  {formData.language === 'English' && (
+                    <span className="select-default-text">(Default)</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="voice" className="form-label">
+                  Voice
+                </label>
+                <div className={`select-wrapper ${formData.voice === 'female' ? 'has-default' : ''}`}>
+                  <select
+                    id="voice"
+                    name="voice"
+                    value={formData.voice}
+                    onChange={handleChange}
+                    className="form-select"
+                  >
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                  </select>
+                  {formData.voice === 'female' && (
+                    <span className="select-default-text">(Default)</span>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="voice" className="form-label">
-                Voice
-              </label>
-              <div className="select-wrapper">
-                <select
-                  id="voice"
-                  name="voice"
-                  value={formData.voice}
-                  onChange={handleChange}
-                  className="form-select"
-                >
-                  <option value="female">Female</option>
-                  <option value="male">Male</option>
-                </select>
-                {formData.voice === 'female' && (
-                  <span className="select-default-text">(Default)</span>
-                )}
-              </div>
-            </div>
-            
             {formData.name.trim() && (
               <div className="submit-section">
                 <button
                   type="button"
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit()}
                   className="submit-button"
                 >
                   Generate Shareable Link

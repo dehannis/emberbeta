@@ -5,12 +5,6 @@ const Header: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const handleSignOut = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
-    // Add sign out logic here
-    console.log('Sign out clicked')
-  }
-
   const handlePhoneClick = (e: React.MouseEvent<HTMLSpanElement>) => {
     e.preventDefault()
     if (location.pathname === '/account') {

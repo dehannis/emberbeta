@@ -2,10 +2,8 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import Option from './Option'
 
-export type OptionType = 'talk' | 'build' | 'share'
-
 interface OptionData {
-  id: OptionType
+  id: string
   number: string
   title: string
   description: string

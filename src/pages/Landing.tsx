@@ -9,7 +9,6 @@ const Landing: React.FC = () => {
       <Header />
       <main className="main-content">
         <Options />
-        <div className="footer-line"></div>
       </main>
       <Footer />
     </div>

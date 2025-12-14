@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import './Build.css'
 
@@ -13,10 +12,8 @@ interface Conversation {
 }
 
 const Build: React.FC = () => {
-  const navigate = useNavigate()
   const audioRef = useRef<HTMLAudioElement>(null)
   
-  // Sample conversations - in a real app, this would come from state/API
   const [conversations] = useState<Conversation[]>([
     {
       id: 1,
@@ -24,7 +21,7 @@ const Build: React.FC = () => {
       date: 'March 15, 2024',
       duration: '12:34',
       preview: 'A quiet moment to reflect on the week ahead...',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', // Sample audio URL
+      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
     },
     {
       id: 2,
@@ -32,7 +29,7 @@ const Build: React.FC = () => {
       date: 'March 10, 2024',
       duration: '8:21',
       preview: 'Sharing stories about growing up together...',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', // Sample audio URL
+      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
     },
     {
       id: 3,
@@ -40,7 +37,7 @@ const Build: React.FC = () => {
       date: 'March 5, 2024',
       duration: '5:47',
       preview: 'Today I am grateful for the simple moments...',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', // Sample audio URL
+      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
     },
   ])
 
