@@ -2,10 +2,24 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Talk.css'
 
+const colorSchemes = [
+  { name: 'blue', primary: '140, 200, 255', secondary: '100, 180, 255' }, // Light blue (default)
+  { name: 'orange', primary: '255, 180, 120', secondary: '255, 150, 100' }, // Warm orange
+  { name: 'green', primary: '150, 220, 150', secondary: '120, 200, 120' }, // Warm green
+  { name: 'red', primary: '255, 140, 140', secondary: '255, 120, 120' }, // Warm red
+  { name: 'yellow', primary: '255, 220, 140', secondary: '255, 200, 120' }, // Warm yellow
+  { name: 'purple', primary: '220, 180, 255', secondary: '200, 160, 255' }, // Warm purple
+  { name: 'white', primary: '255, 255, 255', secondary: '240, 240, 240' }, // White
+  { name: 'klein', primary: '0, 47, 167', secondary: '0, 35, 150' }, // Yves Klein Blue
+]
+
 const Talk: React.FC = () => {
   const navigate = useNavigate()
   const [isEntering, setIsEntering] = useState(true)
   const [isMuted, setIsMuted] = useState(false)
+  const [colorIndex, setColorIndex] = useState(0)
+
+  const currentColor = colorSchemes[colorIndex]
   const [showExitOverlay, setShowExitOverlay] = useState(false)
 
   // Entrance animation
@@ -48,6 +62,10 @@ const Talk: React.FC = () => {
     setShowExitOverlay(false)
   }
 
+  const handleOrbClick = () => {
+    setColorIndex((prev) => (prev + 1) % colorSchemes.length)
+  }
+
   return (
     <div className={`talk-container ${isEntering ? 'entering' : 'active'}`}>
       {/* Custom Header with intercepted clicks */}
@@ -58,8 +76,14 @@ const Talk: React.FC = () => {
       </header>
 
       {/* Circle */}
-      <div className="circle-wrapper">
-        <div className={`circle ${isMuted ? 'muted' : ''}`} />
+      <div className="circle-wrapper" onClick={handleOrbClick} style={{ cursor: 'pointer' }}>
+        <div 
+          className={`circle ${isMuted ? 'muted' : ''}`}
+          style={{
+            '--color-primary': currentColor.primary,
+            '--color-secondary': currentColor.secondary,
+          } as React.CSSProperties}
+        />
       </div>
 
       {/* Controls */}
