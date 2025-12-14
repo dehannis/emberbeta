@@ -1,0 +1,227 @@
+.share-content {
+    padding-top: 12vh;
+}
+
+.share-form-container {
+    width: 100%;
+    transition: opacity 0.3s ease;
+}
+
+.share-form-container.faded {
+    opacity: 0.1;
+}
+
+.share-header {
+    margin-bottom: 2rem;
+}
+
+.share-title {
+    font-family: 'Source Serif Pro', serif;
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: var(--white);
+    animation: fadeIn 1s ease-out;
+}
+
+.share-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    animation: fadeInUp 1s ease-out 0.2s both;
+}
+
+.form-box {
+    background: rgba(26, 26, 26, 0.4);
+    border: 1px solid var(--gray-dark);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.form-label {
+    font-size: 0.75rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--gray-medium);
+    text-transform: uppercase;
+}
+
+.form-input,
+.form-select {
+    background: transparent;
+    border: 1px solid var(--gray-dark);
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 0.9375rem;
+    font-weight: 300;
+    color: var(--white);
+    transition: border-color 0.3s ease;
+    font-family: inherit;
+}
+
+.form-input::placeholder {
+    color: var(--gray-medium);
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: var(--gray-medium);
+}
+
+.select-wrapper {
+    position: relative;
+    display: block;
+}
+
+.select-wrapper .form-select {
+    width: 100%;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2.25rem;
+    position: relative;
+}
+
+/* Add padding to make room for default text */
+.select-wrapper.has-default .form-select {
+    padding-right: 6rem;
+}
+
+.select-default-text {
+    position: absolute;
+    left: 5rem; /* Position after "English" or "Female" text */
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: var(--gray-medium);
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 1;
+}
+
+.form-select option {
+    background: var(--black);
+    color: var(--white);
+}
+
+.submit-section {
+    margin-top: 2.5rem;
+    display: flex;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.submit-button {
+    background: transparent;
+    border: none;
+    color: var(--gray-light);
+    font-size: 0.8125rem;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.3s ease;
+    font-family: inherit;
+    text-transform: uppercase;
+}
+
+.submit-button:hover {
+    color: var(--white);
+}
+
+.url-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 2rem;
+}
+
+.url-box {
+    background: var(--black);
+    border: 1px solid var(--gray-dark);
+    border-radius: 8px;
+    padding: 2rem;
+    min-width: 340px;
+    max-width: 420px;
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.url-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    cursor: pointer;
+    padding: 1rem;
+    background: var(--gray-dark);
+    border-radius: 6px;
+    transition: background 0.3s ease;
+}
+
+.url-content:hover {
+    background: #252525;
+}
+
+.url-text {
+    font-size: 0.875rem;
+    font-weight: 300;
+    color: var(--white);
+    letter-spacing: 0.01em;
+}
+
+.copy-text {
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: var(--gray-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+}
+
+.url-description {
+    margin-top: 1.5rem;
+    font-size: 0.8125rem;
+    font-weight: 300;
+    color: var(--gray-medium);
+    text-align: center;
+    line-height: 1.6;
+}
+
+@media (max-width: 480px) {
+    .share-content {
+        padding-top: 8vh;
+    }
+
+    .share-title {
+        font-size: 1.75rem;
+    }
+
+    .url-box {
+        min-width: auto;
+        width: 100%;
+        padding: 1.5rem;
+    }
+
+    .url-text {
+        font-size: 0.75rem;
+    }
+}
+

@@ -1,0 +1,288 @@
+.account-content {
+    padding-top: 4vh;
+}
+
+.account-container {
+    width: 100%;
+}
+
+.account-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+.account-title {
+    font-family: 'Source Serif Pro', serif;
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: var(--white);
+    animation: fadeIn 1s ease-out;
+}
+
+.save-button {
+    background: transparent;
+    border: none;
+    color: var(--gray-light);
+    font-size: 0.75rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.3s ease;
+    font-family: inherit;
+    text-transform: uppercase;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.save-button:hover {
+    color: var(--white);
+}
+
+.account-section {
+    margin-bottom: 1.25rem;
+    animation: fadeInUp 1s ease-out 0.2s both;
+}
+
+.account-section:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.account-section:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+.account-section:nth-child(5) {
+    animation-delay: 0.5s;
+}
+
+.section-title {
+    font-size: 0.6875rem;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    color: var(--gray-medium);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    text-align: right;
+}
+
+.section-box {
+    background: rgba(20, 20, 20, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.form-group {
+    margin-bottom: 0;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--gray-medium);
+    text-transform: uppercase;
+    margin-bottom: 0.125rem;
+}
+
+.form-input,
+.form-select {
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 300;
+    color: var(--white);
+    transition: border-color 0.3s ease;
+    font-family: inherit;
+}
+
+.form-input::placeholder {
+    color: var(--gray-medium);
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.form-input-disabled {
+    color: #888888;
+    cursor: not-allowed;
+}
+
+.select-wrapper {
+    position: relative;
+}
+
+.select-wrapper .form-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%23666666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2rem;
+}
+
+.form-select option {
+    background: var(--black);
+    color: var(--white);
+}
+
+.account-type-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    width: 100%;
+}
+
+.account-type-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 300;
+    color: var(--gray-light);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.account-type-btn:hover:not(.disabled) {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--white);
+}
+
+.account-type-btn.active {
+    color: var(--white);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.account-type-btn.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.coming-soon-text {
+    font-size: 0.625rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--gray-medium);
+    text-transform: uppercase;
+}
+
+.contacts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+}
+
+.contact-item {
+    padding: 0.625rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    transition: all 0.3s ease;
+}
+
+.contact-item:first-child {
+    padding-top: 0;
+    border-top: none;
+}
+
+.contact-item:last-child {
+    padding-bottom: 0;
+}
+
+.contact-item.add-contact-item {
+    border-bottom: none;
+}
+
+.contact-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.contact-name {
+    font-size: 0.875rem;
+    font-weight: 300;
+    color: var(--gray-light);
+}
+
+.contact-phone {
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: var(--gray-medium);
+}
+
+.add-contact-item {
+    cursor: pointer;
+    padding-top: 0.625rem;
+}
+
+.add-contact-item:hover .add-contact-name {
+    color: var(--white);
+}
+
+.add-contact-name {
+    color: var(--gray-medium);
+    transition: color 0.3s ease;
+}
+
+.sign-out-section {
+    margin-top: 2rem;
+    padding-bottom: 1.5rem;
+    animation: fadeInUp 1s ease-out 0.7s both;
+    text-align: center;
+}
+
+.sign-out-button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 0.6875rem;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    color: var(--gray-medium);
+    cursor: pointer;
+    transition: color 0.3s ease;
+    font-family: inherit;
+    text-transform: uppercase;
+}
+
+.sign-out-button:hover {
+    color: var(--white);
+}
+
+@media (max-width: 480px) {
+    .account-title {
+        font-size: 1.75rem;
+    }
+
+    .form-input,
+    .form-select,
+    .account-type-btn {
+        padding: 0.5rem 0.625rem;
+        font-size: 0.8125rem;
+    }
+
+    .section-box {
+        padding: 0.75rem;
+    }
+}
