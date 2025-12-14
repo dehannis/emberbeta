@@ -1,0 +1,303 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+}
+
+:root {
+    --black: #000000;
+    --white: #ffffff;
+    --gray-light: rgba(255, 255, 255, 0.6);
+    --gray-medium: rgba(255, 255, 255, 0.4);
+    --gray-dark: rgba(255, 255, 255, 0.2);
+    --accent: rgba(255, 255, 255, 0.1);
+}
+
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    background-color: var(--black);
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+.container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    max-width: 100%;
+    margin: 0;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 1.5rem 0;
+    width: 100%;
+    animation: fadeIn 1s ease-out;
+    position: relative;
+}
+
+.phone-number {
+    font-size: 0.6875rem;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+    color: var(--gray-light);
+    transition: color 0.3s ease;
+}
+
+.phone-number:hover {
+    color: var(--white);
+}
+
+.home-icon {
+    font-size: 0.6875rem;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+    color: var(--gray-light);
+    transition: color 0.3s ease;
+    line-height: 1;
+}
+
+.home-icon:hover {
+    color: var(--white);
+}
+
+.sign-out {
+    font-size: 0.875rem;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+    color: var(--gray-light);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    cursor: pointer;
+}
+
+.sign-out:hover {
+    color: var(--white);
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 1.5rem 1.5rem 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    animation: fadeInUp 1s ease-out 0.2s both;
+}
+
+.footer-line {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.option {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    position: relative;
+    padding: 2rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.option:last-child {
+    border-bottom: none;
+    padding-bottom: 3rem;
+}
+
+.option::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: var(--accent);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+}
+
+.option:hover::before,
+.option:active::before {
+    width: 0;
+    opacity: 0;
+}
+
+.option:hover {
+    transform: translateX(8px);
+}
+
+.option:active {
+    transform: translateX(4px);
+}
+
+.option-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.option-number {
+    font-size: 0.75rem;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    color: var(--gray-medium);
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+    transition: color 0.3s ease;
+}
+
+.option:hover .option-number {
+    color: var(--gray-light);
+}
+
+.option-title {
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: var(--white);
+    margin-bottom: 0.5rem;
+    transition: color 0.3s ease;
+    font-family: 'Source Serif Pro', serif;
+}
+
+.option:hover .option-title {
+    color: var(--white);
+}
+
+.option-description {
+    font-size: 0.875rem;
+    font-weight: 300;
+    color: var(--gray-light);
+    line-height: 1.5;
+    max-width: 90%;
+    transition: color 0.3s ease;
+}
+
+.option:hover .option-description {
+    color: var(--gray-light);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Stagger animation for options */
+.option:nth-child(1) {
+    animation-delay: 0.3s;
+}
+
+.option:nth-child(2) {
+    animation-delay: 0.4s;
+}
+
+.option:nth-child(3) {
+    animation-delay: 0.5s;
+}
+
+/* Mobile optimizations */
+@media (max-width: 480px) {
+    .header {
+        padding: 1.25rem 1.25rem 0;
+    }
+    
+    .main-content {
+        padding: 1rem 1.25rem 1rem;
+    }
+    
+    .phone-number,
+    .sign-out {
+        font-size: 0.8125rem;
+    }
+    
+    .options {
+        gap: 2rem;
+    }
+    
+    .option {
+        padding: 1.5rem 0;
+    }
+    
+    .option-title {
+        font-size: 1.75rem;
+    }
+    
+    .option-description {
+        font-size: 0.8125rem;
+        max-width: 95%;
+    }
+}
+
+/* Tablet and larger screens */
+@media (min-width: 768px) {
+    .header {
+        padding: 2rem 2rem 0;
+    }
+    
+    .main-content {
+        padding: 1.5rem 2rem 1rem;
+    }
+    
+    .option-title {
+        font-size: 2.25rem;
+    }
+    
+    .option-description {
+        font-size: 1rem;
+    }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
