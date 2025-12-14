@@ -7,16 +7,15 @@ const VideoLanding: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
-    // Auto-play video when component mounts
-    if (videoRef.current) {
-      videoRef.current.play().catch((error) => {
-        console.log('Video autoplay prevented:', error)
-      })
-    }
+    const video = videoRef.current
+    if (!video) return
+
+    video.play().catch((error) => {
+      console.log('Video autoplay prevented:', error)
+    })
   }, [])
 
   const handleVideoClick = () => {
-    // Navigate to home page when video is clicked
     navigate('/')
   }
 
@@ -39,4 +38,3 @@ const VideoLanding: React.FC = () => {
 }
 
 export default VideoLanding
-
