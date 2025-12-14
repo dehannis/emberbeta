@@ -5,11 +5,18 @@ import './VideoLanding.css'
 const VideoLanding: React.FC = () => {
   const navigate = useNavigate()
   const videoRef = useRef<HTMLVideoElement>(null)
+  const postVerificationVideoRef = useRef<HTMLVideoElement>(null)
   const [videoEnded, setVideoEnded] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState('')
   const [verificationCode, setVerificationCode] = useState('')
   const [showVerification, setShowVerification] = useState(false)
+  const [showPostVerificationVideo, setShowPostVerificationVideo] = useState(false)
+  const [showFade, setShowFade] = useState(false)
+  const [showConnecting, setShowConnecting] = useState(false)
+  const [displayedText, setDisplayedText] = useState('')
+  const [showCursor, setShowCursor] = useState(true)
 
+  // Initial landing video
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
@@ -29,32 +36,102 @@ const VideoLanding: React.FC = () => {
     }
   }, [])
 
+  // Post-verification video
+  useEffect(() => {
+    if (!showPostVerificationVideo) return
+
+    const video = postVerificationVideoRef.current
+    if (!video) return
+
+    // Hide auth overlay and show video
+    setVideoEnded(false)
+
+    video.play().catch((error) => {
+      console.log('Post-verification video autoplay prevented:', error)
+    })
+
+    const handleTimeUpdate = () => {
+      if (video.duration && video.currentTime) {
+        const timeRemaining = video.duration - video.currentTime
+        // Start fade 0.5 seconds before video ends
+        if (timeRemaining <= 0.5 && !showFade) {
+          setShowFade(true)
+        }
+      }
+    }
+
+    const handleEnded = () => {
+      // Set flag to indicate coming from verification (for Talk page orb color)
+      sessionStorage.setItem('emberFromVerification', 'true')
+      
+      // Show connecting screen and start typewriter effect
+      setShowConnecting(true)
+      
+      const fullText = 'CONNECTING TO EMBER...'
+      let currentIndex = 0
+      
+      // Typewriter effect with varying speed for natural feel
+      const typeNextChar = () => {
+        if (currentIndex < fullText.length) {
+          setDisplayedText(fullText.slice(0, currentIndex + 1))
+          currentIndex++
+          
+          // Vary timing for natural typing feel
+          const char = fullText[currentIndex - 1]
+          let delay = 60 + Math.random() * 40 // Base 60-100ms
+          
+          // Slight pause after spaces and before dots
+          if (char === ' ') delay = 100 + Math.random() * 50
+          if (char === '.') delay = 150 + Math.random() * 50
+          
+          setTimeout(typeNextChar, delay)
+        } else {
+          // Text complete - pause to suggest loading, then navigate
+          setTimeout(() => {
+            setShowCursor(false)
+            setTimeout(() => {
+              navigate('/talk')
+            }, 800)
+          }, 1200)
+        }
+      }
+      
+      // Start typing after brief pause
+      setTimeout(typeNextChar, 400)
+    }
+
+    video.addEventListener('timeupdate', handleTimeUpdate)
+    video.addEventListener('ended', handleEnded)
+
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate)
+      video.removeEventListener('ended', handleEnded)
+    }
+  }, [showPostVerificationVideo, navigate, showFade])
+
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (phoneNumber.trim()) {
       setShowVerification(true)
-      // In production, this would trigger sending the verification code
     }
   }
 
   const handleVerificationSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (verificationCode.trim()) {
-      // In production, this would verify the code
-      // For now, navigate to home page
-      navigate('/')
+      setShowPostVerificationVideo(true)
     }
   }
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '') // Only numbers
+    const value = e.target.value.replace(/\D/g, '')
     if (value.length <= 10) {
       setPhoneNumber(value)
     }
   }
 
   const handleVerificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '') // Only numbers
+    const value = e.target.value.replace(/\D/g, '')
     if (value.length <= 6) {
       setVerificationCode(value)
     }
@@ -69,24 +146,42 @@ const VideoLanding: React.FC = () => {
 
   return (
     <div className="video-landing-container">
-      <video
-        ref={videoRef}
-        className="landing-video"
-        autoPlay
-        muted
-        playsInline
-      >
-        <source src="/landing-video.mp4" type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
+      {/* Initial landing video */}
+      {!showPostVerificationVideo && (
+        <video
+          ref={videoRef}
+          className="landing-video"
+          autoPlay
+          muted
+          playsInline
+        >
+          <source src="/landing-video.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      )}
+
+      {/* Post-verification video */}
+      {showPostVerificationVideo && (
+        <video
+          ref={postVerificationVideoRef}
+          className="landing-video"
+          autoPlay
+          muted
+          playsInline
+        >
+          <source src="/post-verification-video.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      )}
       
-      {videoEnded && (
+      {/* Auth overlay */}
+      {videoEnded && !showPostVerificationVideo && (
         <div className="auth-overlay">
           <div className="auth-content">
             {!showVerification ? (
               <form onSubmit={handlePhoneSubmit} className="auth-form">
                 <p className="auth-disclosure">
-                  Ember is currently invitation only. If you have an account, please add your phone number to enter. Otherwise, please add your phone number to join the wait list.
+                  Ember is currently invitation only. If you have an account, verify your phone number to enter. Otherwise, add your phone number to join our waitlist.
                 </p>
                 <label htmlFor="phone" className="auth-label">
                   Phone Number
@@ -135,6 +230,21 @@ const VideoLanding: React.FC = () => {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Fade overlay */}
+      {showFade && (
+        <div className="fade-overlay" />
+      )}
+
+      {/* Connecting transition */}
+      {showConnecting && (
+        <div className="connecting-screen">
+          <div className="connecting-content">
+            <span className="connecting-text">{displayedText}</span>
+            <span className={`cursor ${showCursor ? 'visible' : ''}`}>|</span>
           </div>
         </div>
       )}

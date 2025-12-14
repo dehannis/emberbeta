@@ -1,583 +1,222 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, useMemo } from 'react'
 import Header from '../components/Header'
 import './Build.css'
 
 interface Memory {
-  id: number
+  id: string
   title: string
   date: string
-  year: number
-  month: number
-  duration: string
-  preview: string
-  audioUrl?: string
+  note: string
+  personId: string
+}
+
+interface Contact {
+  id: string
+  name: string
   color: string
 }
 
+// You + sample contacts
+const ALL_PEOPLE: Contact[] = [
+  { id: 'me', name: 'You', color: '#7eb8da' },
+  { id: 'john', name: 'John', color: '#daa87e' },
+  { id: 'jane', name: 'Jane', color: '#8eda7e' },
+]
+
+// Sample memories
+const SAMPLE_MEMORIES: Memory[] = [
+  { id: '1', title: 'Morning Reflection', date: '2024-03-15', note: 'A quiet moment...', personId: 'me' },
+  { id: '2', title: 'Weekend Adventure', date: '2024-02-10', note: 'Hiking trip...', personId: 'john' },
+  { id: '3', title: 'Coffee Chat', date: '2024-01-20', note: 'Catching up...', personId: 'jane' },
+  { id: '4', title: 'New Year Goals', date: '2024-01-05', note: 'Setting intentions...', personId: 'me' },
+  { id: '5', title: 'Birthday Party', date: '2023-11-15', note: 'Surprise party...', personId: 'john' },
+  { id: '6', title: 'Project Launch', date: '2023-09-05', note: 'Celebrating...', personId: 'jane' },
+  { id: '7', title: 'Summer Vacation', date: '2023-08-10', note: 'Beach memories...', personId: 'me' },
+  { id: '8', title: 'Graduation Day', date: '2022-06-20', note: 'Finally finished...', personId: 'me' },
+]
+
 const Build: React.FC = () => {
-  const navigate = useNavigate()
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const timelineRef = useRef<HTMLDivElement>(null)
-  
-  const [birthYear, setBirthYear] = useState<number>(1990)
-  const [currentYear] = useState<number>(new Date().getFullYear())
-  const [zoom, setZoom] = useState<number>(1.2) // Start slightly zoomed in
-  const [rotateX, setRotateX] = useState<number>(0) // Start flat for centered view
-  const [rotateY, setRotateY] = useState<number>(0)
-  const [translateZ, setTranslateZ] = useState<number>(0)
-  const [translateX, setTranslateX] = useState<number>(0)
-  const [translateY, setTranslateY] = useState<number>(0)
-  const [isDragging, setIsDragging] = useState<boolean>(false)
-  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
-  const [lastPosition, setLastPosition] = useState<{ x: number; y: number; z: number }>({ x: 0, y: 0, z: 0 })
-  const [isInitialized, setIsInitialized] = useState<boolean>(false)
-  
-  // Sample memories - first memory is always white (the primary/centered one)
-  const [memories] = useState<Memory[]>([
-    {
-      id: 1,
-      title: 'Morning Reflection',
-      date: 'March 15, 2024',
-      year: 2024,
-      month: 3,
-      duration: '12:34',
-      preview: 'A quiet moment to reflect on the week ahead and set intentions for the coming days...',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      color: 'rgba(255, 255, 255, 0.95)', // White sphere for the first/primary memory
-    },
-    {
-      id: 2,
-      title: 'Family Stories',
-      date: 'March 10, 2024',
-      year: 2024,
-      month: 3,
-      duration: '8:21',
-      preview: 'Sharing stories about growing up together, the summers at grandma\'s house...',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-      color: 'rgba(255, 180, 140, 0.9)',
-    },
-    {
-      id: 3,
-      title: 'Gratitude Practice',
-      date: 'December 5, 2023',
-      year: 2023,
-      month: 12,
-      duration: '5:47',
-      preview: 'Today I am grateful for the simple moments that make life beautiful...',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-      color: 'rgba(180, 255, 180, 0.9)',
-    },
-    {
-      id: 4,
-      title: 'First Day Memories',
-      date: 'September 1, 2020',
-      year: 2020,
-      month: 9,
-      duration: '15:12',
-      preview: 'Remembering my first day at the new job, the excitement and nervousness...',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-      color: 'rgba(255, 220, 140, 0.9)',
-    },
-    {
-      id: 5,
-      title: 'Summer Adventure',
-      date: 'July 20, 2018',
-      year: 2018,
-      month: 7,
-      duration: '9:33',
-      preview: 'That road trip we took along the coast, the ocean breeze and sunset views...',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
-      color: 'rgba(200, 160, 255, 0.9)',
-    },
-  ])
-
+  const [visiblePeople, setVisiblePeople] = useState<Set<string>>(new Set(['me']))
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
-  const [hoveredYear, setHoveredYear] = useState<number | null>(null)
-
-  // Load birth year from localStorage
-  useEffect(() => {
-    const savedData = localStorage.getItem('emberAccountData')
-    if (savedData) {
-      const parsedData = JSON.parse(savedData)
-      if (parsedData.birthYear) {
-        const year = parseInt(parsedData.birthYear, 10)
-        if (!isNaN(year) && year > 1900 && year <= currentYear) {
-          setBirthYear(year)
-        }
-      }
-    }
-  }, [currentYear])
-
-  // Center on the first memory when page loads
-  useEffect(() => {
-    if (memories.length > 0 && !isInitialized) {
-      const firstMemory = memories[0]
-      // Calculate position to center the first memory
-      const totalYrs = currentYear - birthYear + 1
-      const yearIndex = firstMemory.year - birthYear
-      const progress = yearIndex / (totalYrs - 1 || 1)
-      const z = (1 - progress) * 1000 - 500
-      
-      // Offset to bring the first memory to center
-      setTranslateZ(-z)
-      setIsInitialized(true)
-    }
-  }, [memories, birthYear, currentYear, isInitialized])
-
-  // Audio event listeners
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    const updateTime = () => setCurrentTime(audio.currentTime)
-    const updateDuration = () => setDuration(audio.duration)
-    const handleEnded = () => setIsPlaying(false)
-
-    audio.addEventListener('timeupdate', updateTime)
-    audio.addEventListener('loadedmetadata', updateDuration)
-    audio.addEventListener('ended', handleEnded)
-
-    return () => {
-      audio.removeEventListener('timeupdate', updateTime)
-      audio.removeEventListener('loadedmetadata', updateDuration)
-      audio.removeEventListener('ended', handleEnded)
-    }
-  }, [selectedMemory])
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    if (isPlaying) {
-      audio.play().catch(console.error)
-    } else {
-      audio.pause()
-    }
-  }, [isPlaying, selectedMemory])
-
-  // Calculate timeline structure
-  const totalYears = currentYear - birthYear + 1
-  const years = Array.from({ length: totalYears }, (_, i) => birthYear + i)
-
-  // Get memories for a specific year
-  const getMemoriesForYear = (year: number) => {
-    return memories.filter(m => m.year === year)
-  }
-
-  // Calculate 3D position for year markers (spiral/helix arrangement)
-  const getYearPosition = (year: number) => {
-    const yearIndex = year - birthYear
-    const progress = yearIndex / (totalYears - 1 || 1)
-    
-    // Create a flowing timeline going into the distance
-    const z = (1 - progress) * 1000 - 500  // Further = past, closer = present
-    const x = Math.sin(progress * Math.PI * 0.3) * 50
-    const y = 0
-    
-    return { x, y, z }
-  }
-
-  // Calculate position for a memory sphere
-  const getMemoryPosition = (memory: Memory, index: number, total: number) => {
-    const yearPos = getYearPosition(memory.year)
-    
-    // Spread memories around the year marker
-    const angle = (index / (total || 1)) * Math.PI * 2 + memory.month * 0.5
-    const radius = 80 + (total > 1 ? index * 20 : 0)
-    
-    return {
-      x: yearPos.x + Math.cos(angle) * radius,
-      y: yearPos.y + Math.sin(angle) * radius * 0.6 - 30,
-      z: yearPos.z + Math.sin(angle) * 30,
-    }
-  }
-
-  // Zoom handlers
-  const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev * 1.25, 4))
-  }
-
-  const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev / 1.25, 0.3))
-  }
-
-  // Drag handlers for panning
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.memory-sphere-wrapper') || 
-        (e.target as HTMLElement).closest('.ghost-sphere-wrapper')) {
-      return
-    }
-    setIsDragging(true)
-    setDragStart({ x: e.clientX, y: e.clientY })
-    setLastPosition({ x: translateX, y: translateY, z: translateZ })
-  }
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (isDragging) {
-      const deltaX = (e.clientX - dragStart.x) * 1.5
-      const deltaY = (e.clientY - dragStart.y) * 1.5
-      
-      setTranslateX(lastPosition.x + deltaX)
-      setTranslateY(lastPosition.y + deltaY)
-    }
-  }, [isDragging, dragStart, lastPosition])
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false)
+    document.body.style.overflow = 'hidden'
+    setTimeout(() => setIsLoaded(true), 300)
+    return () => { document.body.style.overflow = '' }
   }, [])
 
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isDragging, handleMouseMove, handleMouseUp])
+  const togglePerson = (id: string) => {
+    setVisiblePeople(prev => {
+      const next = new Set(prev)
+      if (id === 'me') return next // Can't toggle yourself off
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
-  // Wheel for zoom and depth navigation
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault()
+  // Filter and sort memories
+  const visibleMemories = useMemo(() => {
+    return SAMPLE_MEMORIES
+      .filter(m => visiblePeople.has(m.personId))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }, [visiblePeople])
+
+  // Spiral position calculation - elegant Archimedean spiral
+  const getSpiralPosition = (index: number, total: number) => {
+    if (index === 0) {
+      // Most recent memory at center
+      return { x: 50, y: 50, scale: 1.6 }
+    }
+
+    // Spiral parameters - generous spacing
+    const a = 8 // Starting radius
+    const b = 6 // Growth rate per turn
+    const maxTurns = 2.5
     
-    if (e.shiftKey) {
-      // Shift + scroll = navigate through time (pan along Z)
-      setTranslateZ(prev => prev - e.deltaY * 2)
-    } else {
-      // Normal scroll = zoom
-      const delta = e.deltaY > 0 ? 0.92 : 1.08
-      setZoom(prev => Math.max(0.3, Math.min(4, prev * delta)))
-    }
+    // Map index to angle (0 to maxTurns * 2π)
+    const t = (index / Math.max(total - 1, 1)) * maxTurns * 2 * Math.PI
+    const r = a + b * t
+    
+    // Convert to x, y (centered at 50, 50)
+    const x = 50 + r * Math.cos(t - Math.PI / 2)
+    const y = 50 + r * Math.sin(t - Math.PI / 2)
+    
+    // Scale decreases as we go outward
+    const scale = Math.max(0.5, 1.2 - (index * 0.08))
+    
+    return { x, y, scale }
   }
 
-  // Touch support
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      const touch = e.touches[0]
-      setIsDragging(true)
-      setDragStart({ x: touch.clientX, y: touch.clientY })
-      setLastPosition({ x: translateX, y: translateY, z: translateZ })
-    }
+  const getPersonColor = (personId: string): string => {
+    return ALL_PEOPLE.find(p => p.id === personId)?.color || '#ffffff'
   }
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (isDragging && e.touches.length === 1) {
-      const touch = e.touches[0]
-      const deltaX = (touch.clientX - dragStart.x) * 1.5
-      const deltaY = (touch.clientY - dragStart.y) * 1.5
-      
-      setTranslateX(lastPosition.x + deltaX)
-      setTranslateY(lastPosition.y + deltaY)
-    }
+  const getPersonName = (personId: string): string => {
+    return ALL_PEOPLE.find(p => p.id === personId)?.name || personId
   }
 
-  const handleTouchEnd = () => {
-    setIsDragging(false)
-  }
-
-  // Memory interaction
-  const handleMemoryClick = (memory: Memory) => {
-    setSelectedMemory(memory)
-    setIsPlaying(true)
-  }
-
-  const handleClosePlayer = () => {
-    setIsPlaying(false)
-    setSelectedMemory(null)
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
-    }
-  }
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying)
-  }
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const audio = audioRef.current
-    if (!audio) return
-    const newTime = parseFloat(e.target.value)
-    audio.currentTime = newTime
-    setCurrentTime(newTime)
-  }
-
-  const formatTime = (seconds: number): string => {
-    if (isNaN(seconds)) return '0:00'
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
-  // Navigate to Talk to record new memory
-  const handleRecordNew = () => {
-    navigate('/talk')
-  }
-
-  // Calculate scale based on z-position (for depth effect)
-  const getScaleFromZ = (z: number) => {
-    const normalizedZ = (z + 500) / 1000  // 0 = far, 1 = close
-    return 0.4 + normalizedZ * 0.6
-  }
-
-  // Calculate opacity based on z-position
-  const getOpacityFromZ = (z: number) => {
-    const normalizedZ = (z + 500) / 1000
-    return 0.3 + normalizedZ * 0.7
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
   return (
     <div className="build-page">
-      <Header />
-      
-      {/* Timeline Viewport */}
-      <div 
-        className="timeline-viewport"
-        ref={timelineRef}
-        onMouseDown={handleMouseDown}
-        onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* 3D Timeline Space */}
-        <div 
-          className="timeline-space"
-          style={{
-            transform: `
-              translate3d(${translateX}px, ${translateY}px, ${translateZ}px)
-              rotateX(${rotateX}deg)
-              rotateY(${rotateY}deg)
-              scale(${zoom})
-            `,
-          }}
-        >
-          {/* Timeline axis - year markers */}
-          <div className="timeline-axis">
-            {years.map((year) => {
-              const pos = getYearPosition(year)
-              const scale = getScaleFromZ(pos.z)
-              const opacity = getOpacityFromZ(pos.z)
-              const yearMemories = getMemoriesForYear(year)
-              const hasMemories = yearMemories.length > 0
-              
-              return (
-                <div
-                  key={year}
-                  className={`timeline-year-marker ${hasMemories ? 'has-memories' : ''} ${hoveredYear === year ? 'hovered' : ''}`}
-                  style={{
-                    transform: `translate3d(${pos.x}px, ${pos.y}px, ${pos.z}px) scale(${scale})`,
-                    opacity,
-                  }}
-                  onMouseEnter={() => setHoveredYear(year)}
-                  onMouseLeave={() => setHoveredYear(null)}
-                >
-                  <span className="year-label">{year}</span>
-                  <div className="year-line" />
-                </div>
-              )
-            })}
-          </div>
+      <Header hidePhone />
 
-          {/* Memory Spheres */}
-          {years.map(year => {
-            const yearMemories = getMemoriesForYear(year)
-            return yearMemories.map((memory, index) => {
-              const pos = getMemoryPosition(memory, index, yearMemories.length)
-              const scale = getScaleFromZ(pos.z)
-              const opacity = getOpacityFromZ(pos.z)
-              const isFirstMemory = memory.id === memories[0]?.id
-              const showDateLabel = zoom >= 1.3 // Show date when zoomed in
-              
-              return (
-                <div
-                  key={memory.id}
-                  className={`memory-sphere-wrapper ${isFirstMemory ? 'primary' : ''}`}
-                  style={{
-                    transform: `translate3d(${pos.x}px, ${pos.y}px, ${pos.z}px) scale(${scale})`,
-                    opacity,
-                  }}
-                  onClick={() => handleMemoryClick(memory)}
-                >
-                  <div 
-                    className={`memory-sphere ${isFirstMemory ? 'white-sphere' : ''}`}
-                    style={{
-                      background: isFirstMemory 
-                        ? `radial-gradient(circle at 30% 30%, 
-                            rgba(255, 255, 255, 1), 
-                            rgba(255, 255, 255, 0.9), 
-                            rgba(220, 220, 220, 0.8))`
-                        : `radial-gradient(circle at 30% 30%, 
-                            ${memory.color.replace('0.9', '1')}, 
-                            ${memory.color}, 
-                            ${memory.color.replace('0.9', '0.6')})`,
-                      boxShadow: isFirstMemory
-                        ? `0 0 40px rgba(255, 255, 255, 0.5), 
-                           0 0 80px rgba(255, 255, 255, 0.25),
-                           inset 0 0 20px rgba(255, 255, 255, 0.4)`
-                        : `0 0 30px ${memory.color.replace('0.9', '0.4')}, 
-                           0 0 60px ${memory.color.replace('0.9', '0.2')},
-                           inset 0 0 20px ${memory.color.replace('0.9', '0.3')}`,
-                    }}
-                  />
-                  {/* Date label - visible when zoomed in or for primary memory */}
-                  <div 
-                    className={`memory-date-label ${showDateLabel || isFirstMemory ? 'visible' : ''}`}
-                  >
-                    <span className="memory-date-text">{memory.date}</span>
-                  </div>
-                  {/* Full label on hover */}
-                  <div className="memory-sphere-label">
-                    <span className="memory-sphere-title">{memory.title}</span>
-                    <span className="memory-sphere-date">{memory.date}</span>
-                  </div>
-                </div>
-              )
-            })
-          })}
+      {/* People Filter - Top Right */}
+      <div className={`people-filter ${isLoaded ? 'visible' : ''}`}>
+        {ALL_PEOPLE.map(person => {
+          const isActive = visiblePeople.has(person.id)
+          const isMe = person.id === 'me'
+          return (
+            <button
+              key={person.id}
+              className={`person-chip ${isActive ? 'active' : ''} ${isMe ? 'me' : ''}`}
+              onClick={() => togglePerson(person.id)}
+              style={{ '--person-color': person.color } as React.CSSProperties}
+            >
+              <span className="chip-dot" />
+              <span className="chip-name">{person.name}</span>
+            </button>
+          )
+        })}
+      </div>
 
-          {/* Ghost Spheres - Empty years with subtle prompt */}
-          {years
-            .filter(year => getMemoriesForYear(year).length === 0)
-            .filter((_, i) => i % 3 === 0) // Show every 3rd empty year
-            .slice(0, 10)
-            .map((year) => {
-              const pos = getYearPosition(year)
-              const scale = getScaleFromZ(pos.z) * 0.8
-              const opacity = getOpacityFromZ(pos.z) * 0.5
-              
-              // Add some variation
-              const offset = {
-                x: Math.sin(year * 0.7) * 60,
-                y: Math.cos(year * 0.5) * 40 - 20,
+      {/* Spiral Constellation */}
+      <div className="spiral-container">
+        {/* Spiral guide path */}
+        <svg className="spiral-guide" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+          <path
+            d={(() => {
+              const points: string[] = []
+              const a = 8, b = 6, maxTurns = 2.5
+              for (let i = 0; i <= 100; i++) {
+                const t = (i / 100) * maxTurns * 2 * Math.PI
+                const r = a + b * t
+                const x = 50 + r * Math.cos(t - Math.PI / 2)
+                const y = 50 + r * Math.sin(t - Math.PI / 2)
+                points.push(`${i === 0 ? 'M' : 'L'} ${x} ${y}`)
               }
-              
-              return (
-                <div
-                  key={`ghost-${year}`}
-                  className="ghost-sphere-wrapper"
-                  style={{
-                    transform: `translate3d(${pos.x + offset.x}px, ${pos.y + offset.y}px, ${pos.z}px) scale(${scale})`,
-                    opacity,
-                  }}
-                  onClick={handleRecordNew}
-                >
-                  <div className="ghost-sphere">
-                    <span className="ghost-plus">+</span>
-                  </div>
-                  <div className="ghost-label">{year}</div>
-                </div>
-              )
-            })}
-        </div>
+              return points.join(' ')
+            })()}
+            className="spiral-path"
+          />
+        </svg>
 
-        {/* Depth fog effect */}
-        <div className="depth-fog depth-fog-far" />
-        <div className="depth-fog depth-fog-near" />
-      </div>
+        {/* Memory Orbs */}
+        {visibleMemories.map((memory, index) => {
+          const pos = getSpiralPosition(index, visibleMemories.length)
+          const isHovered = hoveredId === memory.id
+          const isPrimary = index === 0
+          const color = getPersonColor(memory.personId)
 
-      {/* Zoom Controls */}
-      <div className="timeline-controls">
-        <button className="zoom-btn" onClick={handleZoomOut} aria-label="Zoom out">−</button>
-        <div className="zoom-indicator">{Math.round(zoom * 100)}%</div>
-        <button className="zoom-btn" onClick={handleZoomIn} aria-label="Zoom in">+</button>
-      </div>
-
-      {/* Year info overlay when hovering */}
-      {hoveredYear && (
-        <div className="year-info-overlay">
-          <span className="year-info-year">{hoveredYear}</span>
-          <span className="year-info-count">
-            {getMemoriesForYear(hoveredYear).length} {getMemoriesForYear(hoveredYear).length === 1 ? 'memory' : 'memories'}
-          </span>
-        </div>
-      )}
-
-      {/* Empty state prompt */}
-      {memories.length < 5 && (
-        <div className="empty-prompt">
-          <p>Your timeline has empty spaces waiting to be filled</p>
-          <button onClick={handleRecordNew} className="record-btn">
-            Record a Memory
-          </button>
-        </div>
-      )}
-
-      {/* Audio Player Modal */}
-      {selectedMemory && (
-        <div className="audio-player-overlay" onClick={handleClosePlayer}>
-          <div className="audio-player" onClick={(e) => e.stopPropagation()}>
-            <div className="player-header">
-              <button className="player-close" onClick={handleClosePlayer}>
-                ×
-              </button>
-            </div>
-            <div 
-              className="player-sphere"
+          return (
+            <div
+              key={memory.id}
+              className={`memory-orb ${isPrimary ? 'primary' : ''} ${isHovered ? 'hovered' : ''} ${isLoaded ? 'visible' : ''}`}
               style={{
-                background: `radial-gradient(circle at 30% 30%, 
-                  ${selectedMemory.color.replace('0.9', '1')}, 
-                  ${selectedMemory.color}, 
-                  rgba(0, 0, 0, 0.6))`,
-                boxShadow: `
-                  0 0 50px ${selectedMemory.color.replace('0.9', '0.5')}, 
-                  0 0 100px ${selectedMemory.color.replace('0.9', '0.3')}
-                `,
-              }}
-            />
-            <div className="player-content">
-              <h2 className="player-title">{selectedMemory.title}</h2>
-              <p className="player-date">{selectedMemory.date}</p>
-              <p className="player-preview">{selectedMemory.preview}</p>
-            </div>
-            <div className="player-controls">
-              <button className="play-pause-button" onClick={handlePlayPause}>
-                {isPlaying ? (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="6" y="4" width="4" height="16" rx="1" />
-                    <rect x="14" y="4" width="4" height="16" rx="1" />
-                  </svg>
-                ) : (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="6 3 20 12 6 21" />
-                  </svg>
-                )}
-              </button>
-              <div className="player-progress-container">
-                <input
-                  type="range"
-                  min="0"
-                  max={duration || 0}
-                  value={currentTime}
-                  onChange={handleSeek}
-                  className="player-progress"
-                />
-                <div className="player-time">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
+                left: `${pos.x}%`,
+                top: `${pos.y}%`,
+                '--orb-color': color,
+                '--orb-scale': pos.scale,
+                animationDelay: `${index * 0.08}s`,
+              } as React.CSSProperties}
+              onClick={() => setSelectedMemory(memory)}
+              onMouseEnter={() => setHoveredId(memory.id)}
+              onMouseLeave={() => setHoveredId(null)}
+            >
+              <div className="orb-glow" />
+              <div className="orb-core" />
+              
+              <div className={`orb-label ${isHovered || isPrimary ? 'visible' : ''}`}>
+                <span className="orb-person">{getPersonName(memory.personId)}</span>
+                <span className="orb-title">{memory.title}</span>
+                <span className="orb-date">{formatDate(memory.date)}</span>
               </div>
             </div>
-            {selectedMemory.audioUrl && (
-              <audio
-                ref={audioRef}
-                src={selectedMemory.audioUrl}
-                preload="metadata"
-              />
-            )}
+          )
+        })}
+      </div>
+
+      {/* Memory Modal */}
+      {selectedMemory && (
+        <div className="memory-modal" onClick={() => setSelectedMemory(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div 
+              className="modal-orb"
+              style={{ '--orb-color': getPersonColor(selectedMemory.personId) } as React.CSSProperties}
+            />
+            <div className="modal-info">
+              <span className="modal-person">{getPersonName(selectedMemory.personId)}</span>
+              <h2 className="modal-title">{selectedMemory.title}</h2>
+              <span className="modal-date">{formatDate(selectedMemory.date)}</span>
+              <p className="modal-note">{selectedMemory.note}</p>
+            </div>
+            <div className="modal-actions">
+              <button className="play-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21" />
+                </svg>
+                Play
+              </button>
+            </div>
+            <button className="close-btn" onClick={() => setSelectedMemory(null)}>×</button>
           </div>
         </div>
       )}
 
-      {/* Instructions */}
-      <div className="timeline-instructions">
-        <span>Drag to explore • Scroll to zoom • Click memories to play</span>
-      </div>
+      {/* Empty state */}
+      {visibleMemories.length === 0 && isLoaded && (
+        <div className="empty-state">
+          <div className="empty-orb" />
+          <h2>No memories yet</h2>
+          <p>Start recording to build your story</p>
+        </div>
+      )}
     </div>
   )
 }

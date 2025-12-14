@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Talk.css'
 
@@ -17,10 +17,43 @@ const Talk: React.FC = () => {
   const navigate = useNavigate()
   const [isEntering, setIsEntering] = useState(true)
   const [isMuted, setIsMuted] = useState(false)
-  const [colorIndex, setColorIndex] = useState(0)
+  
+  // Initialize color index from localStorage or default to 0
+  const getInitialColorIndex = () => {
+    const savedColorIndex = localStorage.getItem('emberTalkOrbColor')
+    if (savedColorIndex !== null) {
+      const index = parseInt(savedColorIndex, 10)
+      if (index >= 0 && index < colorSchemes.length) {
+        return index
+      }
+    }
+    return 0
+  }
+  
+  const [colorIndex, setColorIndex] = useState(getInitialColorIndex)
+  const isInitialMount = useRef(true)
 
   const currentColor = colorSchemes[colorIndex]
   const [showExitOverlay, setShowExitOverlay] = useState(false)
+
+  // Check if coming from verification and set to light blue
+  useEffect(() => {
+    const fromVerification = sessionStorage.getItem('emberFromVerification')
+    if (fromVerification === 'true') {
+      sessionStorage.removeItem('emberFromVerification')
+      setColorIndex(0) // Light blue
+      localStorage.setItem('emberTalkOrbColor', '0') // Also save it
+    }
+  }, [])
+
+  // Save color index to localStorage whenever it changes (but not on initial mount)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+    localStorage.setItem('emberTalkOrbColor', colorIndex.toString())
+  }, [colorIndex])
 
   // Entrance animation
   useEffect(() => {
@@ -76,10 +109,12 @@ const Talk: React.FC = () => {
       </header>
 
       {/* Circle */}
-      <div className="circle-wrapper" onClick={handleOrbClick} style={{ cursor: 'pointer' }}>
+      <div className="circle-wrapper">
         <div 
           className={`circle ${isMuted ? 'muted' : ''}`}
+          onClick={handleOrbClick}
           style={{
+            cursor: 'pointer',
             '--color-primary': currentColor.primary,
             '--color-secondary': currentColor.secondary,
           } as React.CSSProperties}
@@ -117,8 +152,7 @@ const Talk: React.FC = () => {
           aria-label="End call"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91" />
-            <line x1="23" y1="1" x2="1" y2="23" />
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
           </svg>
         </button>
       </div>

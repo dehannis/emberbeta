@@ -22,17 +22,6 @@
     object-fit: cover;
 }
 
-.video-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-    z-index: 10;
-    background: transparent;
-}
-
 /* Auth Overlay */
 .auth-overlay {
     position: absolute;
@@ -158,7 +147,89 @@
     cursor: not-allowed;
 }
 
-/* Ensure video covers full screen on all devices */
+/* Fade overlay */
+.fade-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    z-index: 50;
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Connecting screen */
+.connecting-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.connecting-content {
+    display: flex;
+    align-items: center;
+    animation: contentFadeIn 0.4s ease-out;
+}
+
+@keyframes contentFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.connecting-text {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.cursor {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 200;
+    color: rgba(255, 255, 255, 0.4);
+    margin-left: 2px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.cursor.visible {
+    animation: cursorBlink 0.8s ease-in-out infinite;
+}
+
+@keyframes cursorBlink {
+    0%, 100% {
+        opacity: 0;
+    }
+    40%, 60% {
+        opacity: 1;
+    }
+}
+
+/* Mobile */
 @media (max-width: 768px) {
     .landing-video {
         width: 100%;
@@ -177,5 +248,17 @@
     .auth-button {
         padding: 0.5rem 0;
         font-size: 0.8125rem;
+    }
+
+    .connecting-text,
+    .cursor {
+        font-size: 0.625rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .connecting-text,
+    .cursor {
+        font-size: 0.5625rem;
     }
 }

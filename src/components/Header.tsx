@@ -1,7 +1,11 @@
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  hidePhone?: boolean
+}
+
+const Header: React.FC<HeaderProps> = ({ hidePhone = false }) => {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -24,9 +28,11 @@ const Header: React.FC = () => {
       <span className="home-icon" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>
         ○
       </span>
-      <span className="phone-number" onClick={handlePhoneClick} style={{ cursor: 'pointer' }}>
-        +1-781-915-9663
-      </span>
+      {!hidePhone && (
+        <span className="phone-number" onClick={handlePhoneClick} style={{ cursor: 'pointer' }}>
+          +1-781-915-9663
+        </span>
+      )}
     </header>
   )
 }
