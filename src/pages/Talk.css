@@ -1,315 +1,59 @@
-/* Talk Page - Minimal Voice Interface */
+/* Talk Page - Minimal */
 
 .talk-container {
     min-height: 100vh;
-    background: #030303;
-    position: relative;
-    overflow: hidden;
+    background: #000;
     display: flex;
     flex-direction: column;
-    --color-primary: 255, 200, 160;
-    --color-secondary: 255, 170, 130;
-}
-
-/* Subtle ambient glow */
-.talk-container::before {
-    content: '';
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    width: 100vw;
-    height: 100vh;
-    transform: translate(-50%, -50%);
-    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
-    pointer-events: none;
-}
-
-/* Entrance */
-.entrance-overlay {
-    position: fixed;
-    inset: 0;
-    background: #030303;
-    z-index: 1000;
-    pointer-events: none;
-    opacity: 1;
-    transition: opacity 0.5s ease-out;
-}
-
-.talk-container.active .entrance-overlay {
-    opacity: 0;
-}
-
-.talk-container.entering .talk-header,
-.talk-container.entering .talk-controls {
-    opacity: 0;
-}
-
-.talk-container.active .talk-header {
-    animation: fadeIn 0.6s ease-out 0.2s both;
-}
-
-.talk-container.active .talk-controls {
-    animation: fadeIn 0.6s ease-out 0.4s both;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* Orb entrance */
-.talk-container.entering .orb-wrapper {
-    opacity: 0;
-    transform: scale(0.9);
-}
-
-.talk-container.active .orb-wrapper {
-    animation: orbReveal 0.8s cubic-bezier(0.4, 0, 0.2, 1) both;
-}
-
-@keyframes orbReveal {
-    0% {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* Header */
-.talk-header {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 2rem;
     position: relative;
-    z-index: 10;
+    padding: 2rem 2rem 0 2rem;
 }
 
-.talk-home-icon {
-    font-size: 0.6875rem;
-    font-weight: 300;
-    color: rgba(255, 255, 255, 0.2);
-    cursor: pointer;
-    transition: color 0.3s ease;
-}
+/* Header uses global .header styles from styles.css */
 
-.talk-home-icon:hover {
-    color: rgba(255, 255, 255, 0.6);
-}
-
-/* Main */
-.talk-main {
+/* Circle */
+.circle-wrapper {
     flex: 1;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding-top: 15vh;
-    position: relative;
-    z-index: 10;
-}
-
-/* Orb */
-.orb-wrapper {
-    position: relative;
-    display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    transition: transform 0.3s ease;
-    margin-bottom: auto;
+    padding-top: 2rem;
+    padding-bottom: 10rem;
 }
 
-.orb-wrapper:hover {
-    transform: scale(1.02);
-}
-
-.orb-wrapper:active {
-    transform: scale(0.98);
-}
-
-.orb {
-    position: relative;
-    width: 160px;
-    height: 160px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.5s ease;
-}
-
-.orb-glow {
-    position: absolute;
-    width: 280%;
-    height: 280%;
+.circle {
+    width: 180px;
+    height: 180px;
     border-radius: 50%;
-    background: radial-gradient(circle, 
-        rgba(var(--color-primary), 0.12) 0%, 
-        rgba(var(--color-secondary), 0.06) 30%,
-        transparent 55%
+    background: radial-gradient(circle at 35% 35%, 
+        rgba(180, 220, 255, 0.9) 0%,
+        rgba(140, 200, 255, 0.8) 40%,
+        rgba(100, 180, 255, 0.7) 100%
     );
-    filter: blur(40px);
-    transition: all 0.5s ease;
-}
-
-.orb-core {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: 
-        radial-gradient(circle at 35% 35%, 
-            rgba(255, 255, 255, 1) 0%, 
-            rgba(255, 255, 255, 0.7) 15%, 
-            rgba(255, 255, 255, 0.3) 35%, 
-            transparent 55%
-        ),
-        radial-gradient(circle at 65% 65%, 
-            rgba(var(--color-secondary), 0.5) 0%, 
-            transparent 35%
-        ),
-        radial-gradient(circle at 50% 50%, 
-            rgba(var(--color-primary), 0.45) 0%, 
-            rgba(var(--color-secondary), 0.25) 40%, 
-            rgba(var(--color-primary), 0.1) 70%,
-            transparent 100%
-        );
     box-shadow: 
-        0 0 60px rgba(var(--color-primary), 0.25),
-        0 0 120px rgba(var(--color-secondary), 0.15),
-        inset 0 0 50px rgba(255, 255, 255, 0.2);
-    transition: all 0.5s ease;
+        0 0 60px rgba(140, 200, 255, 0.3),
+        0 0 120px rgba(100, 180, 255, 0.15);
+    opacity: 0;
+    transform: scale(0.9);
+    transition: 
+        opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.5s ease;
 }
 
-/* Idle */
-.orb-idle .orb-core {
-    animation: gentleBreath 4s ease-in-out infinite;
+.talk-container.active .circle {
+    opacity: 1;
+    transform: scale(1);
 }
 
-.orb-idle .orb-glow {
-    animation: glowBreath 4s ease-in-out infinite;
-}
-
-@keyframes gentleBreath {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.03);
-    }
-}
-
-@keyframes glowBreath {
-    0%, 100% {
-        transform: scale(1);
-        opacity: 0.9;
-    }
-    50% {
-        transform: scale(1.05);
-        opacity: 1;
-    }
-}
-
-/* Listening */
-.orb-listening .orb-core {
-    animation: listenPulse 1.2s ease-in-out infinite;
-}
-
-.orb-listening .orb-glow {
-    animation: listenGlow 1.2s ease-in-out infinite;
-}
-
-@keyframes listenPulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(calc(1 + var(--pulse, 0.5) * 0.08));
-    }
-}
-
-@keyframes listenGlow {
-    0%, 100% {
-        transform: scale(1);
-        opacity: 0.8;
-    }
-    50% {
-        transform: scale(calc(1 + var(--pulse, 0.5) * 0.12));
-        opacity: 1;
-    }
-}
-
-/* Processing */
-.orb-processing .orb-core {
-    animation: processPulse 0.8s ease-in-out infinite;
-}
-
-.orb-processing .orb-glow {
-    animation: processGlow 0.8s ease-in-out infinite;
-}
-
-@keyframes processPulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-}
-
-@keyframes processGlow {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.1);
-    }
-}
-
-/* Speaking */
-.orb-speaking .orb-core {
-    animation: speakPulse 0.5s ease-in-out infinite;
-}
-
-.orb-speaking .orb-glow {
-    animation: speakGlow 0.5s ease-in-out infinite;
-}
-
-@keyframes speakPulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(calc(1 + var(--pulse, 0.5) * 0.1));
-    }
-}
-
-@keyframes speakGlow {
-    0%, 100% {
-        transform: scale(1);
-        opacity: 0.9;
-    }
-    50% {
-        transform: scale(calc(1 + var(--pulse, 0.5) * 0.18));
-        opacity: 1;
-    }
-}
-
-/* Muted */
-.orb-muted .orb-core {
-    opacity: 0.5;
-    animation: none;
-}
-
-.orb-muted .orb-glow {
+.circle.muted {
     opacity: 0.4;
-    animation: none;
+    box-shadow: 
+        0 0 40px rgba(140, 200, 255, 0.15),
+        0 0 80px rgba(100, 180, 255, 0.08);
 }
 
-/* Controls - positioned at bottom */
+/* Controls */
 .talk-controls {
     position: fixed;
     bottom: 4rem;
@@ -317,56 +61,145 @@
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: 3rem;
+    gap: 2.5rem;
+    opacity: 0;
+    transition: opacity 1s ease 0.8s;
 }
 
-.control-button {
+.talk-container.active .talk-controls {
+    opacity: 1;
+}
+
+.control-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     background: transparent;
-    border: none;
-    padding: 0.75rem 1.25rem;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.control-btn:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.control-btn.active {
+    border-color: rgba(140, 200, 255, 0.4);
+    color: rgba(140, 200, 255, 0.9);
+}
+
+.control-btn.end-btn:hover {
+    border-color: rgba(255, 120, 120, 0.4);
+    color: rgba(255, 140, 140, 0.9);
+}
+
+/* Exit Overlay */
+.exit-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: overlayFadeIn 0.4s ease-out;
+}
+
+@keyframes overlayFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.exit-overlay-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    animation: contentSlideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes contentSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.exit-overlay-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 280px;
+}
+
+.exit-btn {
+    width: 100%;
+    padding: 1rem 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
     transition: all 0.3s ease;
     font-family: inherit;
-    font-size: 0.6875rem;
-    font-weight: 300;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
 }
 
-.control-button svg {
-    width: 16px;
-    height: 16px;
+.exit-btn:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.03);
 }
 
-.control-button:hover {
-    color: rgba(255, 255, 255, 0.7);
+.exit-btn.save-btn:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.03);
 }
 
-.control-button.active {
-    color: rgba(255, 255, 255, 0.8);
+.exit-btn.delete-btn {
+    border: none;
+    background: transparent;
+    padding: 0.5rem 0;
+    font-size: 0.625rem;
 }
 
-.control-button.end-button:hover {
-    color: rgba(255, 140, 140, 0.9);
+.exit-btn.delete-btn:hover {
+    border: none;
+    background: transparent;
+    color: rgba(255, 140, 140, 0.95);
 }
 
 /* Mobile */
 @media (max-width: 480px) {
-    .talk-header {
-        padding: 1.5rem;
+    .circle {
+        width: 140px;
+        height: 140px;
     }
 
-    .talk-main {
-        padding-top: 12vh;
-    }
-
-    .orb {
-        width: 130px;
-        height: 130px;
+    .circle-wrapper {
+        padding-bottom: 8rem;
     }
 
     .talk-controls {
@@ -374,13 +207,17 @@
         gap: 2rem;
     }
 
-    .control-button {
-        font-size: 0.625rem;
-        padding: 0.625rem 1rem;
+    .control-btn {
+        width: 52px;
+        height: 52px;
     }
 
-    .control-button svg {
-        width: 14px;
-        height: 14px;
+    .exit-overlay-buttons {
+        width: 240px;
+    }
+
+    .exit-btn {
+        padding: 0.875rem 1.5rem;
+        font-size: 0.8125rem;
     }
 }

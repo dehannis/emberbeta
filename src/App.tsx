@@ -5,6 +5,7 @@ import Share from './pages/Share'
 import Account from './pages/Account'
 import Build from './pages/Build'
 import Talk from './pages/Talk'
+import VideoLanding from './pages/VideoLanding'
 
 const App: React.FC = () => {
   return (
@@ -15,6 +16,7 @@ const App: React.FC = () => {
         <Route path="/account" element={<Account />} />
         <Route path="/build" element={<Build />} />
         <Route path="/talk" element={<Talk />} />
+        <Route path="/video-landing" element={<VideoLanding />} />
       </Routes>
     </Router>
   )

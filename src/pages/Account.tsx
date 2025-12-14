@@ -209,7 +209,7 @@ const Account: React.FC = () => {
           <section className="sign-out-section">
             <button
               type="button"
-              onClick={() => console.log('Sign Out Clicked')}
+              onClick={() => navigate('/video-landing')}
               className="sign-out-button"
             >
               Sign Out
