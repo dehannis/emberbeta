@@ -22,15 +22,18 @@ const Build: React.FC = () => {
   
   const [birthYear, setBirthYear] = useState<number>(1990)
   const [currentYear] = useState<number>(new Date().getFullYear())
-  const [zoom, setZoom] = useState<number>(1)
-  const [rotateX, setRotateX] = useState<number>(15)
+  const [zoom, setZoom] = useState<number>(1.2) // Start slightly zoomed in
+  const [rotateX, setRotateX] = useState<number>(0) // Start flat for centered view
   const [rotateY, setRotateY] = useState<number>(0)
   const [translateZ, setTranslateZ] = useState<number>(0)
+  const [translateX, setTranslateX] = useState<number>(0)
+  const [translateY, setTranslateY] = useState<number>(0)
   const [isDragging, setIsDragging] = useState<boolean>(false)
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
-  const [lastRotation, setLastRotation] = useState<{ x: number; y: number }>({ x: 15, y: 0 })
+  const [lastPosition, setLastPosition] = useState<{ x: number; y: number; z: number }>({ x: 0, y: 0, z: 0 })
+  const [isInitialized, setIsInitialized] = useState<boolean>(false)
   
-  // Sample memories with different colors
+  // Sample memories - first memory is always white (the primary/centered one)
   const [memories] = useState<Memory[]>([
     {
       id: 1,
@@ -41,7 +44,7 @@ const Build: React.FC = () => {
       duration: '12:34',
       preview: 'A quiet moment to reflect on the week ahead and set intentions for the coming days...',
       audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      color: 'rgba(140, 200, 255, 0.9)',
+      color: 'rgba(255, 255, 255, 0.95)', // White sphere for the first/primary memory
     },
     {
       id: 2,
@@ -108,6 +111,22 @@ const Build: React.FC = () => {
       }
     }
   }, [currentYear])
+
+  // Center on the first memory when page loads
+  useEffect(() => {
+    if (memories.length > 0 && !isInitialized) {
+      const firstMemory = memories[0]
+      // Calculate position to center the first memory
+      const totalYrs = currentYear - birthYear + 1
+      const yearIndex = firstMemory.year - birthYear
+      const progress = yearIndex / (totalYrs - 1 || 1)
+      const z = (1 - progress) * 1000 - 500
+      
+      // Offset to bring the first memory to center
+      setTranslateZ(-z)
+      setIsInitialized(true)
+    }
+  }, [memories, birthYear, currentYear, isInitialized])
 
   // Audio event listeners
   useEffect(() => {
@@ -179,14 +198,14 @@ const Build: React.FC = () => {
 
   // Zoom handlers
   const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev * 1.25, 2.5))
+    setZoom(prev => Math.min(prev * 1.25, 4))
   }
 
   const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev / 1.25, 0.4))
+    setZoom(prev => Math.max(prev / 1.25, 0.3))
   }
 
-  // Drag handlers for 3D rotation
+  // Drag handlers for panning
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.memory-sphere-wrapper') || 
         (e.target as HTMLElement).closest('.ghost-sphere-wrapper')) {
@@ -194,18 +213,18 @@ const Build: React.FC = () => {
     }
     setIsDragging(true)
     setDragStart({ x: e.clientX, y: e.clientY })
-    setLastRotation({ x: rotateX, y: rotateY })
+    setLastPosition({ x: translateX, y: translateY, z: translateZ })
   }
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
-      const deltaX = (e.clientX - dragStart.x) * 0.3
-      const deltaY = (e.clientY - dragStart.y) * 0.2
+      const deltaX = (e.clientX - dragStart.x) * 1.5
+      const deltaY = (e.clientY - dragStart.y) * 1.5
       
-      setRotateY(lastRotation.y + deltaX)
-      setRotateX(Math.max(-30, Math.min(45, lastRotation.x - deltaY)))
+      setTranslateX(lastPosition.x + deltaX)
+      setTranslateY(lastPosition.y + deltaY)
     }
-  }, [isDragging, dragStart, lastRotation])
+  }, [isDragging, dragStart, lastPosition])
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false)
@@ -227,12 +246,12 @@ const Build: React.FC = () => {
     e.preventDefault()
     
     if (e.shiftKey) {
-      // Shift + scroll = navigate through time
-      setTranslateZ(prev => Math.max(-300, Math.min(300, prev - e.deltaY * 0.5)))
+      // Shift + scroll = navigate through time (pan along Z)
+      setTranslateZ(prev => prev - e.deltaY * 2)
     } else {
       // Normal scroll = zoom
       const delta = e.deltaY > 0 ? 0.92 : 1.08
-      setZoom(prev => Math.max(0.4, Math.min(2.5, prev * delta)))
+      setZoom(prev => Math.max(0.3, Math.min(4, prev * delta)))
     }
   }
 
@@ -242,18 +261,18 @@ const Build: React.FC = () => {
       const touch = e.touches[0]
       setIsDragging(true)
       setDragStart({ x: touch.clientX, y: touch.clientY })
-      setLastRotation({ x: rotateX, y: rotateY })
+      setLastPosition({ x: translateX, y: translateY, z: translateZ })
     }
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (isDragging && e.touches.length === 1) {
       const touch = e.touches[0]
-      const deltaX = (touch.clientX - dragStart.x) * 0.3
-      const deltaY = (touch.clientY - dragStart.y) * 0.2
+      const deltaX = (touch.clientX - dragStart.x) * 1.5
+      const deltaY = (touch.clientY - dragStart.y) * 1.5
       
-      setRotateY(lastRotation.y + deltaX)
-      setRotateX(Math.max(-30, Math.min(45, lastRotation.x - deltaY)))
+      setTranslateX(lastPosition.x + deltaX)
+      setTranslateY(lastPosition.y + deltaY)
     }
   }
 
@@ -331,7 +350,7 @@ const Build: React.FC = () => {
           className="timeline-space"
           style={{
             transform: `
-              translateZ(${translateZ}px)
+              translate3d(${translateX}px, ${translateY}px, ${translateZ}px)
               rotateX(${rotateX}deg)
               rotateY(${rotateY}deg)
               scale(${zoom})
@@ -372,11 +391,13 @@ const Build: React.FC = () => {
               const pos = getMemoryPosition(memory, index, yearMemories.length)
               const scale = getScaleFromZ(pos.z)
               const opacity = getOpacityFromZ(pos.z)
+              const isFirstMemory = memory.id === memories[0]?.id
+              const showDateLabel = zoom >= 1.3 // Show date when zoomed in
               
               return (
                 <div
                   key={memory.id}
-                  className="memory-sphere-wrapper"
+                  className={`memory-sphere-wrapper ${isFirstMemory ? 'primary' : ''}`}
                   style={{
                     transform: `translate3d(${pos.x}px, ${pos.y}px, ${pos.z}px) scale(${scale})`,
                     opacity,
@@ -384,19 +405,33 @@ const Build: React.FC = () => {
                   onClick={() => handleMemoryClick(memory)}
                 >
                   <div 
-                    className="memory-sphere"
+                    className={`memory-sphere ${isFirstMemory ? 'white-sphere' : ''}`}
                     style={{
-                      background: `radial-gradient(circle at 30% 30%, 
-                        ${memory.color.replace('0.9', '1')}, 
-                        ${memory.color}, 
-                        ${memory.color.replace('0.9', '0.6')})`,
-                      boxShadow: `
-                        0 0 30px ${memory.color.replace('0.9', '0.4')}, 
-                        0 0 60px ${memory.color.replace('0.9', '0.2')},
-                        inset 0 0 20px ${memory.color.replace('0.9', '0.3')}
-                      `,
+                      background: isFirstMemory 
+                        ? `radial-gradient(circle at 30% 30%, 
+                            rgba(255, 255, 255, 1), 
+                            rgba(255, 255, 255, 0.9), 
+                            rgba(220, 220, 220, 0.8))`
+                        : `radial-gradient(circle at 30% 30%, 
+                            ${memory.color.replace('0.9', '1')}, 
+                            ${memory.color}, 
+                            ${memory.color.replace('0.9', '0.6')})`,
+                      boxShadow: isFirstMemory
+                        ? `0 0 40px rgba(255, 255, 255, 0.5), 
+                           0 0 80px rgba(255, 255, 255, 0.25),
+                           inset 0 0 20px rgba(255, 255, 255, 0.4)`
+                        : `0 0 30px ${memory.color.replace('0.9', '0.4')}, 
+                           0 0 60px ${memory.color.replace('0.9', '0.2')},
+                           inset 0 0 20px ${memory.color.replace('0.9', '0.3')}`,
                     }}
                   />
+                  {/* Date label - visible when zoomed in or for primary memory */}
+                  <div 
+                    className={`memory-date-label ${showDateLabel || isFirstMemory ? 'visible' : ''}`}
+                  >
+                    <span className="memory-date-text">{memory.date}</span>
+                  </div>
+                  {/* Full label on hover */}
                   <div className="memory-sphere-label">
                     <span className="memory-sphere-title">{memory.title}</span>
                     <span className="memory-sphere-date">{memory.date}</span>
