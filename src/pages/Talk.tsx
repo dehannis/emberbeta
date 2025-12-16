@@ -17,21 +17,30 @@ const Talk: React.FC = () => {
   const navigate = useNavigate()
   const [isEntering, setIsEntering] = useState(true)
   const [isMuted, setIsMuted] = useState(false)
+  const isMutedRef = useRef(false)
   const circleRef = useRef<HTMLDivElement>(null)
+  const orbWrapRef = useRef<HTMLDivElement>(null)
   const [exitAnchor, setExitAnchor] = useState<{ x: number; y: number } | null>(null)
 
   // --- Hume EVI voice chat (local proxy) ---
   type VoiceStatus = 'idle' | 'connecting' | 'live' | 'error'
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>('idle')
   const [voiceError, setVoiceError] = useState<string>('')
+  const [isEmberSpeaking, setIsEmberSpeaking] = useState(false)
+  const isEmberSpeakingRef = useRef(false)
   const wsRef = useRef<WebSocket | null>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const processorRef = useRef<ScriptProcessorNode | null>(null)
   const isSendingRef = useRef(false)
+  const micAnalyserRef = useRef<AnalyserNode | null>(null)
+  const micRafRef = useRef<number | null>(null)
 
-  const playbackQueueRef = useRef<Array<{ url: string; mime: string }>>([])
+  const playbackQueueRef = useRef<Array<{ wav: ArrayBuffer }>>([])
   const playingRef = useRef(false)
+  const playbackAudioCtxRef = useRef<AudioContext | null>(null)
+  const playbackAnalyserRef = useRef<AnalyserNode | null>(null)
+  const emberRafRef = useRef<number | null>(null)
 
   const proxyWsUrl = useMemo(() => {
     const envUrl = (import.meta as any).env?.VITE_EVI_PROXY_WS as string | undefined
@@ -89,6 +98,14 @@ const Talk: React.FC = () => {
   const handleMuteToggle = () => {
     setIsMuted(!isMuted)
   }
+
+  useEffect(() => {
+    isMutedRef.current = isMuted
+  }, [isMuted])
+
+  useEffect(() => {
+    isEmberSpeakingRef.current = isEmberSpeaking
+  }, [isEmberSpeaking])
 
   const handleEndCall = () => {
     stopVoice()
@@ -191,38 +208,129 @@ const Talk: React.FC = () => {
   }
 
   const enqueuePlayback = (bytes: Uint8Array) => {
-    // Best-effort MIME detection (RIFF=WAV).
-    const isRiff = bytes.length >= 4 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
-    const mime = isRiff ? 'audio/wav' : 'application/octet-stream'
-    // TS: BlobPart is typed narrowly; ensure we pass an actual ArrayBuffer (not ArrayBufferLike).
+    // Keep raw WAV bytes so we can play + analyse through WebAudio reliably.
     const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
-    const url = URL.createObjectURL(new Blob([ab], { type: mime }))
-    playbackQueueRef.current.push({ url, mime })
-    pumpPlayback()
+    playbackQueueRef.current.push({ wav: ab })
+    void pumpPlayback()
   }
 
-  const pumpPlayback = () => {
+  const pumpPlayback = async () => {
     if (playingRef.current) return
     const next = playbackQueueRef.current.shift()
     if (!next) return
-    playingRef.current = true
-    const audio = new Audio(next.url)
-    audio.onended = () => {
-      URL.revokeObjectURL(next.url)
+
+    // Prefer the mic AudioContext (created from a user gesture) so playback is never blocked.
+    const ctx = audioCtxRef.current
+    if (!ctx) {
+      // Fallback: no reliable way to both play+analyse without a gesture-created AudioContext.
       playingRef.current = false
-      pumpPlayback()
+      isEmberSpeakingRef.current = false
+      setIsEmberSpeaking(false)
+      return
     }
-    audio.onerror = () => {
-      URL.revokeObjectURL(next.url)
-      playingRef.current = false
-      pumpPlayback()
-    }
-    void audio.play().catch(() => {
+
+    try {
+      await ctx.resume()
+    } catch {
       // ignore
-      URL.revokeObjectURL(next.url)
+    }
+
+    playingRef.current = true
+    isEmberSpeakingRef.current = true
+    setIsEmberSpeaking(true)
+
+    const wrap = orbWrapRef.current
+    if (wrap) {
+      wrap.style.setProperty('--ember-level', '0')
+      wrap.style.setProperty('--ember-alpha', '0')
+      wrap.style.setProperty('--ember-alpha2', '0')
+      wrap.style.setProperty('--ember-scale', '1')
+    }
+
+    // Decode WAV chunk into PCM buffer
+    let audioBuffer: AudioBuffer | null = null
+    try {
+      audioBuffer = await ctx.decodeAudioData(next.wav.slice(0))
+    } catch {
+      // If decode fails, skip this chunk.
       playingRef.current = false
-      pumpPlayback()
-    })
+      if (playbackQueueRef.current.length === 0) {
+        isEmberSpeakingRef.current = false
+        setIsEmberSpeaking(false)
+      }
+      void pumpPlayback()
+      return
+    }
+
+    // Shared analyser for voice-matched glow
+    let analyser = playbackAnalyserRef.current
+    if (!analyser) {
+      analyser = ctx.createAnalyser()
+      analyser.fftSize = 1024
+      playbackAnalyserRef.current = analyser
+      analyser.connect(ctx.destination)
+    }
+
+    const src = ctx.createBufferSource()
+    src.buffer = audioBuffer
+    src.connect(analyser)
+
+    const data = new Uint8Array(analyser.fftSize)
+    const tick = () => {
+      const w = orbWrapRef.current
+      const a = playbackAnalyserRef.current
+      if (!w || !a) {
+        emberRafRef.current = requestAnimationFrame(tick)
+        return
+      }
+      if (!playingRef.current || !isEmberSpeakingRef.current) {
+        w.style.setProperty('--ember-level', '0')
+        w.style.setProperty('--ember-alpha', '0')
+        w.style.setProperty('--ember-alpha2', '0')
+        w.style.setProperty('--ember-scale', '1')
+        emberRafRef.current = null
+        return
+      }
+
+      a.getByteTimeDomainData(data)
+      let sum = 0
+      for (let i = 0; i < data.length; i++) {
+        const v = (data[i] - 128) / 128
+        sum += v * v
+      }
+      const rms = Math.sqrt(sum / data.length)
+      const level = Math.max(0, Math.min(1, rms * 3.2))
+      w.style.setProperty('--ember-level', level.toFixed(3))
+      const alpha = Math.max(0, Math.min(0.30, 0.07 + level * 0.23))
+      w.style.setProperty('--ember-alpha', alpha.toFixed(3))
+      w.style.setProperty('--ember-alpha2', Math.max(0, Math.min(0.24, alpha * 0.65)).toFixed(3))
+      w.style.setProperty('--ember-scale', (1 + level * 0.10).toFixed(3))
+      emberRafRef.current = requestAnimationFrame(tick)
+    }
+
+    if (emberRafRef.current == null) emberRafRef.current = requestAnimationFrame(tick)
+
+    const finish = () => {
+      playingRef.current = false
+      try {
+        src.disconnect()
+      } catch {
+        // ignore
+      }
+      if (playbackQueueRef.current.length === 0) {
+        isEmberSpeakingRef.current = false
+        setIsEmberSpeaking(false)
+      }
+      void pumpPlayback()
+    }
+
+    src.onended = finish
+
+    try {
+      src.start()
+    } catch {
+      finish()
+    }
   }
 
   const startVoice = async () => {
@@ -245,11 +353,14 @@ const Talk: React.FC = () => {
           audioCtxRef.current = ctx
 
           const source = ctx.createMediaStreamSource(stream)
+          const analyser = ctx.createAnalyser()
+          analyser.fftSize = 1024
+          micAnalyserRef.current = analyser
           const processor = ctx.createScriptProcessor(4096, 1, 1)
           processorRef.current = processor
 
           processor.onaudioprocess = (e) => {
-            if (isMuted) return
+            if (isMutedRef.current) return
             if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
             // Avoid piling up if the socket is backpressured.
             if (isSendingRef.current) return
@@ -272,7 +383,44 @@ const Talk: React.FC = () => {
           }
 
           source.connect(processor)
+          source.connect(analyser)
           processor.connect(ctx.destination) // keeps processor alive
+
+          // Drive a CSS variable for mic “inflection” based on volume (RMS).
+          const data = new Uint8Array(analyser.fftSize)
+          const tick = () => {
+            const wrap = orbWrapRef.current
+            if (!wrap || !micAnalyserRef.current) {
+              micRafRef.current = requestAnimationFrame(tick)
+              return
+            }
+
+            if (isMutedRef.current) {
+              wrap.style.setProperty('--mic-level', '0')
+              wrap.style.setProperty('--mic-alpha', '0')
+              wrap.style.setProperty('--mic-alpha2', '0')
+              wrap.style.setProperty('--mic-scale', '1')
+            } else {
+              micAnalyserRef.current.getByteTimeDomainData(data)
+              let sum = 0
+              for (let i = 0; i < data.length; i++) {
+                const v = (data[i] - 128) / 128
+                sum += v * v
+              }
+              const rms = Math.sqrt(sum / data.length) // ~0..1
+              // Small boost + clamp so quiet speech still shows, but never blows out.
+              const level = Math.max(0, Math.min(1, rms * 2.2))
+              wrap.style.setProperty('--mic-level', level.toFixed(3))
+              // Drive glow visibility/size directly (avoid CSS calc() in opacity for browser compatibility).
+              const alpha = Math.max(0, Math.min(0.28, 0.06 + level * 0.22))
+              const scale = 1 + level * 0.18
+              wrap.style.setProperty('--mic-alpha', alpha.toFixed(3))
+              wrap.style.setProperty('--mic-alpha2', Math.max(0, Math.min(0.22, alpha * 0.65)).toFixed(3))
+              wrap.style.setProperty('--mic-scale', scale.toFixed(3))
+            }
+            micRafRef.current = requestAnimationFrame(tick)
+          }
+          micRafRef.current = requestAnimationFrame(tick)
 
           setVoiceStatus('live')
         } catch (err) {
@@ -324,6 +472,36 @@ const Talk: React.FC = () => {
   }
 
   const stopVoice = () => {
+    if (emberRafRef.current != null) {
+      cancelAnimationFrame(emberRafRef.current)
+      emberRafRef.current = null
+    }
+    playbackAnalyserRef.current = null
+    // Playback uses the mic AudioContext; don't close separately here.
+    playbackAudioCtxRef.current = null
+    try {
+      orbWrapRef.current?.style.setProperty('--ember-level', '0')
+      orbWrapRef.current?.style.setProperty('--ember-alpha', '0')
+      orbWrapRef.current?.style.setProperty('--ember-alpha2', '0')
+      orbWrapRef.current?.style.setProperty('--ember-scale', '1')
+    } catch {
+      // ignore
+    }
+
+    if (micRafRef.current != null) {
+      cancelAnimationFrame(micRafRef.current)
+      micRafRef.current = null
+    }
+    micAnalyserRef.current = null
+    try {
+      orbWrapRef.current?.style.setProperty('--mic-level', '0')
+      orbWrapRef.current?.style.setProperty('--mic-alpha', '0')
+      orbWrapRef.current?.style.setProperty('--mic-alpha2', '0')
+      orbWrapRef.current?.style.setProperty('--mic-scale', '1')
+    } catch {
+      // ignore
+    }
+
     try {
       processorRef.current?.disconnect()
     } catch {
@@ -354,6 +532,8 @@ const Talk: React.FC = () => {
 
     playbackQueueRef.current.splice(0, playbackQueueRef.current.length)
     playingRef.current = false
+    isEmberSpeakingRef.current = false
+    setIsEmberSpeaking(false)
     setVoiceStatus('idle')
   }
 
@@ -395,16 +575,33 @@ const Talk: React.FC = () => {
 
       {/* Circle */}
       <div className="circle-wrapper">
-        <div 
-          className={`circle ${isMuted ? 'muted' : ''}`}
-          ref={circleRef}
-          onClick={handleOrbClick}
-          style={{
-            cursor: 'pointer',
-            '--color-primary': currentColor.primary,
-            '--color-secondary': currentColor.secondary,
-          } as React.CSSProperties}
-        />
+        <div
+          className={`ember-orb ${isEmberSpeaking ? 'speaking' : ''} ${voiceStatus === 'live' ? 'live' : ''} ${isMuted ? 'muted' : ''}`}
+          ref={orbWrapRef}
+          style={
+            {
+              '--color-primary': currentColor.primary,
+              '--color-secondary': currentColor.secondary,
+              '--mic-level': '0',
+              '--ember-level': '0',
+              '--mic-alpha': '0',
+              '--mic-alpha2': '0',
+              '--ember-alpha': '0',
+              '--ember-alpha2': '0',
+              '--mic-scale': '1',
+              '--ember-scale': '1',
+            } as React.CSSProperties
+          }
+        >
+          <div className="ember-ring mic" aria-hidden="true" />
+          <div className="ember-ring speak" aria-hidden="true" />
+          <div
+            className={`circle ${isMuted ? 'muted' : ''}`}
+            ref={circleRef}
+            onClick={handleOrbClick}
+            style={{ cursor: 'pointer' } as React.CSSProperties}
+          />
+        </div>
       </div>
 
       {/* Controls */}

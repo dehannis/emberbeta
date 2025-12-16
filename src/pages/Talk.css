@@ -21,6 +21,63 @@
     padding-bottom: 10rem;
 }
 
+.ember-orb {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    /* default, updated live via JS */
+    --mic-level: 0;
+    --ember-level: 0;
+    --mic-alpha: 0;
+    --ember-alpha: 0;
+    --mic-scale: 1;
+    --ember-scale: 1;
+}
+
+.ember-ring {
+    position: absolute;
+    inset: -22px;
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.98);
+    transition: opacity 200ms ease;
+    border: none;
+    /* Glow-only: no visible outline ring */
+    background: radial-gradient(circle,
+        rgba(var(--color-primary, 140, 200, 255), 0.06) 0%,
+        rgba(var(--color-primary, 140, 200, 255), 0.03) 35%,
+        rgba(var(--color-secondary, 100, 180, 255), 0.00) 70%
+    );
+    filter: blur(1px);
+}
+
+/* Mic “inflection” ring: reacts to mic volume */
+.ember-orb.live .ember-ring.mic {
+    opacity: var(--mic-alpha);
+    transform: scale(var(--mic-scale));
+    box-shadow:
+        0 0 calc(12px + (var(--mic-level) * 18px)) rgba(var(--color-primary, 140, 200, 255), calc(0.04 + (var(--mic-level) * 0.10))),
+        0 0 calc(28px + (var(--mic-level) * 40px)) rgba(var(--color-secondary, 100, 180, 255), calc(0.03 + (var(--mic-level) * 0.08)));
+}
+
+.ember-orb.muted .ember-ring.mic {
+    opacity: 0.06;
+    transform: scale(1);
+}
+
+/* Ember speaking pulse: smooth, rhythmic glow while audio plays */
+.ember-orb.speaking .ember-ring.speak {
+    opacity: var(--ember-alpha);
+    inset: -30px;
+    transform: scale(var(--ember-scale));
+    box-shadow:
+        0 0 calc(16px + (var(--ember-level) * 24px)) rgba(var(--color-primary, 140, 200, 255), calc(0.04 + (var(--ember-level) * 0.10))),
+        0 0 calc(38px + (var(--ember-level) * 56px)) rgba(var(--color-secondary, 100, 180, 255), calc(0.03 + (var(--ember-level) * 0.09)));
+}
+
+/* No keyframes here: speaking visuals are driven by real-time playback volume (var(--ember-level)). */
+
 .circle {
     width: 180px;
     height: 180px;
@@ -40,6 +97,33 @@
         transform 1.5s cubic-bezier(0.4, 0, 0.2, 1),
         background 0.6s ease,
         box-shadow 0.6s ease;
+}
+
+/* Voice-matched glow: modulate the orb's glow itself (no visible ring outline) */
+.ember-orb.live .circle {
+    box-shadow:
+        0 0 60px rgba(var(--color-primary, 140, 200, 255), 0.3),
+        0 0 120px rgba(var(--color-secondary, 100, 180, 255), 0.15),
+        0 0 44px rgba(var(--color-primary, 140, 200, 255), var(--mic-alpha)),
+        0 0 92px rgba(var(--color-secondary, 100, 180, 255), var(--mic-alpha2));
+}
+
+.ember-orb.speaking .circle {
+    box-shadow:
+        0 0 60px rgba(var(--color-primary, 140, 200, 255), 0.3),
+        0 0 120px rgba(var(--color-secondary, 100, 180, 255), 0.15),
+        0 0 54px rgba(var(--color-primary, 140, 200, 255), var(--ember-alpha)),
+        0 0 120px rgba(var(--color-secondary, 100, 180, 255), var(--ember-alpha2));
+}
+
+.ember-orb.speaking.live .circle {
+    box-shadow:
+        0 0 60px rgba(var(--color-primary, 140, 200, 255), 0.3),
+        0 0 120px rgba(var(--color-secondary, 100, 180, 255), 0.15),
+        0 0 44px rgba(var(--color-primary, 140, 200, 255), var(--mic-alpha)),
+        0 0 92px rgba(var(--color-secondary, 100, 180, 255), var(--mic-alpha2)),
+        0 0 54px rgba(var(--color-primary, 140, 200, 255), var(--ember-alpha)),
+        0 0 120px rgba(var(--color-secondary, 100, 180, 255), var(--ember-alpha2));
 }
 
 .talk-container.active .circle {

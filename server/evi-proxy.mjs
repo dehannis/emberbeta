@@ -92,16 +92,33 @@ wss.on('connection', (clientWs, req) => {
 
   const evi = hume.empathicVoice.chat.connect({
     configId: HUME_EVI_CONFIG_ID || undefined,
+    // Some accounts/environments require this flag to permit connection.
+    allowConnection: true,
     // Tell EVI we're sending PCM linear16 @ 16kHz mono (matches our mic pipeline).
     sessionSettings: { audio: { encoding: 'linear16', sampleRate: 16000, channels: 1 } },
   })
 
+  let eviIsOpen = false
+  const pendingPublishes = []
+
   evi.on('open', () => {
     log('hume evi socket open')
+    eviIsOpen = true
     try {
       clientWs.send(JSON.stringify({ type: 'proxy_status', status: 'connected' }))
     } catch {
       // ignore
+    }
+
+    // Flush any messages we received from the browser before EVI was open.
+    if (pendingPublishes.length > 0) {
+      for (const publish of pendingPublishes.splice(0, pendingPublishes.length)) {
+        try {
+          evi.sendPublish(publish)
+        } catch {
+          // ignore
+        }
+      }
     }
   })
 
@@ -116,6 +133,7 @@ wss.on('connection', (clientWs, req) => {
 
   evi.on('close', (event) => {
     log('hume evi socket closed', event?.code ?? 'unknown')
+    eviIsOpen = false
     try {
       if (clientWs.readyState === clientWs.OPEN) {
         clientWs.send(JSON.stringify({ type: 'proxy_status', status: 'disconnected', code: event?.code }))
@@ -144,22 +162,42 @@ wss.on('connection', (clientWs, req) => {
       const parsed = JSON.parse(String(data))
 
       if (parsed?.type === 'audio_input' && typeof parsed?.data === 'string') {
+        if (!eviIsOpen) {
+          pendingPublishes.push({ type: 'audio_input', data: parsed.data })
+          if (pendingPublishes.length > 50) pendingPublishes.shift()
+          return
+        }
         evi.sendAudioInput({ data: parsed.data })
         return
       }
       if (parsed?.type === 'user_input' && typeof parsed?.text === 'string') {
+        if (!eviIsOpen) {
+          pendingPublishes.push({ type: 'user_input', text: parsed.text })
+          if (pendingPublishes.length > 50) pendingPublishes.shift()
+          return
+        }
         evi.sendUserInput(parsed.text)
         return
       }
       if (parsed?.type === 'session_settings') {
         // Allow frontend to override/extend session settings if desired.
         const { type, ...rest } = parsed
+        if (!eviIsOpen) {
+          pendingPublishes.push({ type: 'session_settings', ...rest })
+          if (pendingPublishes.length > 50) pendingPublishes.shift()
+          return
+        }
         evi.sendSessionSettings(rest)
         return
       }
 
       // Last resort passthrough (local-only).
       if (parsed?.type && typeof parsed.type === 'string') {
+        if (!eviIsOpen) {
+          pendingPublishes.push(parsed)
+          if (pendingPublishes.length > 50) pendingPublishes.shift()
+          return
+        }
         evi.sendPublish(parsed)
       }
     } catch (e) {
@@ -178,7 +216,8 @@ wss.on('connection', (clientWs, req) => {
   })
 
   // Initiate connection to EVI now that the client is connected.
-  evi.connect()
+  // IMPORTANT: do NOT call evi.connect() (it re-attaches event listeners and duplicates messages).
+  evi.socket.reconnect()
 })
 
 server.on('error', handleFatalServerError)
