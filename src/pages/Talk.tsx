@@ -28,6 +28,10 @@ const Talk: React.FC = () => {
   const [voiceError, setVoiceError] = useState<string>('')
   const [isEmberSpeaking, setIsEmberSpeaking] = useState(false)
   const isEmberSpeakingRef = useRef(false)
+  const [isMicOn, setIsMicOn] = useState(false)
+  const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown')
+  const [needsAudioGesture, setNeedsAudioGesture] = useState(false)
+  const didAutoGreetRef = useRef(false)
   const wsRef = useRef<WebSocket | null>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
@@ -41,6 +45,7 @@ const Talk: React.FC = () => {
   const playbackAudioCtxRef = useRef<AudioContext | null>(null)
   const playbackAnalyserRef = useRef<AnalyserNode | null>(null)
   const emberRafRef = useRef<number | null>(null)
+  const emberLevelSmoothedRef = useRef(0)
 
   const proxyWsUrl = useMemo(() => {
     const envUrl = (import.meta as any).env?.VITE_EVI_PROXY_WS as string | undefined
@@ -158,8 +163,8 @@ const Talk: React.FC = () => {
   }
 
   const handleOrbClick = () => {
-    // First click starts voice (required for mic permissions). Subsequent clicks keep your color-cycle behavior.
-    if (voiceStatus === 'idle' || voiceStatus === 'error') {
+    // If we haven't started mic capture yet, use this click to enable it.
+    if (!mediaStreamRef.current) {
       void startVoice()
       return
     }
@@ -214,25 +219,29 @@ const Talk: React.FC = () => {
     void pumpPlayback()
   }
 
+  const ensurePlaybackCtx = () => {
+    let ctx = playbackAudioCtxRef.current
+    if (!ctx) {
+      ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      playbackAudioCtxRef.current = ctx
+    }
+    return ctx
+  }
+
   const pumpPlayback = async () => {
     if (playingRef.current) return
     const next = playbackQueueRef.current.shift()
     if (!next) return
 
-    // Prefer the mic AudioContext (created from a user gesture) so playback is never blocked.
-    const ctx = audioCtxRef.current
-    if (!ctx) {
-      // Fallback: no reliable way to both play+analyse without a gesture-created AudioContext.
-      playingRef.current = false
-      isEmberSpeakingRef.current = false
-      setIsEmberSpeaking(false)
-      return
-    }
-
+    const ctx = ensurePlaybackCtx()
     try {
       await ctx.resume()
+      setNeedsAudioGesture(false)
     } catch {
-      // ignore
+      // Autoplay blocked; wait for a user gesture, keep the chunk queued.
+      playbackQueueRef.current.unshift(next)
+      setNeedsAudioGesture(true)
+      return
     }
 
     playingRef.current = true
@@ -242,9 +251,10 @@ const Talk: React.FC = () => {
     const wrap = orbWrapRef.current
     if (wrap) {
       wrap.style.setProperty('--ember-level', '0')
-      wrap.style.setProperty('--ember-alpha', '0')
-      wrap.style.setProperty('--ember-alpha2', '0')
-      wrap.style.setProperty('--ember-scale', '1')
+      // Baseline “speaking” glow so the UI is animated even if analyser fails.
+      wrap.style.setProperty('--ember-alpha', '0.12')
+      wrap.style.setProperty('--ember-alpha2', '0.08')
+      wrap.style.setProperty('--ember-scale', '1.03')
     }
 
     // Decode WAV chunk into PCM buffer
@@ -288,6 +298,13 @@ const Talk: React.FC = () => {
         w.style.setProperty('--ember-alpha', '0')
         w.style.setProperty('--ember-alpha2', '0')
         w.style.setProperty('--ember-scale', '1')
+        w.style.setProperty('--dot1y', '0px')
+        w.style.setProperty('--dot2y', '0px')
+        w.style.setProperty('--dot3y', '0px')
+        w.style.setProperty('--dot1o', '0.18')
+        w.style.setProperty('--dot2o', '0.18')
+        w.style.setProperty('--dot3o', '0.18')
+        emberLevelSmoothedRef.current = 0
         emberRafRef.current = null
         return
       }
@@ -304,7 +321,29 @@ const Talk: React.FC = () => {
       const alpha = Math.max(0, Math.min(0.30, 0.07 + level * 0.23))
       w.style.setProperty('--ember-alpha', alpha.toFixed(3))
       w.style.setProperty('--ember-alpha2', Math.max(0, Math.min(0.24, alpha * 0.65)).toFixed(3))
-      w.style.setProperty('--ember-scale', (1 + level * 0.10).toFixed(3))
+
+      // Speech-inflection dots: move/brighten based on Ember voice energy (with smoothing).
+      const prev = emberLevelSmoothedRef.current
+      const attack = 0.45
+      const release = 0.12
+      const smooth = prev + (level - prev) * (level > prev ? attack : release)
+      emberLevelSmoothedRef.current = smooth
+
+      // Also pulse the orb itself (subtle) based on smoothed Ember inflection.
+      w.style.setProperty('--ember-scale', (1 + smooth * 0.05).toFixed(3))
+
+      const y1 = -2 - smooth * 8
+      const y2 = -1 - smooth * 6.5
+      const y3 = -2 - smooth * 7.5
+      const o1 = 0.18 + smooth * 0.55
+      const o2 = 0.14 + smooth * 0.45
+      const o3 = 0.16 + smooth * 0.50
+      w.style.setProperty('--dot1y', `${y1.toFixed(2)}px`)
+      w.style.setProperty('--dot2y', `${y2.toFixed(2)}px`)
+      w.style.setProperty('--dot3y', `${y3.toFixed(2)}px`)
+      w.style.setProperty('--dot1o', Math.min(0.85, o1).toFixed(3))
+      w.style.setProperty('--dot2o', Math.min(0.75, o2).toFixed(3))
+      w.style.setProperty('--dot3o', Math.min(0.80, o3).toFixed(3))
       emberRafRef.current = requestAnimationFrame(tick)
     }
 
@@ -333,7 +372,22 @@ const Talk: React.FC = () => {
     }
   }
 
-  const startVoice = async () => {
+  const sendAutoGreeting = () => {
+    if (didAutoGreetRef.current) return
+    didAutoGreetRef.current = true
+    try {
+      wsRef.current?.send(
+        JSON.stringify({
+          type: 'assistant_input',
+          text: 'Hey. I’m here with you. What’s on your mind?',
+        }),
+      )
+    } catch {
+      // ignore
+    }
+  }
+
+  const connectVoice = (opts: { startMic: boolean }) => {
     setVoiceError('')
     setVoiceStatus('connecting')
 
@@ -342,12 +396,19 @@ const Talk: React.FC = () => {
       wsRef.current = ws
 
       ws.onopen = async () => {
+        // Connection is live even if we haven't started mic capture yet.
+        setVoiceStatus('live')
+        sendAutoGreeting()
+
+        if (!opts.startMic) return
+
         try {
-          // Mic capture must be initiated after a user gesture (this click).
           const stream = await navigator.mediaDevices.getUserMedia({
             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
           })
           mediaStreamRef.current = stream
+          setIsMicOn(true)
+          setMicPermission('granted')
 
           const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
           audioCtxRef.current = ctx
@@ -355,6 +416,7 @@ const Talk: React.FC = () => {
           const source = ctx.createMediaStreamSource(stream)
           const analyser = ctx.createAnalyser()
           analyser.fftSize = 1024
+          analyser.smoothingTimeConstant = 0.75
           micAnalyserRef.current = analyser
           const processor = ctx.createScriptProcessor(4096, 1, 1)
           processorRef.current = processor
@@ -362,7 +424,6 @@ const Talk: React.FC = () => {
           processor.onaudioprocess = (e) => {
             if (isMutedRef.current) return
             if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
-            // Avoid piling up if the socket is backpressured.
             if (isSendingRef.current) return
 
             const ch0 = e.inputBuffer.getChannelData(0)
@@ -370,8 +431,6 @@ const Talk: React.FC = () => {
             const bytes = floatToPcm16(down)
             const b64 = base64FromBytes(bytes)
 
-            // Hume EVI expects base64 audio chunks as `{ type: "audio_input", data: "<base64>" }`
-            // Session audio settings (linear16/16k/mono) are configured server-side in the proxy.
             const msg = { type: 'audio_input', data: b64 }
 
             try {
@@ -386,8 +445,8 @@ const Talk: React.FC = () => {
           source.connect(analyser)
           processor.connect(ctx.destination) // keeps processor alive
 
-          // Drive a CSS variable for mic “inflection” based on volume (RMS).
           const data = new Uint8Array(analyser.fftSize)
+          const freq = new Uint8Array(analyser.frequencyBinCount)
           const tick = () => {
             const wrap = orbWrapRef.current
             if (!wrap || !micAnalyserRef.current) {
@@ -400,42 +459,62 @@ const Talk: React.FC = () => {
               wrap.style.setProperty('--mic-alpha', '0')
               wrap.style.setProperty('--mic-alpha2', '0')
               wrap.style.setProperty('--mic-scale', '1')
+              wrap.style.setProperty('--bar1', '0.25')
+              wrap.style.setProperty('--bar2', '0.25')
+              wrap.style.setProperty('--bar3', '0.25')
+              wrap.style.setProperty('--bar4', '0.25')
+              wrap.style.setProperty('--bar5', '0.25')
             } else {
               micAnalyserRef.current.getByteTimeDomainData(data)
+              micAnalyserRef.current.getByteFrequencyData(freq)
               let sum = 0
               for (let i = 0; i < data.length; i++) {
                 const v = (data[i] - 128) / 128
                 sum += v * v
               }
-              const rms = Math.sqrt(sum / data.length) // ~0..1
-              // Small boost + clamp so quiet speech still shows, but never blows out.
+              const rms = Math.sqrt(sum / data.length)
               const level = Math.max(0, Math.min(1, rms * 2.2))
               wrap.style.setProperty('--mic-level', level.toFixed(3))
-              // Drive glow visibility/size directly (avoid CSS calc() in opacity for browser compatibility).
               const alpha = Math.max(0, Math.min(0.28, 0.06 + level * 0.22))
               const scale = 1 + level * 0.18
               wrap.style.setProperty('--mic-alpha', alpha.toFixed(3))
               wrap.style.setProperty('--mic-alpha2', Math.max(0, Math.min(0.22, alpha * 0.65)).toFixed(3))
               wrap.style.setProperty('--mic-scale', scale.toFixed(3))
+
+              const band = (from: number, to: number) => {
+                let s = 0
+                let c = 0
+                for (let i = from; i < to; i++) {
+                  s += freq[i] ?? 0
+                  c++
+                }
+                const avg = c ? s / c : 0
+                return Math.max(0, Math.min(1, avg / 255))
+              }
+              const n = freq.length
+              const b1 = band(0, Math.floor(n * 0.08))
+              const b2 = band(Math.floor(n * 0.08), Math.floor(n * 0.18))
+              const b3 = band(Math.floor(n * 0.18), Math.floor(n * 0.32))
+              const b4 = band(Math.floor(n * 0.32), Math.floor(n * 0.55))
+              const b5 = band(Math.floor(n * 0.55), Math.floor(n * 0.85))
+
+              const map = (x: number) => 0.22 + x * 1.15
+              wrap.style.setProperty('--bar1', map(b1).toFixed(3))
+              wrap.style.setProperty('--bar2', map(b2).toFixed(3))
+              wrap.style.setProperty('--bar3', map(b3).toFixed(3))
+              wrap.style.setProperty('--bar4', map(b4).toFixed(3))
+              wrap.style.setProperty('--bar5', map(b5).toFixed(3))
             }
             micRafRef.current = requestAnimationFrame(tick)
           }
           micRafRef.current = requestAnimationFrame(tick)
-
-          setVoiceStatus('live')
-        } catch (err) {
-          setVoiceStatus('error')
-          setVoiceError('Microphone permission failed (or no mic available).')
-          try {
-            ws.close()
-          } catch {
-            // ignore
-          }
+        } catch {
+          setMicPermission('denied')
+          setVoiceError('Microphone blocked. Please allow mic access in the browser prompt or site settings.')
         }
       }
 
       ws.onmessage = (evt) => {
-        // Forwarded Hume messages (or proxy status/errors)
         try {
           const parsed = JSON.parse(String(evt.data))
           if (parsed?.type === 'proxy_error') {
@@ -443,17 +522,12 @@ const Talk: React.FC = () => {
             setVoiceError(parsed?.message || 'Proxy error')
             return
           }
-          if (parsed?.type === 'proxy_status' && parsed?.status === 'connected') {
-            // ignore (we mark live after mic starts)
-            return
-          }
-
-          // Try to find an audio payload in common shapes.
+          if (parsed?.type === 'proxy_status') return
           if (parsed?.type === 'audio_output' && typeof parsed?.data === 'string') {
             enqueuePlayback(bytesFromBase64(parsed.data))
           }
         } catch {
-          // Non-JSON payloads are ignored for now.
+          // ignore
         }
       }
 
@@ -463,7 +537,7 @@ const Talk: React.FC = () => {
       }
 
       ws.onclose = () => {
-        if (voiceStatus !== 'idle') setVoiceStatus('idle')
+        setVoiceStatus('idle')
       }
     } catch {
       setVoiceStatus('error')
@@ -471,14 +545,14 @@ const Talk: React.FC = () => {
     }
   }
 
+  const startVoice = async () => connectVoice({ startMic: true })
+
   const stopVoice = () => {
     if (emberRafRef.current != null) {
       cancelAnimationFrame(emberRafRef.current)
       emberRafRef.current = null
     }
     playbackAnalyserRef.current = null
-    // Playback uses the mic AudioContext; don't close separately here.
-    playbackAudioCtxRef.current = null
     try {
       orbWrapRef.current?.style.setProperty('--ember-level', '0')
       orbWrapRef.current?.style.setProperty('--ember-alpha', '0')
@@ -517,11 +591,21 @@ const Talk: React.FC = () => {
     audioCtxRef.current = null
 
     try {
+      playbackAudioCtxRef.current?.close()
+    } catch {
+      // ignore
+    }
+    playbackAudioCtxRef.current = null
+    playbackAnalyserRef.current = null
+
+    try {
       mediaStreamRef.current?.getTracks().forEach((t) => t.stop())
     } catch {
       // ignore
     }
     mediaStreamRef.current = null
+    setIsMicOn(false)
+    setMicPermission('unknown')
 
     try {
       wsRef.current?.close()
@@ -542,6 +626,32 @@ const Talk: React.FC = () => {
     return () => stopVoice()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Auto-connect and have Ember speak immediately on entry.
+  useEffect(() => {
+    // Trigger Chrome's mic permission prompt immediately on entry so "Listening" can work without a click.
+    // (This is the only browser-approved way to show the mic permission UI.)
+    connectVoice({ startMic: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // If autoplay is blocked, resume audio on the next user gesture and continue playback.
+  useEffect(() => {
+    if (!needsAudioGesture) return
+    const onGesture = () => {
+      try {
+        void ensurePlaybackCtx().resume().finally(() => {
+          setNeedsAudioGesture(false)
+          void pumpPlayback()
+        })
+      } catch {
+        // ignore
+      }
+    }
+    window.addEventListener('pointerdown', onGesture, { once: true })
+    return () => window.removeEventListener('pointerdown', onGesture)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsAudioGesture])
 
   // Anchor exit overlay to the orb's true center (no hardcoded offsets).
   useEffect(() => {
@@ -576,7 +686,14 @@ const Talk: React.FC = () => {
       {/* Circle */}
       <div className="circle-wrapper">
         <div
-          className={`ember-orb ${isEmberSpeaking ? 'speaking' : ''} ${voiceStatus === 'live' ? 'live' : ''} ${isMuted ? 'muted' : ''}`}
+          className={[
+            'ember-orb',
+            voiceStatus === 'connecting' ? 'connecting' : '',
+            voiceStatus === 'live' ? 'live' : '',
+            isMicOn && !isMuted ? 'listening' : '',
+            isMuted ? 'muted' : '',
+            isEmberSpeaking ? 'speaking' : '',
+          ].filter(Boolean).join(' ')}
           ref={orbWrapRef}
           style={
             {
@@ -590,17 +707,48 @@ const Talk: React.FC = () => {
               '--ember-alpha2': '0',
               '--mic-scale': '1',
               '--ember-scale': '1',
+              '--dot1y': '0px',
+              '--dot2y': '0px',
+              '--dot3y': '0px',
+              '--dot1o': '0.18',
+              '--dot2o': '0.18',
+              '--dot3o': '0.18',
+              '--bar1': '0.35',
+              '--bar2': '0.35',
+              '--bar3': '0.35',
+              '--bar4': '0.35',
+              '--bar5': '0.35',
             } as React.CSSProperties
           }
         >
           <div className="ember-ring mic" aria-hidden="true" />
           <div className="ember-ring speak" aria-hidden="true" />
+          <div className="ember-dots" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="ember-bars" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
           <div
             className={`circle ${isMuted ? 'muted' : ''}`}
             ref={circleRef}
             onClick={handleOrbClick}
             style={{ cursor: 'pointer' } as React.CSSProperties}
           />
+        </div>
+
+        <div className="talk-state" aria-live="polite">
+          {voiceStatus === 'connecting' && 'Connecting'}
+          {voiceStatus === 'error' && (voiceError || 'Voice error')}
+          {voiceStatus === 'live' && needsAudioGesture && 'Tap to enable sound'}
+          {voiceStatus === 'live' && !needsAudioGesture && !isEmberSpeaking && isMicOn && !isMuted && 'Listening'}
+          {voiceStatus === 'live' && !needsAudioGesture && !isEmberSpeaking && !isMicOn && micPermission === 'denied' && 'Mic blocked'}
         </div>
       </div>
 
@@ -640,12 +788,7 @@ const Talk: React.FC = () => {
         </button>
       </div>
 
-      {/* Minimal voice status (local dev) */}
-      {(voiceStatus === 'connecting' || voiceStatus === 'error') && (
-        <div className="voice-hint" role={voiceStatus === 'error' ? 'alert' : undefined}>
-          {voiceStatus === 'connecting' ? 'Connecting…' : (voiceError || 'Voice error')}
-        </div>
-      )}
+      {/* (moved) voice status is now rendered under the orb as `.talk-state` */}
 
       {/* Exit Overlay */}
       {showExitOverlay && (

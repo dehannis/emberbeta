@@ -19,6 +19,7 @@
     justify-content: center;
     padding-top: 2rem;
     padding-bottom: 10rem;
+    position: relative;
 }
 
 .ember-orb {
@@ -32,6 +33,14 @@
     --ember-alpha: 0;
     --mic-scale: 1;
     --ember-scale: 1;
+    transform: scale(1);
+    will-change: transform;
+}
+
+/* When Ember is speaking, pulse the whole orb based on real inflection (var(--ember-scale)) */
+.ember-orb.speaking {
+    transform: scale(var(--ember-scale));
+    transition: transform 70ms linear;
 }
 
 .ember-ring {
@@ -50,6 +59,137 @@
         rgba(var(--color-secondary, 100, 180, 255), 0.00) 70%
     );
     filter: blur(1px);
+}
+
+/* Clear “connecting” motion even before any audio arrives */
+.ember-orb.connecting .ember-ring.speak {
+    opacity: 0.35;
+    inset: -30px;
+    animation: emberBreath 1.8s ease-in-out infinite;
+    box-shadow:
+        0 0 38px rgba(var(--color-primary, 140, 200, 255), 0.10),
+        0 0 80px rgba(var(--color-secondary, 100, 180, 255), 0.08);
+}
+
+@keyframes emberBreath {
+    0% { transform: scale(0.98); opacity: 0.22; }
+    50% { transform: scale(1.03); opacity: 0.40; }
+    100% { transform: scale(0.98); opacity: 0.24; }
+}
+
+/* Speaking dots (always visible when speaking/connecting) */
+.ember-dots {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 14px);
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 200ms ease;
+    pointer-events: none;
+}
+
+.ember-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.35);
+    transition: transform 70ms linear, opacity 70ms linear;
+}
+
+/* Connecting uses a gentle stock animation (no audio yet) */
+.ember-orb.connecting .ember-dots span {
+    animation: emberDot 1.05s ease-in-out infinite;
+}
+.ember-orb.connecting .ember-dots span:nth-child(2) { animation-delay: 120ms; }
+.ember-orb.connecting .ember-dots span:nth-child(3) { animation-delay: 240ms; }
+
+@keyframes emberDot {
+    0%, 100% { transform: translateY(0); opacity: 0.18; }
+    50% { transform: translateY(-4px); opacity: 0.55; }
+}
+
+.ember-orb.speaking .ember-dots span { animation: none; }
+.ember-orb.speaking .ember-dots span:nth-child(1) { transform: translateY(var(--dot1y)); opacity: var(--dot1o); }
+.ember-orb.speaking .ember-dots span:nth-child(2) { transform: translateY(var(--dot2y)); opacity: var(--dot2o); }
+.ember-orb.speaking .ember-dots span:nth-child(3) { transform: translateY(var(--dot3y)); opacity: var(--dot3o); }
+
+.ember-orb.speaking .ember-dots,
+.ember-orb.connecting .ember-dots {
+    opacity: 1;
+}
+
+/* Listening equalizer bars */
+.ember-bars {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 10px);
+    transform: translateX(-50%);
+    display: flex;
+    gap: 3px;
+    opacity: 0;
+    transition: opacity 200ms ease;
+    pointer-events: none;
+}
+
+.ember-bars span {
+    width: 3px;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.28);
+    transform-origin: bottom;
+    transition: transform 70ms linear, opacity 70ms linear;
+}
+.ember-bars span:nth-child(2) { animation-delay: 80ms; }
+.ember-bars span:nth-child(3) { animation-delay: 160ms; }
+.ember-bars span:nth-child(4) { animation-delay: 240ms; }
+.ember-bars span:nth-child(5) { animation-delay: 320ms; }
+
+@keyframes emberBar {
+    0%, 100% { transform: scaleY(0.55); opacity: 0.20; }
+    50% { transform: scaleY(1.25); opacity: 0.55; }
+}
+
+/* Make bars respond to mic level while still animating */
+.ember-orb.listening .ember-bars {
+    opacity: 1;
+    transform: translateX(-50%);
+}
+
+/* Don't show both at once; speaking takes priority */
+.ember-orb.speaking .ember-bars { opacity: 0; }
+
+/* Connecting uses a gentle stock animation (no mic yet) */
+.ember-orb.connecting .ember-bars span {
+    animation: emberBar 680ms ease-in-out infinite;
+}
+.ember-orb.connecting .ember-bars span:nth-child(2) { animation-delay: 80ms; }
+.ember-orb.connecting .ember-bars span:nth-child(3) { animation-delay: 160ms; }
+.ember-orb.connecting .ember-bars span:nth-child(4) { animation-delay: 240ms; }
+.ember-orb.connecting .ember-bars span:nth-child(5) { animation-delay: 320ms; }
+
+/* Listening: bar heights reflect real mic frequency energy */
+.ember-orb.listening .ember-bars span { animation: none; }
+.ember-orb.listening .ember-bars span:nth-child(1) { transform: scaleY(var(--bar1)); opacity: 0.20; }
+.ember-orb.listening .ember-bars span:nth-child(2) { transform: scaleY(var(--bar2)); opacity: 0.26; }
+.ember-orb.listening .ember-bars span:nth-child(3) { transform: scaleY(var(--bar3)); opacity: 0.34; }
+.ember-orb.listening .ember-bars span:nth-child(4) { transform: scaleY(var(--bar4)); opacity: 0.26; }
+.ember-orb.listening .ember-bars span:nth-child(5) { transform: scaleY(var(--bar5)); opacity: 0.20; }
+
+/* Under-orb state label */
+.talk-state {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + 140px);
+    transform: translateX(-50%);
+    font-size: 0.625rem;
+    font-weight: 300;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.35);
+    pointer-events: none;
+    white-space: nowrap;
 }
 
 /* Mic “inflection” ring: reacts to mic volume */
