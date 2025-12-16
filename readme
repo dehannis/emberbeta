@@ -1,7 +1,33 @@
-echo "# emberbeta" >> README.md
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/dehannis/emberbeta.git
-git push -u origin main
+## emberbeta (local)
+
+### Local dev
+
+Install deps:
+
+- `npm install`
+
+Run the app:
+
+- `npm run dev`
+
+### Talk (Hume EVI speech-to-speech) — local only
+
+This repo uses a tiny local Node WebSocket proxy so your Hume API key never ships to the browser.
+
+1) Create a `.env` in the repo root:
+
+- Copy `server/HUME_ENV.example` into `.env`
+- Fill in:
+  - `HUME_API_KEY` (rotate/revoke any leaked keys first)
+  - `HUME_EVI_CONFIG_ID` (your saved Ember EVI config id from Hume)
+
+2) Start the proxy + Vite:
+
+- `npm run dev:all`
+
+Notes:
+
+- Default proxy WS is `ws://localhost:8788/evi`
+- If you change the proxy port (`EVI_PROXY_PORT`), set a matching frontend WS URL via:
+  - `VITE_EVI_PROXY_WS=ws://localhost:<port>/evi`
+- In `Talk`, click the orb to request mic permissions + start the voice session. Mute/end call still work.

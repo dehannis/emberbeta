@@ -1,0 +1,24 @@
+## Local Hume EVI (Speech-to-Speech) setup
+##
+## Copy this file to `.env` at the repo root (do NOT commit `.env`)
+##
+## 1) Rotate/revoke any leaked API keys in the Hume dashboard
+## 2) Paste the NEW key here
+
+# Required: Hume API key (server-side only)
+HUME_API_KEY=replace_me
+
+# Required: your saved EVI configuration id for Ember (from Hume dashboard)
+HUME_EVI_CONFIG_ID=replace_me
+
+# Optional: override EVI WebSocket endpoint (if Hume changes it)
+# HUME_EVI_WS_URL=wss://api.hume.ai/v0/evi/chat
+
+# Optional: local proxy port
+# EVI_PROXY_PORT=8788
+
+# Optional: verbose proxy logs (0/1)
+# EVI_PROXY_LOG=0
+
+
+

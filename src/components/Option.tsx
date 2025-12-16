@@ -24,4 +24,3 @@ const Option: React.FC<OptionProps> = ({ option, onClick }) => {
 }
 
 export default Option
-

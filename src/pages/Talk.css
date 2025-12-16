@@ -71,6 +71,21 @@
     opacity: 1;
 }
 
+/* Minimal voice status line (kept subtle) */
+.voice-hint {
+    position: fixed;
+    left: 50%;
+    bottom: 2.25rem;
+    transform: translateX(-50%);
+    font-size: 0.625rem;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 20;
+}
+
 .control-btn {
     width: 56px;
     height: 56px;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Talk.css'
 
@@ -19,6 +19,27 @@ const Talk: React.FC = () => {
   const [isMuted, setIsMuted] = useState(false)
   const circleRef = useRef<HTMLDivElement>(null)
   const [exitAnchor, setExitAnchor] = useState<{ x: number; y: number } | null>(null)
+
+  // --- Hume EVI voice chat (local proxy) ---
+  type VoiceStatus = 'idle' | 'connecting' | 'live' | 'error'
+  const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>('idle')
+  const [voiceError, setVoiceError] = useState<string>('')
+  const wsRef = useRef<WebSocket | null>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const processorRef = useRef<ScriptProcessorNode | null>(null)
+  const isSendingRef = useRef(false)
+
+  const playbackQueueRef = useRef<Array<{ url: string; mime: string }>>([])
+  const playingRef = useRef(false)
+
+  const proxyWsUrl = useMemo(() => {
+    const envUrl = (import.meta as any).env?.VITE_EVI_PROXY_WS as string | undefined
+    if (envUrl && typeof envUrl === 'string') return envUrl
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    const host = window.location.hostname || 'localhost'
+    return `${proto}://${host}:8788/evi`
+  }, [])
   
   // Initialize color index from localStorage or default to 0
   const getInitialColorIndex = () => {
@@ -70,6 +91,7 @@ const Talk: React.FC = () => {
   }
 
   const handleEndCall = () => {
+    stopVoice()
     setShowExitOverlay(true)
   }
 
@@ -119,8 +141,227 @@ const Talk: React.FC = () => {
   }
 
   const handleOrbClick = () => {
+    // First click starts voice (required for mic permissions). Subsequent clicks keep your color-cycle behavior.
+    if (voiceStatus === 'idle' || voiceStatus === 'error') {
+      void startVoice()
+      return
+    }
     setColorIndex((prev) => (prev + 1) % colorSchemes.length)
   }
+
+  const base64FromBytes = (bytes: Uint8Array) => {
+    let binary = ''
+    const chunk = 0x8000
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+    }
+    return btoa(binary)
+  }
+
+  const bytesFromBase64 = (b64: string) => {
+    const bin = atob(b64)
+    const out = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+    return out
+  }
+
+  const downsampleTo16k = (input: Float32Array, inputRate: number) => {
+    const targetRate = 16000
+    if (inputRate === targetRate) return input
+    const ratio = inputRate / targetRate
+    const outLen = Math.floor(input.length / ratio)
+    const out = new Float32Array(outLen)
+    for (let i = 0; i < outLen; i++) {
+      const idx = i * ratio
+      const idx0 = Math.floor(idx)
+      const idx1 = Math.min(idx0 + 1, input.length - 1)
+      const frac = idx - idx0
+      out[i] = input[idx0] * (1 - frac) + input[idx1] * frac
+    }
+    return out
+  }
+
+  const floatToPcm16 = (f32: Float32Array) => {
+    const out = new Int16Array(f32.length)
+    for (let i = 0; i < f32.length; i++) {
+      const v = Math.max(-1, Math.min(1, f32[i]))
+      out[i] = v < 0 ? v * 0x8000 : v * 0x7fff
+    }
+    return new Uint8Array(out.buffer)
+  }
+
+  const enqueuePlayback = (bytes: Uint8Array) => {
+    // Best-effort MIME detection (RIFF=WAV).
+    const isRiff = bytes.length >= 4 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+    const mime = isRiff ? 'audio/wav' : 'application/octet-stream'
+    // TS: BlobPart is typed narrowly; ensure we pass an actual ArrayBuffer (not ArrayBufferLike).
+    const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
+    const url = URL.createObjectURL(new Blob([ab], { type: mime }))
+    playbackQueueRef.current.push({ url, mime })
+    pumpPlayback()
+  }
+
+  const pumpPlayback = () => {
+    if (playingRef.current) return
+    const next = playbackQueueRef.current.shift()
+    if (!next) return
+    playingRef.current = true
+    const audio = new Audio(next.url)
+    audio.onended = () => {
+      URL.revokeObjectURL(next.url)
+      playingRef.current = false
+      pumpPlayback()
+    }
+    audio.onerror = () => {
+      URL.revokeObjectURL(next.url)
+      playingRef.current = false
+      pumpPlayback()
+    }
+    void audio.play().catch(() => {
+      // ignore
+      URL.revokeObjectURL(next.url)
+      playingRef.current = false
+      pumpPlayback()
+    })
+  }
+
+  const startVoice = async () => {
+    setVoiceError('')
+    setVoiceStatus('connecting')
+
+    try {
+      const ws = new WebSocket(proxyWsUrl)
+      wsRef.current = ws
+
+      ws.onopen = async () => {
+        try {
+          // Mic capture must be initiated after a user gesture (this click).
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          })
+          mediaStreamRef.current = stream
+
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+          audioCtxRef.current = ctx
+
+          const source = ctx.createMediaStreamSource(stream)
+          const processor = ctx.createScriptProcessor(4096, 1, 1)
+          processorRef.current = processor
+
+          processor.onaudioprocess = (e) => {
+            if (isMuted) return
+            if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+            // Avoid piling up if the socket is backpressured.
+            if (isSendingRef.current) return
+
+            const ch0 = e.inputBuffer.getChannelData(0)
+            const down = downsampleTo16k(ch0, ctx.sampleRate)
+            const bytes = floatToPcm16(down)
+            const b64 = base64FromBytes(bytes)
+
+            // Hume EVI expects base64 audio chunks as `{ type: "audio_input", data: "<base64>" }`
+            // Session audio settings (linear16/16k/mono) are configured server-side in the proxy.
+            const msg = { type: 'audio_input', data: b64 }
+
+            try {
+              isSendingRef.current = true
+              ws.send(JSON.stringify(msg))
+            } finally {
+              isSendingRef.current = false
+            }
+          }
+
+          source.connect(processor)
+          processor.connect(ctx.destination) // keeps processor alive
+
+          setVoiceStatus('live')
+        } catch (err) {
+          setVoiceStatus('error')
+          setVoiceError('Microphone permission failed (or no mic available).')
+          try {
+            ws.close()
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      ws.onmessage = (evt) => {
+        // Forwarded Hume messages (or proxy status/errors)
+        try {
+          const parsed = JSON.parse(String(evt.data))
+          if (parsed?.type === 'proxy_error') {
+            setVoiceStatus('error')
+            setVoiceError(parsed?.message || 'Proxy error')
+            return
+          }
+          if (parsed?.type === 'proxy_status' && parsed?.status === 'connected') {
+            // ignore (we mark live after mic starts)
+            return
+          }
+
+          // Try to find an audio payload in common shapes.
+          if (parsed?.type === 'audio_output' && typeof parsed?.data === 'string') {
+            enqueuePlayback(bytesFromBase64(parsed.data))
+          }
+        } catch {
+          // Non-JSON payloads are ignored for now.
+        }
+      }
+
+      ws.onerror = () => {
+        setVoiceStatus('error')
+        setVoiceError('Failed to connect to local voice proxy. Is it running?')
+      }
+
+      ws.onclose = () => {
+        if (voiceStatus !== 'idle') setVoiceStatus('idle')
+      }
+    } catch {
+      setVoiceStatus('error')
+      setVoiceError('Voice initialization failed.')
+    }
+  }
+
+  const stopVoice = () => {
+    try {
+      processorRef.current?.disconnect()
+    } catch {
+      // ignore
+    }
+    processorRef.current = null
+
+    try {
+      audioCtxRef.current?.close()
+    } catch {
+      // ignore
+    }
+    audioCtxRef.current = null
+
+    try {
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop())
+    } catch {
+      // ignore
+    }
+    mediaStreamRef.current = null
+
+    try {
+      wsRef.current?.close()
+    } catch {
+      // ignore
+    }
+    wsRef.current = null
+
+    playbackQueueRef.current.splice(0, playbackQueueRef.current.length)
+    playingRef.current = false
+    setVoiceStatus('idle')
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopVoice()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Anchor exit overlay to the orb's true center (no hardcoded offsets).
   useEffect(() => {
@@ -201,6 +442,13 @@ const Talk: React.FC = () => {
           </svg>
         </button>
       </div>
+
+      {/* Minimal voice status (local dev) */}
+      {(voiceStatus === 'connecting' || voiceStatus === 'error') && (
+        <div className="voice-hint" role={voiceStatus === 'error' ? 'alert' : undefined}>
+          {voiceStatus === 'connecting' ? 'Connecting…' : (voiceError || 'Voice error')}
+        </div>
+      )}
 
       {/* Exit Overlay */}
       {showExitOverlay && (
