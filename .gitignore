@@ -13,6 +13,10 @@ dist-ssr
 *.local
 .vite
 
+# Relics from prior Build page iterations (not used by current routing)
+src/pages/build/
+src/pages/buildPage/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

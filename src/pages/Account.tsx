@@ -25,8 +25,8 @@ const Account: React.FC = () => {
   const [initialFormData, setInitialFormData] = useState<AccountData>(defaultFormData)
 
   const [contacts] = useState([
-    { id: 1, name: 'John Doe', phone: '+1-555-123-4567' },
-    { id: 2, name: 'Jane Smith', phone: '+1-555-987-6543' },
+    { id: 1, name: 'Suchan Chae', phone: '+1-555-123-4567' },
+    { id: 2, name: 'Hank Lee', phone: '+1-555-987-6543' },
   ])
 
   useEffect(() => {

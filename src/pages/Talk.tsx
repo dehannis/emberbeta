@@ -78,13 +78,34 @@ const Talk: React.FC = () => {
     setShowExitOverlay(true)
   }
 
-  const handlePhoneClick = (e: React.MouseEvent) => {
-    e.preventDefault()
-    setShowExitOverlay(true)
-  }
-
   const handleSaveAndNext = () => {
-    // Save logic here
+    // For MVP: after a Talk session, create a new memory whose ABOUT defaults to today (Present).
+    // TODO: Backend: replace with real recording + transcription pipeline + server-side storage.
+    const todayISO = new Date().toISOString().slice(0, 10)
+    const newId = `m-${Date.now()}`
+    const newMemory = {
+      id: newId,
+      title: 'New memory',
+      aboutDate: todayISO,
+      recordedOn: todayISO,
+      note: '',
+      personId: 'me',
+      visibility: 'shared',
+      // audioUrl: TODO (recording URL)
+    }
+
+    try {
+      const raw = localStorage.getItem('emberMemoriesV1')
+      const parsed = raw ? JSON.parse(raw) : null
+      const list = Array.isArray(parsed) ? parsed : []
+      list.unshift(newMemory)
+      localStorage.setItem('emberMemoriesV1', JSON.stringify(list))
+    } catch {
+      // ignore
+    }
+
+    // Tell Build to center this memory.
+    sessionStorage.setItem('emberNewMemoryId', newId)
     navigate('/build')
   }
 

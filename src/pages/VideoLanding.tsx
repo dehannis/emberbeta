@@ -11,7 +11,6 @@ const VideoLanding: React.FC = () => {
   const [verificationCode, setVerificationCode] = useState('')
   const [showVerification, setShowVerification] = useState(false)
   const [showPostVerificationVideo, setShowPostVerificationVideo] = useState(false)
-  const [postVideoReady, setPostVideoReady] = useState(false)
   const [showFade, setShowFade] = useState(false)
   const [showConnecting, setShowConnecting] = useState(false)
   const [displayedText, setDisplayedText] = useState('')
@@ -37,21 +36,7 @@ const VideoLanding: React.FC = () => {
     }
   }, [])
 
-  // Preload post-verification video
-  useEffect(() => {
-    const video = postVerificationVideoRef.current
-    if (!video) return
-
-    const handleCanPlay = () => {
-      setPostVideoReady(true)
-    }
-
-    video.addEventListener('canplaythrough', handleCanPlay)
-
-    return () => {
-      video.removeEventListener('canplaythrough', handleCanPlay)
-    }
-  }, [])
+  // Post-verification video is preloaded via keeping the element in the DOM + preload="auto".
 
   // Post-verification video event handlers
   useEffect(() => {
