@@ -11,6 +11,12 @@ interface AccountData {
   accountType: string
 }
 
+interface SharingContactSummary {
+  id: string
+  name: string
+  phone: string
+}
+
 const Account: React.FC = () => {
   const navigate = useNavigate()
   const defaultFormData: AccountData = {
@@ -24,10 +30,12 @@ const Account: React.FC = () => {
   const [formData, setFormData] = useState<AccountData>(defaultFormData)
   const [initialFormData, setInitialFormData] = useState<AccountData>(defaultFormData)
 
-  const [contacts] = useState([
-    { id: 1, name: 'Suchan Chae', phone: '+1-555-123-4567' },
-    { id: 2, name: 'Hank Lee', phone: '+1-555-987-6543' },
-  ])
+  const CONTACTS_KEY = 'emberContactsV1'
+  const defaultContacts: SharingContactSummary[] = [
+    { id: 'c-1', name: 'Suchan Chae', phone: '+1-555-123-4567' },
+    { id: 'c-2', name: 'Hank Lee', phone: '+1-555-987-6543' },
+  ]
+  const [contacts, setContacts] = useState<SharingContactSummary[]>(defaultContacts)
 
   useEffect(() => {
     const savedData = localStorage.getItem('emberAccountData')
@@ -35,6 +43,24 @@ const Account: React.FC = () => {
       const parsedData: AccountData = JSON.parse(savedData)
       setFormData(parsedData)
       setInitialFormData(parsedData)
+    }
+
+    // Load “Sharing with” list so it matches Share page edits.
+    try {
+      const raw = localStorage.getItem(CONTACTS_KEY)
+      const parsed = raw ? JSON.parse(raw) : null
+      const list = Array.isArray(parsed) ? parsed : null
+      if (!list) return
+      const cleaned = list
+        .filter((c: any) => c && typeof c.name === 'string' && typeof c.phone === 'string')
+        .map((c: any, idx: number) => ({
+          id: typeof c.id === 'string' ? c.id : `c-${idx + 1}`,
+          name: c.name,
+          phone: c.phone,
+        }))
+      if (cleaned.length) setContacts(cleaned)
+    } catch {
+      // ignore
     }
   }, [])
 
@@ -186,7 +212,7 @@ const Account: React.FC = () => {
           </section>
 
           <section className="account-section">
-            <h2 className="section-title">Contacts</h2>
+            <h2 className="section-title">SHARING WITH</h2>
             <div className="section-box">
               <div className="contacts-list">
                 {contacts.map((contact) => (
