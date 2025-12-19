@@ -12,6 +12,273 @@
   inset: 0;
 }
 
+.build-page.list-view {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0; /* scrolling happens inside the list window */
+}
+
+/* Scroll happens inside the list window to avoid page-level scrolling/overlap with player */
+.build-list-window {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 5.2rem; /* tighter: less empty padding above */
+  bottom: calc(var(--build-player-bottom-px, 24px) + var(--build-player-height-px, 96px) + 24px); /* extra breathing room so the list frame is fully visible above the player */
+  width: min(980px, calc(100vw - 4rem));
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  /* Critical: padding so the card’s border + shadow don’t get clipped by the scroll container edges */
+  padding: 0.9rem 0.9rem 1.1rem;
+}
+
+/* ============ BUILD VIEW TOGGLE (Top Center) ============ */
+.build-view-toggle {
+  position: absolute;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 220;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 10, 10, 0.55);
+  backdrop-filter: blur(18px);
+}
+
+.build-view-toggle.visible {
+  opacity: 1;
+}
+
+.build-view-btn {
+  border: none;
+  background: transparent;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.5625rem;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.40);
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.build-view-btn:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.build-view-btn.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* ============ LIST VIEW ============ */
+.build-list {
+  display: contents;
+}
+
+.build-list-card {
+  padding: 0.95rem 0.95rem 0.95rem;
+  background: rgba(18, 18, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(10px);
+}
+
+.build-list-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.build-new-story {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.5625rem;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: color 160ms ease;
+  white-space: nowrap;
+}
+
+.build-new-story:hover {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.build-list-person-name {
+  font-size: 1rem;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: -0.01em;
+}
+
+.build-list-person-sub {
+  margin-top: 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.build-list-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.95fr;
+  gap: 0.85rem;
+}
+
+.build-list-panel {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 0.75rem 0.75rem;
+  min-width: 0;
+}
+
+.build-list-label {
+  font-size: 0.625rem;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 0.55rem;
+}
+
+.build-list-empty {
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.build-story-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.build-story-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(10, 10, 10, 0.35);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.build-story-row:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.build-story-row.active {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.build-story-title {
+  font-size: 0.8125rem;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.82);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.build-story-sub {
+  margin-top: 0.2rem;
+  font-size: 0.625rem;
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.38);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.build-story-dot {
+  color: rgba(255, 255, 255, 0.20);
+}
+
+.build-story-action {
+  font-size: 0.5625rem;
+  font-weight: 300;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.build-call-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.build-call-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.4rem 0.2rem;
+}
+
+.build-call-when {
+  font-size: 0.625rem;
+  font-weight: 300;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.build-call-topic {
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.70);
+  line-height: 1.35;
+}
+
+.build-call-note {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.build-call-more {
+  margin-top: 0.25rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.5625rem;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.build-call-more:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 /* ============ PERSON SELECTOR (Header-style, top right) ============ */
 
 .person-selector {
@@ -1415,14 +1682,14 @@
 .build-player {
   position: fixed;
   left: 50%;
-  bottom: 1.5rem;
+  bottom: 1.1rem;
   transform: translateX(-50%);
   width: min(980px, calc(100vw - 2.5rem));
   display: grid;
   grid-template-columns: 1.2fr 2fr 1fr;
   gap: 1rem;
   align-items: center;
-  padding: 0.875rem 1rem;
+  padding: 0.65rem 0.85rem;
   background: rgba(10, 10, 10, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
@@ -1430,11 +1697,23 @@
   z-index: 500;
 }
 
+.build-player.idle .player-action {
+  border-style: dashed;
+}
+
+.build-player.idle .player-sub-value {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.build-player.idle .player-btn {
+  opacity: 0.35;
+}
+
 /* Drawer that expands upward from the player */
 .build-player-drawer {
   position: fixed;
   left: 50%;
-  bottom: calc(1.5rem + 64px + 0.75rem);
+  bottom: calc(var(--build-player-bottom-px, 24px) + var(--build-player-height-px, 96px) + 12px);
   transform: translateX(-50%);
   width: min(980px, calc(100vw - 2.5rem));
   max-height: 320px;
@@ -1971,7 +2250,7 @@
 .prompt-player {
   position: fixed;
   left: 50%;
-  bottom: 1.5rem;
+  bottom: calc(var(--build-player-bottom-px, 24px) + var(--build-player-height-px, 96px) + 12px);
   transform: translateX(-50%);
   width: min(1240px, calc(100vw - 3.5rem));
   padding: 0.875rem 1rem;
@@ -1982,6 +2261,10 @@
   z-index: 500;
   max-height: 250px; /* keep clear of the center 'Share a Story' label */
   overflow: hidden;
+}
+
+.prompt-player.lifted {
+  z-index: 520;
 }
 
 .prompt-header {
@@ -2389,6 +2672,21 @@
     padding: 1.5rem;
   }
 
+  .build-view-toggle {
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .build-list-window {
+    top: 4.9rem;
+    width: calc(100vw - 3rem);
+  }
+
+  .build-list-grid {
+    grid-template-columns: 1fr;
+  }
+
   .person-selector {
     top: 1.5rem;
     right: 1.5rem;
@@ -2406,7 +2704,6 @@
 
   .prompt-player {
     width: calc(100vw - 1.5rem);
-    bottom: 0.75rem;
     padding: 0.7rem 0.7rem;
     border-radius: 14px;
   }
@@ -2489,7 +2786,7 @@
   .build-player {
     grid-template-columns: 1fr;
     gap: 0.75rem;
-    padding: 0.875rem 0.875rem;
+    padding: 0.75rem 0.75rem;
   }
 
   .player-center {
@@ -2546,6 +2843,17 @@
 @media (max-width: 480px) {
   .build-page {
     padding: 1rem;
+  }
+
+  .build-view-toggle {
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .build-list-window {
+    top: 4.6rem;
+    width: calc(100vw - 2rem);
   }
 
   .person-selector {

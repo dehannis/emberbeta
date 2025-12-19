@@ -208,6 +208,54 @@
     gap: 0.75rem;
 }
 
+.sharing-admin-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1.25rem;
+    align-items: center;
+    width: 100%;
+}
+
+.sharing-admin-meta {
+    min-width: 0;
+    max-width: none;
+}
+
+.sharing-admin-help {
+    max-width: none;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+}
+
+.sharing-admin-row .sharing-toggle {
+    justify-self: end;
+}
+
+.sharing-admin-help {
+    margin-top: 0.25rem;
+    font-size: 0.72rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.35);
+    line-height: 1.35;
+    text-transform: none;
+    letter-spacing: 0.01em;
+}
+
+.sharing-subtle {
+    color: rgba(255, 255, 255, 0.35);
+    font-weight: 300;
+    display: block;
+    margin-top: 0.25rem;
+}
+
+.sharing-status {
+    margin-top: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.42);
+}
+
 .orb-editor-hint {
     margin-top: 0.75rem;
     font-size: 0.75rem;
@@ -494,10 +542,10 @@
 }
 
 .share-modal-title {
-    font-size: 0.875rem;
+    font-size: 0.80rem;
     font-weight: 300;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-transform: none;
     color: rgba(255, 255, 255, 0.7);
     margin-bottom: 0.9rem;
 }
@@ -516,21 +564,44 @@
 }
 
 .share-modal-btn {
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.78);
     border-radius: 999px;
-    padding: 0.55rem 0.95rem;
-    font-size: 0.75rem;
+    padding: 0.52rem 0.85rem;
+    font-size: 0.64rem;
     font-weight: 300;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.10em;
     text-transform: uppercase;
     cursor: pointer;
+    transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
 .share-modal-btn.ghost {
-    background: transparent;
-    color: rgba(255, 255, 255, 0.55);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.46);
+}
+
+.share-modal-btn:hover {
+    border-color: rgba(255, 255, 255, 0.22);
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.03);
+    transform: translateY(-1px);
+}
+
+.share-modal-btn:active {
+    transform: translateY(0);
+}
+
+.share-modal-btn.danger {
+    border-color: rgba(255, 210, 180, 0.20);
+    color: rgba(255, 210, 180, 0.78);
+}
+
+.share-modal-btn.danger:hover {
+    border-color: rgba(255, 210, 180, 0.34);
+    color: rgba(255, 210, 180, 0.92);
+    background: rgba(255, 210, 180, 0.06);
 }
 
 .sharing-with-section {
@@ -541,28 +612,25 @@
 .sharing-with-list {
     display: flex;
     flex-direction: column;
-    gap: 0.9rem;
+    gap: 1.75rem;
 }
 
 .sharing-with-card {
-    padding: 1rem 1rem 0.95rem 1rem;
-    background: rgba(18, 18, 18, 0.42);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 14px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    padding: 0.9rem 0.9rem 0.85rem 0.9rem;
+    background: rgba(18, 18, 18, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 16px;
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.38);
     backdrop-filter: blur(10px);
     transition: border-color 180ms ease, background 180ms ease;
 }
 
-.sharing-with-card:hover {
-    border-color: rgba(255, 255, 255, 0.16);
-    background: rgba(18, 18, 18, 0.48);
-}
+/* Intentionally no “card hover brighten” — keep hover feedback on inputs/buttons instead. */
 
 .sharing-card-top {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 1rem;
+    gap: 0.75rem;
     align-items: start;
 }
 
@@ -590,14 +658,63 @@
 
 .sharing-card-actions {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 0.9rem;
 }
 
+.sharing-save {
+    appearance: none;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.92);
+    cursor: pointer;
+    transition: opacity 180ms ease;
+}
+
+.sharing-save:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.sharing-save:hover:not(:disabled) {
+    opacity: 0.78;
+}
+
+.sharing-remove {
+    appearance: none;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 0.66rem;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.26);
+    cursor: pointer;
+    transition: color 180ms ease;
+    text-transform: uppercase;
+}
+
+.sharing-remove:hover {
+    color: rgba(255, 255, 255, 0.42);
+}
+
+.sharing-top-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.65rem;
+}
+
 .sharing-card-bottom {
-    margin-top: 0.95rem;
-    padding-top: 0.85rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    margin-top: 0.75rem;
+    padding-top: 0.25rem;
+    border-top: none;
 }
 
 .sharing-card-section {
@@ -606,13 +723,17 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.28);
-    margin-bottom: 0.65rem;
+    margin-bottom: 0.55rem;
 }
 
 .sharing-field {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.3rem;
+}
+
+.sharing-field--full {
+    grid-column: 1 / -1;
 }
 
 .sharing-field--toggle {
@@ -630,15 +751,15 @@
 
 .sharing-control {
     width: 100%;
-    background: rgba(0, 0, 0, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(0, 0, 0, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.09);
     border-radius: 12px;
-    padding: 0.62rem 0.85rem;
+    padding: 0.56rem 0.75rem;
     font-size: 0.8125rem;
     font-weight: 300;
     color: rgba(255, 255, 255, 0.82);
     font-family: inherit;
-    transition: border-color 180ms ease, background 180ms ease;
+    transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
 }
 
 .sharing-control::placeholder {
@@ -649,10 +770,20 @@
     outline: none;
     border-color: rgba(255, 255, 255, 0.22);
     background: rgba(0, 0, 0, 0.28);
+    box-shadow: 0 0 0 3px rgba(180, 210, 255, 0.06);
+}
+
+.sharing-control[aria-invalid="true"] {
+    border-color: rgba(255, 210, 180, 0.35);
+    box-shadow: 0 0 0 3px rgba(255, 210, 180, 0.05);
 }
 
 .sharing-select {
     position: relative;
+}
+
+.sharing-select--time {
+    width: 100%;
 }
 
 .sharing-select .sharing-control {
@@ -677,9 +808,51 @@
     opacity: 0.9;
 }
 
+.sharing-select .sharing-control:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* Nicer disabled (locked) feel without looking “greyed out” */
+.sharing-control:disabled {
+    opacity: 0.75;
+    background: rgba(0, 0, 0, 0.10);
+    border-color: rgba(255, 255, 255, 0.07);
+    cursor: not-allowed;
+}
+
+/* Reduce “stock” number input spinners */
+input[type="number"].sharing-control::-webkit-outer-spin-button,
+input[type="number"].sharing-control::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"].sharing-control {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.sharing-control--small {
+    max-width: 140px;
+}
+
+.sharing-control--medium {
+    max-width: 240px;
+}
+
+/* For selects, size the wrapper so the chevron stays INSIDE the control */
+.sharing-select--medium {
+    max-width: 240px;
+}
+
+.sharing-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    margin: 0.75rem 0;
+}
+
 .sharing-toggle {
-    width: 44px;
-    height: 26px;
+    width: 42px;
+    height: 24px;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.10);
     background: rgba(0, 0, 0, 0.20);
@@ -690,14 +863,14 @@
 }
 
 .sharing-toggle.on {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(180, 210, 255, 0.10);
     border-color: rgba(255, 255, 255, 0.18);
 }
 
 .sharing-toggle-knob {
     display: block;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.28);
     transform: translateX(0);
@@ -706,7 +879,7 @@
 
 .sharing-toggle.on .sharing-toggle-knob {
     transform: translateX(18px);
-    background: rgba(255, 255, 255, 0.50);
+    background: rgba(255, 255, 255, 0.62);
 }
 
 .sharing-schedule-grid {
@@ -715,11 +888,136 @@
     gap: 0.5rem;
 }
 
-.sharing-topic-grid {
-    margin-top: 0.5rem;
+.sharing-schedule-grid--simple {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.sharing-frequency {
+    padding: 0.65rem 0.65rem 0.6rem 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.sharing-frequency-row {
     display: grid;
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: auto minmax(44px, 72px) auto minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
     gap: 0.5rem;
+}
+
+.sharing-control--days {
+    width: 100%;
+}
+
+.sharing-control--time {
+    width: 100%;
+}
+
+.sharing-select--tz {
+    width: 100%;
+    max-width: none;
+}
+
+.sharing-frequency-row > * {
+    min-width: 0;
+}
+
+@media (max-width: 520px) {
+    .sharing-frequency-row {
+        grid-template-columns: auto minmax(44px, 64px) auto minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0.35rem;
+    }
+}
+
+.sharing-card-footer {
+    margin-top: 0.85rem;
+    padding-top: 0.15rem;
+    border-top: none;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.sharing-save {
+    margin-right: auto;
+}
+
+.sharing-card-footer--add {
+    justify-content: flex-start;
+    margin-top: 0.85rem;
+}
+
+.sharing-with-card--add .sharing-card-section {
+    margin-bottom: 0.75rem;
+}
+
+.sharing-frequency-label {
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.sharing-control--compact {
+    padding: 0.5rem 0.65rem;
+    border-radius: 10px;
+}
+
+.sharing-frequency-sub {
+    margin-top: 0.45rem;
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.88);
+    line-height: 1.8;
+}
+
+/* Extra breathing room between the two lines in the schedule preview */
+.sharing-frequency-sub br {
+    display: block;
+    content: "";
+    margin-top: 0.7rem;
+}
+.sharing-section-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    margin: 0.9rem 0 0.85rem 0;
+}
+
+.sharing-control--notes {
+    min-height: 3.25rem;
+    resize: vertical;
+    line-height: 1.35;
+}
+
+
+.sharing-topic-label {
+    grid-column: 1 / -1;
+    font-size: 0.625rem;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.28);
+    margin-bottom: -0.1rem;
+}
+
+.sharing-topic-grid {
+    margin-top: 0.6rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+}
+
+.sharing-topic-grid .sharing-select,
+.sharing-topic-grid input {
+    max-width: none;
+}
+
+.sharing-required-hint {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: rgba(255, 210, 180, 0.60);
 }
 
 /* Prevent selects/inputs in grids from overflowing their columns */
@@ -730,6 +1028,12 @@
 
 .sharing-select {
     min-width: 0;
+    width: 100%;
+}
+
+.sharing-control:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .share-title {
@@ -944,6 +1248,10 @@
     .sharing-card-actions {
         width: 100%;
         justify-content: space-between;
+    }
+
+    .sharing-top-grid {
+        grid-template-columns: 1fr;
     }
 
     .sharing-schedule-grid {

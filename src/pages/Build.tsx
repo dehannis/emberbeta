@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import './Build.css'
@@ -200,6 +200,12 @@ function normalizeMemories(value: unknown): Memory[] | null {
 const Build: React.FC = () => {
   const navigate = useNavigate()
   const spiralRef = useRef<HTMLDivElement | null>(null)
+  const [buildView, setBuildView] = useState<'visual' | 'list'>('list')
+  const playerRef = useRef<HTMLDivElement | null>(null)
+  const [playerMetrics, setPlayerMetrics] = useState<{ bottomPx: number; heightPx: number }>({
+    bottomPx: 24,
+    heightPx: 96,
+  })
   const [memoriesData, setMemoriesData] = useState<Memory[]>(() => {
     try {
       const raw = localStorage.getItem('emberMemoriesV1')
@@ -238,6 +244,7 @@ const Build: React.FC = () => {
   const panelTimerRef = useRef<number | null>(null)
   const drawerBodyRef = useRef<HTMLDivElement | null>(null)
   const notesAutoscrollActiveRef = useRef(false)
+  const [showStoryBuilder, setShowStoryBuilder] = useState(false)
   
   // Chapter state
   const [activeChapter, setActiveChapter] = useState<string | null>(null)
@@ -275,6 +282,57 @@ const Build: React.FC = () => {
       }
     }
   }, [])
+
+  // Measure the bottom player to prevent list/window overlap (works for idle + active player, desktop + mobile).
+  useLayoutEffect(() => {
+    const el = playerRef.current
+    if (!el || typeof window === 'undefined') return
+
+    let raf = 0
+    const measure = () => {
+      if (!playerRef.current) return
+      const rect = playerRef.current.getBoundingClientRect()
+      const bottomPx = Math.max(0, window.innerHeight - rect.bottom)
+      const heightPx = Math.max(0, rect.height)
+      setPlayerMetrics((prev) => {
+        if (Math.abs(prev.bottomPx - bottomPx) < 1 && Math.abs(prev.heightPx - heightPx) < 1) return prev
+        return { bottomPx, heightPx }
+      })
+    }
+
+    const onResize = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(measure)
+    }
+
+    measure()
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+
+    // iOS Safari: address bar / toolbars can change viewport without a full window resize.
+    const vv = window.visualViewport
+    if (vv) {
+      vv.addEventListener('resize', onResize)
+      vv.addEventListener('scroll', onResize)
+    }
+
+    let ro: ResizeObserver | null = null
+    if ('ResizeObserver' in window) {
+      ro = new ResizeObserver(() => onResize())
+      ro.observe(el)
+    }
+
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+      if (vv) {
+        vv.removeEventListener('resize', onResize)
+        vv.removeEventListener('scroll', onResize)
+      }
+      ro?.disconnect()
+    }
+  }, [activeMemoryId, buildView, panelMode])
   
   // Persist chapters to localStorage
   useEffect(() => {
@@ -362,11 +420,7 @@ const Build: React.FC = () => {
     }
   }, [chaptersInitialized])
 
-  const selectPerson = (id: string) => {
-    setSelectedPerson(id)
-    setIsPersonDropdownOpen(false)
-    setActiveMemoryId(null) // Reset selected memory when changing person
-  }
+  // (Legacy helper removed) Person selection is handled inline in the selector menu now.
 
   // Effective chapters (editable): use saved chapters if present, otherwise seed from birth year.
   const availableChapters = useMemo((): TimelineChapter[] => {
@@ -505,6 +559,7 @@ const Build: React.FC = () => {
 
   // Filter and sort memories (also filter by chapter if one is selected)
   const visibleMemories = useMemo(() => {
+    if (buildView !== 'visual') return []
     let filtered = memoriesData.filter(m => m.personId === selectedPerson)
     
     // If a chapter is selected, filter to only memories within that year range
@@ -516,7 +571,7 @@ const Build: React.FC = () => {
     }
     
     return filtered.sort((a, b) => new Date(b.aboutDate).getTime() - new Date(a.aboutDate).getTime())
-  }, [selectedPerson, memoriesData, activeChapterRange])
+  }, [selectedPerson, memoriesData, activeChapterRange, buildView])
 
   // Timeline U-shape: cubic Bezier for steeper sides, flatter rounded middle
   // Endpoints at top corners; two control points create the U shape
@@ -663,6 +718,7 @@ const Build: React.FC = () => {
   const pointerISO = useMemo(() => isoForFrac(pointerFrac), [pointerFrac, scaleTimes])
 
   const snappedMemoryId = useMemo(() => {
+    if (buildView !== 'visual') return null
     if (visibleMemories.length === 0) return null
     // Snap should feel like the pointer is "over" a memory, i.e. the rendered orb is near the center.
     // Use screen-space distance to avoid mismatches between time-scale math and what the user sees.
@@ -685,7 +741,7 @@ const Build: React.FC = () => {
     const SNAP_PX = 42
     if (best && best.dist <= SNAP_PX) return best.id
     return null
-  }, [visibleMemories, fracForISO, displayTForFrac, arcPoint])
+  }, [visibleMemories, fracForISO, displayTForFrac, arcPoint, buildView])
 
   const snappedMemory = useMemo(() => {
     if (!snappedMemoryId) return null
@@ -702,6 +758,7 @@ const Build: React.FC = () => {
   }, [snappedMemoryId])
 
   useEffect(() => {
+    if (buildView !== 'visual') return
     // Pointer orb drives active memory; when not snapped, player closes.
     if (snappedMemoryId) {
       if (activeMemoryId !== snappedMemoryId) setActiveMemoryId(snappedMemoryId)
@@ -709,7 +766,7 @@ const Build: React.FC = () => {
       if (activeMemoryId !== null) setActiveMemoryId(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snappedMemoryId])
+  }, [snappedMemoryId, buildView])
 
   const yearTicks = useMemo(() => {
     if (visibleMemories.length === 0 && !activeChapterRange) return []
@@ -1330,11 +1387,160 @@ const Build: React.FC = () => {
     setDraftAboutDate('')
   }
 
+  // ============ List View (per-person stories + upcoming calls) ============
+  const [expandedCalls, setExpandedCalls] = useState<Record<string, boolean>>({})
+  const [listFilterPersonId, setListFilterPersonId] = useState<string>('me')
+
+  type ShareContact = {
+    id?: string
+    name?: string
+    phone?: string
+    nextCallEveryDays?: number
+    nextCallTime?: string
+    nextCallTimeZone?: string
+    nextCallTopicMode?: 'biography' | 'custom'
+    nextCallPrompt?: string
+  }
+
+  const shareContacts: ShareContact[] = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('emberContactsV1')
+      const parsed = raw ? (JSON.parse(raw) as unknown) : null
+      return Array.isArray(parsed) ? (parsed as ShareContact[]) : []
+    } catch {
+      return []
+    }
+  }, [])
+
+  const shareContactByName = useMemo(() => {
+    const map = new Map<string, ShareContact>()
+    for (const c of shareContacts) {
+      const key = typeof c?.name === 'string' ? c.name.trim().toLowerCase() : ''
+      if (!key) continue
+      map.set(key, c)
+    }
+    return map
+  }, [shareContacts])
+
+  const listPeople = useMemo(() => {
+    return ALL_PEOPLE.map((p) => ({
+      ...p,
+      displayName: p.id === 'me' ? (meName || 'You') : p.name,
+    }))
+  }, [meName])
+
+  const listPerson = useMemo(() => {
+    return listPeople.find((p) => p.id === listFilterPersonId) ?? listPeople[0] ?? null
+  }, [listPeople, listFilterPersonId])
+
+  const memoriesByPerson = useMemo(() => {
+    const map = new Map<string, Memory[]>()
+    for (const p of listPeople) map.set(p.id, [])
+    for (const m of memoriesData) {
+      if (!map.has(m.personId)) map.set(m.personId, [])
+      map.get(m.personId)!.push(m)
+    }
+    for (const [k, arr] of map.entries()) {
+      arr.sort((a, b) => new Date(b.aboutDate).getTime() - new Date(a.aboutDate).getTime())
+      map.set(k, arr)
+    }
+    return map
+  }, [memoriesData, listPeople])
+
+  const tzShort = (tz: string) =>
+    (tz === 'America/Los_Angeles' && 'PT') ||
+    (tz === 'America/Denver' && 'MT') ||
+    (tz === 'America/Chicago' && 'CT') ||
+    (tz === 'America/New_York' && 'ET') ||
+    (tz === 'Europe/London' && 'UK') ||
+    (tz === 'Asia/Seoul' && 'KST') ||
+    (tz === 'Asia/Tokyo' && 'JST') ||
+    (tz === 'America/Sao_Paulo' && 'BRT') ||
+    (tz === 'America/Mexico_City' && 'MX') ||
+    (tz === 'UTC' && 'UTC') ||
+    tz
+
+  const nextCallsPreview = (c: ShareContact, count: number) => {
+    const everyDays = Math.max(0, Math.min(99, Number(c.nextCallEveryDays ?? 1) || 1))
+    const time = typeof c.nextCallTime === 'string' && /^\d{2}:\d{2}$/.test(c.nextCallTime) ? c.nextCallTime : '18:00'
+    const [hh, mm] = time.split(':').map((x) => parseInt(x, 10))
+    const tz = tzShort(typeof c.nextCallTimeZone === 'string' ? c.nextCallTimeZone : '')
+
+    const now = new Date()
+    let base = new Date(now)
+    base.setSeconds(0, 0)
+    base.setHours(Number.isFinite(hh) ? hh : 18, Number.isFinite(mm) ? mm : 0, 0, 0)
+    if (base.getTime() <= now.getTime()) base = new Date(base.getTime() + everyDays * 24 * 60 * 60 * 1000)
+
+    const timeLabel = (() => {
+      try {
+        const d = new Date()
+        d.setHours(Number.isFinite(hh) ? hh : 18, Number.isFinite(mm) ? mm : 0, 0, 0)
+        return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      } catch {
+        return time
+      }
+    })()
+
+    const items: Array<{ when: string; topic: string; note?: string }> = []
+    for (let i = 0; i < count; i++) {
+      const d = new Date(base.getTime() + i * everyDays * 24 * 60 * 60 * 1000)
+      const when = `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${timeLabel}${tz ? ` ${tz}` : ''}`
+      const topic = c.nextCallTopicMode === 'custom' ? 'Custom Topic' : 'Biography (Default)'
+      const note =
+        c.nextCallTopicMode === 'custom' && typeof c.nextCallPrompt === 'string' && c.nextCallPrompt.trim()
+          ? c.nextCallPrompt.trim()
+          : undefined
+      items.push({ when, topic, note })
+    }
+    return items
+  }
+
+  const selectMemoryFromList = (m: Memory) => {
+    setActiveMemoryId(m.id)
+    setIsPlaying(true)
+  }
+
+  useEffect(() => {
+    // If a track is selected, keep the UI focused on the player.
+    if (activeMemoryId) setShowStoryBuilder(false)
+  }, [activeMemoryId])
+
+  useEffect(() => {
+    // Story builder only exists in Visual view.
+    if (buildView !== 'visual') setShowStoryBuilder(false)
+  }, [buildView])
+
   return (
-    <div className="build-page">
+    <div
+      className={`build-page ${buildView === 'list' ? 'list-view' : ''}`}
+      style={
+        {
+          '--build-player-bottom-px': `${playerMetrics.bottomPx}px`,
+          '--build-player-height-px': `${playerMetrics.heightPx}px`,
+        } as React.CSSProperties
+      }
+    >
       <Header hidePhone />
 
-      {/* Person Selector - Header area (Top Right) */}
+      <div className={`build-view-toggle ${isLoaded ? 'visible' : ''}`}>
+        <button
+          type="button"
+          className={`build-view-btn ${buildView === 'list' ? 'active' : ''}`}
+          onClick={() => setBuildView('list')}
+        >
+          LIST
+        </button>
+        <button
+          type="button"
+          className={`build-view-btn ${buildView === 'visual' ? 'active' : ''}`}
+          onClick={() => setBuildView('visual')}
+        >
+          VISUAL
+        </button>
+      </div>
+
+      {/* Person Selector - Top Right (Visual: chooses timeline. List: filters people.) */}
       <div className={`person-selector ${isLoaded ? 'visible' : ''}`}>
         <button
           className="person-selector-trigger"
@@ -1342,24 +1548,36 @@ const Build: React.FC = () => {
         >
           <span className="person-selector-label">TIMELINE:</span>
           <span className="person-selector-name">
-            {selectedPerson === 'me' ? (meName || 'You') : ALL_PEOPLE.find(p => p.id === selectedPerson)?.name}
+            {buildView === 'list'
+              ? (listPeople.find((p) => p.id === listFilterPersonId)?.displayName ?? (meName || 'You'))
+              : (selectedPerson === 'me' ? (meName || 'You') : ALL_PEOPLE.find((p) => p.id === selectedPerson)?.name)}
           </span>
         </button>
-        
+
         {isPersonDropdownOpen && (
           <>
             <div className="person-selector-backdrop" onClick={() => setIsPersonDropdownOpen(false)} />
             <div className="person-selector-menu">
-              {ALL_PEOPLE.map(person => {
-                const isSelected = selectedPerson === person.id
-                const displayName = person.id === 'me' ? (meName || 'You') : person.name
+              {(buildView === 'list'
+                ? listPeople.map((p) => ({ id: p.id, name: p.displayName }))
+                : ALL_PEOPLE.map((p) => ({
+                    id: p.id,
+                    name: p.id === 'me' ? (meName || 'You') : p.name,
+                  }))
+              ).map((opt) => {
+                const isSelected =
+                  buildView === 'list' ? listFilterPersonId === opt.id : selectedPerson === opt.id
                 return (
                   <button
-                    key={person.id}
+                    key={opt.id}
                     className={`person-selector-item ${isSelected ? 'selected' : ''}`}
-                    onClick={() => selectPerson(person.id)}
+                    onClick={() => {
+                      if (buildView === 'list') setListFilterPersonId(opt.id)
+                      else setSelectedPerson(opt.id)
+                      setIsPersonDropdownOpen(false)
+                    }}
                   >
-                    {displayName}
+                    {opt.name}
                   </button>
                 )
               })}
@@ -1368,10 +1586,110 @@ const Build: React.FC = () => {
         )}
       </div>
 
-{/* Chapter filter moved to bottom, above player */}
+      {buildView === 'list' ? (
+        <div className="build-list-window ember-scroll">
+          {(() => {
+            if (!listPerson) return null
+            const p = listPerson
+            const stories = memoriesByPerson.get(p.id) ?? []
+            const share = shareContactByName.get(p.displayName.trim().toLowerCase()) ?? null
+            const expanded = !!expandedCalls[p.id]
+            const callCount = expanded ? 10 : 3
+            const calls = share ? nextCallsPreview(share, callCount) : []
 
-      {/* Edit/Add Chapters Modal */}
-      {showEditChapters && (
+            return (
+              <section className="build-list-card">
+                <div className="build-list-card-header">
+                  <div className="build-list-person">
+                    <div className="build-list-person-name">{p.displayName}</div>
+                    <div className="build-list-person-sub">
+                      {stories.length} {stories.length === 1 ? 'story' : 'stories'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="build-new-story"
+                    onClick={() => {
+                      setBuildView('visual')
+                      setSelectedPerson(p.id)
+                      setShowStoryBuilder(true)
+                    }}
+                  >
+                    New story
+                  </button>
+                </div>
+
+                <div className="build-list-grid">
+                  <div className="build-list-panel">
+                    <div className="build-list-label">STORIES</div>
+                    {stories.length === 0 ? (
+                      <div className="build-list-empty">No stories yet.</div>
+                    ) : (
+                      <div className="build-story-list">
+                        {stories.map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            className={`build-story-row ${activeMemoryId === m.id ? 'active' : ''}`}
+                            onClick={() => selectMemoryFromList(m)}
+                          >
+                            <div className="build-story-meta">
+                              <div className="build-story-title">{m.title}</div>
+                              <div className="build-story-sub">
+                                <span>{formatDateNumeric(m.aboutDate)}</span>
+                                {typeof m.durationSec === 'number' && isFinite(m.durationSec) ? (
+                                  <>
+                                    <span className="build-story-dot">·</span>
+                                    <span>{formatTime(m.durationSec)}</span>
+                                  </>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="build-story-action">PLAY</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="build-list-panel">
+                    <div className="build-list-label">UPCOMING CALLS</div>
+                    {!share ? (
+                      <div className="build-list-empty">No schedule yet.</div>
+                    ) : (
+                      <>
+                        <div className="build-call-list">
+                          {calls.slice(0, callCount).map((c, idx) => (
+                            <div key={`${p.id}-call-${idx}`} className="build-call-row">
+                              <div className="build-call-when">{c.when}</div>
+                              <div className="build-call-topic">
+                                {c.topic}
+                                {c.note ? <span className="build-call-note"> — {c.note}</span> : null}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          className="build-call-more"
+                          onClick={() => setExpandedCalls((prev) => ({ ...prev, [p.id]: !prev[p.id] }))}
+                        >
+                          {expanded ? 'Show less' : 'Show more'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )
+          })()}
+        </div>
+      ) : (
+        <>
+          {/* Chapter filter moved to bottom, above player */}
+
+          {/* Edit/Add Chapters Modal */}
+          {showEditChapters && (
         <div className="chapter-modal-overlay" onClick={closeEditChapters}>
           <div className="chapter-modal" onClick={(e) => e.stopPropagation()}>
             <button className="chapter-modal-close" onClick={closeEditChapters}>×</button>
@@ -1386,7 +1704,7 @@ const Build: React.FC = () => {
                   <div className="chapter-editor-error" role="alert">
                     {chapterSaveError}
                   </div>
-                )}
+          )}
 
                 {draftChapters.length > 0 && (
                   <div className="chapter-editor-list ember-scroll">
@@ -1491,7 +1809,7 @@ const Build: React.FC = () => {
       )}
 
       {/* Chapter Bar - Above timeline graphic */}
-      {(availableChapters.length > 0 || birthYear) && (
+          {(availableChapters.length > 0 || birthYear) && (
         <div className={`chapter-bar ${isLoaded ? 'visible' : ''}`}>
           <span className="chapter-bar-label">CHAPTERS</span>
           <div className="chapter-bar-scroll">
@@ -1523,10 +1841,10 @@ const Build: React.FC = () => {
             )}
           </div>
         </div>
-      )}
+          )}
 
       {/* Spiral Constellation */}
-      <div
+          <div
         ref={spiralRef}
         className={`spiral-container ${isRecentering ? 'recentering' : ''}`}
         onWheel={(e) => {
@@ -1851,10 +2169,12 @@ const Build: React.FC = () => {
             </div>
           )
         })}
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Bottom player (Spotify-style) */}
-      {activeMemory && (
+      {activeMemory ? (
         <>
           {/* Drawer above the player */}
           {panelMode && (
@@ -1884,7 +2204,7 @@ const Build: React.FC = () => {
             </div>
           )}
 
-          <div className="build-player" role="region" aria-label="Audio player">
+          <div ref={playerRef} className="build-player" role="region" aria-label="Audio player">
           <div className="player-left">
             <div
               className={`player-dot ${(activeMemory.visibility ?? 'shared') === 'private' ? 'glass-clear private-orb' : (activeMemory.personId === 'me' ? 'glass-solid' : 'glass-clear')}`}
@@ -2050,12 +2370,38 @@ const Build: React.FC = () => {
           <audio ref={audioRef} preload="metadata" />
           </div>
         </>
+      ) : (
+        <div ref={playerRef} className="build-player idle" role="region" aria-label="Audio player">
+          <div className="player-left">
+            <div className="player-dot glass-clear" style={{ '--player-color': 'rgba(255,255,255,0.35)' } as React.CSSProperties} />
+            <div className="player-meta">
+              <div className="player-title">Select a story to play</div>
+            </div>
+          </div>
+
+          <div className="player-center">
+            <button type="button" className="player-btn" disabled aria-label="Play (disabled)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5.5v13a1 1 0 0 0 1.55.83l10-6.5a1 1 0 0 0 0-1.66l-10-6.5A1 1 0 0 0 8 5.5z" />
+              </svg>
+            </button>
+            <div className="player-progress">
+              <span className="player-time">0:00</span>
+              <input className="player-slider" type="range" min={0} max={1} value={0} disabled />
+              <span className="player-time">0:00</span>
+            </div>
+          </div>
+
+          <div className="player-right">
+            <div className="player-actions" />
+          </div>
+        </div>
       )}
 
-      {/* Chapter empty state: prompt editor (no "No memories" copy). */}
-      {activeChapterRange && visibleMemories.length === 0 && isLoaded && (
+      {/* Story Builder: stays hidden until the user presses "New story". */}
+      {buildView === 'visual' && showStoryBuilder && activeChapterRange && isLoaded && (
         <div
-          className={`prompt-player ${isMobile ? 'mobile' : ''} ${isMobile && !isStoryBuilderExpanded ? 'collapsed' : ''}`}
+          className={`prompt-player lifted ${isMobile ? 'mobile' : ''} ${isMobile && !isStoryBuilderExpanded ? 'collapsed' : ''}`}
           role="region"
           aria-label="Story builder"
         >
@@ -2077,6 +2423,12 @@ const Build: React.FC = () => {
             <div className="prompt-header-actions">
               <button type="button" className="prompt-reset" onClick={resetPromptBox}>
                 RESET
+              </button>
+              <button type="button" className="prompt-reset" onClick={handleTalkNowFromEmptyOrb}>
+                TALK NOW
+              </button>
+              <button type="button" className="prompt-reset" onClick={() => setShowStoryBuilder(false)} aria-label="Close story builder">
+                ×
               </button>
             </div>
           </div>

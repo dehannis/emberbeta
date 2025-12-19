@@ -26,7 +26,7 @@
 .save-button {
     background: transparent;
     border: none;
-    color: var(--white);
+    color: var(--gray-light);
     font-size: 0.75rem;
     font-weight: 300;
     letter-spacing: 0.05em;
@@ -70,14 +70,19 @@
 }
 
 .section-box {
-    background: rgba(20, 20, 20, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    padding: 0.875rem;
+    padding: 0.9rem 0.9rem 0.85rem 0.9rem;
+    background: rgba(18, 18, 18, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 16px;
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     gap: 0.625rem;
+    transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
+
+/* Intentionally no “card hover brighten” — keep hover feedback on inputs/buttons instead. */
 
 .form-group {
     margin-bottom: 0;
@@ -96,11 +101,11 @@
 .form-input,
 .form-select {
     width: 100%;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-    padding: 0.625rem 0.75rem;
-    font-size: 0.875rem;
+    background: rgba(0, 0, 0, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 12px;
+    padding: 0.56rem 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 300;
     color: var(--white);
     transition: border-color 0.3s ease;
@@ -114,7 +119,7 @@
 .form-input:focus,
 .form-select:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.22);
 }
 
 .form-input-disabled {
@@ -247,7 +252,7 @@
 
 .sign-out-section {
     margin-top: 2rem;
-    padding-bottom: 4.5rem;
+    padding-bottom: 1.5rem;
     animation: fadeInUp 1s ease-out 0.7s both;
     text-align: center;
 }
