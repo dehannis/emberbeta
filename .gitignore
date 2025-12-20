@@ -27,3 +27,6 @@ dist-ssr
 # Local server state (SMS invite statuses, etc.)
 server/data/
 
+
+# Env files
+.env

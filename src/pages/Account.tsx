@@ -11,6 +11,7 @@ interface AccountData {
 }
 
 type TopicMode = 'biography' | 'custom'
+type TopicVisibility = 'private' | 'shared'
 
 interface NextCallSettings {
   everyDays: number
@@ -18,6 +19,7 @@ interface NextCallSettings {
   timeZone: string
   topicMode: TopicMode
   prompt: string
+  topicVisibility: TopicVisibility
 }
 
 const Account: React.FC = () => {
@@ -56,6 +58,7 @@ const Account: React.FC = () => {
     timeZone: 'America/Los_Angeles',
     topicMode: 'biography',
     prompt: defaultBiographyNotes(),
+    topicVisibility: 'shared',
   }
 
   const [nextCall, setNextCall] = useState<NextCallSettings>(defaultNextCall)
@@ -109,6 +112,7 @@ const Account: React.FC = () => {
         timeZone: typeof parsed?.timeZone === 'string' ? parsed.timeZone : 'America/Los_Angeles',
         topicMode: parsed?.topicMode === 'custom' ? 'custom' : 'biography',
         prompt: typeof parsed?.prompt === 'string' ? parsed.prompt : defaultBiographyNotes(),
+        topicVisibility: parsed?.topicVisibility === 'private' ? 'private' : 'shared',
       }
 
       setNextCall(cleaned)
@@ -130,6 +134,33 @@ const Account: React.FC = () => {
       .querySelectorAll<HTMLTextAreaElement>('textarea.account-nextcall-notes')
       .forEach((el) => autoResizeTextarea(el))
   }, [nextCall.prompt, nextCall.topicMode])
+
+  useEffect(() => {
+    // Mobile: line-wrapping changes with viewport width/keyboard/orientation,
+    // so recompute textarea height even when the text hasn't changed.
+    const resizeAll = () => {
+      document
+        .querySelectorAll<HTMLTextAreaElement>('textarea.account-nextcall-notes')
+        .forEach((el) => autoResizeTextarea(el))
+    }
+
+    const onResize = () => {
+      requestAnimationFrame(() => resizeAll())
+      setTimeout(resizeAll, 0)
+    }
+
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+    window.visualViewport?.addEventListener('resize', onResize)
+
+    onResize()
+
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+      window.visualViewport?.removeEventListener('resize', onResize)
+    }
+  }, [])
 
   const hasChanges =
     JSON.stringify(formData) !== JSON.stringify(initialFormData) ||
@@ -235,7 +266,7 @@ const Account: React.FC = () => {
               </div>
               <div className="form-group">
                 <label htmlFor="account-voice" className="form-label">
-                  Voice
+                  Ember Voice
                 </label>
                 <div className="select-wrapper">
                   <select
@@ -319,7 +350,25 @@ const Account: React.FC = () => {
                 </div>
 
                 <div className="account-nextcall-topic">
-                  <div className="form-label">TOPIC OF NEXT CALL</div>
+                  <div className="account-nextcall-topic-header">
+                    <div className="form-label">TOPIC OF NEXT CALL</div>
+                    <div className="account-nextcall-privacy" role="group" aria-label="Topic visibility">
+                      <button
+                        type="button"
+                        className={`account-nextcall-privacy-btn ${nextCall.topicVisibility === 'shared' ? 'active' : ''}`}
+                        onClick={() => setNextCall((p) => ({ ...p, topicVisibility: 'shared' }))}
+                      >
+                        Shared
+                      </button>
+                      <button
+                        type="button"
+                        className={`account-nextcall-privacy-btn ${nextCall.topicVisibility === 'private' ? 'active' : ''}`}
+                        onClick={() => setNextCall((p) => ({ ...p, topicVisibility: 'private' }))}
+                      >
+                        Private
+                      </button>
+                    </div>
+                  </div>
                   <div className="select-wrapper">
                     <select
                       className="form-select"
@@ -360,6 +409,14 @@ const Account: React.FC = () => {
               </div>
             </div>
           </section>
+
+          {hasChanges && (
+            <section className="account-save-bottom">
+              <button type="button" onClick={handleSave} className="save-button">
+                Save
+              </button>
+            </section>
+          )}
 
           <section className="sign-out-section">
             <button

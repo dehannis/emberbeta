@@ -246,13 +246,12 @@ const Build: React.FC = () => {
   const [isEditingAboutDate, setIsEditingAboutDate] = useState(false)
   const [draftAboutDate, setDraftAboutDate] = useState('')
   const aboutDateInputRef = useRef<HTMLInputElement>(null)
-  const [panelMode, setPanelMode] = useState<'notes' | null>(null)
+  const [panelMode, setPanelMode] = useState<'transcript' | null>(null)
   const [panelText, setPanelText] = useState('')
   const [panelDisplayed, setPanelDisplayed] = useState('')
   const [panelIsGenerating, setPanelIsGenerating] = useState(false)
   const panelTimerRef = useRef<number | null>(null)
   const drawerBodyRef = useRef<HTMLDivElement | null>(null)
-  const notesAutoscrollActiveRef = useRef(false)
   const [showStoryBuilder, setShowStoryBuilder] = useState(false)
   
   // Chapter state
@@ -468,8 +467,8 @@ const Build: React.FC = () => {
 
   const jumpToChapter = (chapterId: string) => {
     if (chapterId === activeChapter) return
+    closePlayerAndReset()
     setActiveChapter(chapterId)
-    setActiveMemoryId(null)
 
     if (!prefersReducedMotion) {
       setIsRecentering(true)
@@ -484,8 +483,8 @@ const Build: React.FC = () => {
   // Toggle chapter selection
   const toggleChapter = (chapterId: string) => {
     const next = activeChapter === chapterId ? null : chapterId
+    closePlayerAndReset()
     setActiveChapter(next)
-    setActiveMemoryId(null) // Reset selected memory when changing chapter
 
     // Swivel the timeline as we jump to a chapter timeframe (avoid if reduced motion).
     if (!prefersReducedMotion) {
@@ -898,13 +897,7 @@ const Build: React.FC = () => {
     }
   }, [isPlaying, activeMemory?.audioUrl])
 
-  const handleSelectMemory = (memory: Memory) => {
-    // Clicking a memory jumps the pointer to that date (which may snap and open the player).
-    setPointerFrac(fracForISO(memory.aboutDate))
-    markPointerInteracting()
-  }
-
-  const handleClosePlayer = () => {
+  const closePlayerAndReset = () => {
     const audio = audioRef.current
     if (audio) audio.pause()
     setIsPlaying(false)
@@ -915,6 +908,16 @@ const Build: React.FC = () => {
     setDraftTitle('')
     setIsEditingAboutDate(false)
     setDraftAboutDate('')
+    setPanelMode(null)
+  }
+
+  const handleSelectMemory = (memory: Memory) => {
+    // Clicking a memory jumps the pointer to that date (which may snap and open the player).
+    setPointerFrac(fracForISO(memory.aboutDate))
+    markPointerInteracting()
+  }
+  const handleClosePlayer = () => {
+    closePlayerAndReset()
   }
 
   const handleSeek = (value: number) => {
@@ -924,12 +927,10 @@ const Build: React.FC = () => {
     setCurrentTime(value)
   }
 
-  const handleNotes = () => {
-    // TODO: Backend: fetch both summary + transcript for activeMemoryId
-    // - summary: LLM summarization over transcript/audio
-    // - transcript: ASR pipeline
+  const handleTranscript = () => {
+    // TODO: Backend: fetch transcript for activeMemoryId (ASR pipeline)
     if (!activeMemory) return
-    setPanelMode('notes')
+    setPanelMode('transcript')
   }
 
   const formatTime = (seconds: number) => {
@@ -1324,17 +1325,16 @@ const Build: React.FC = () => {
   }, [memoriesData, availableChapters])
 
   // Dummy generation text examples (replace with backend output)
-  const buildDummySummary = (m: Memory) => {
+  const buildDummyCallSummaryAndTags = (m: Memory) => {
     const who = getPersonName(m.personId)
-    return (
-      `Summary\n` +
-      `—\n` +
-      `${who} reflects on ${m.title.toLowerCase()}, touching on what felt important in the moment.\n\n` +
-      `Highlights\n` +
-      `- A clear turning point and what changed afterward\n` +
-      `- A small detail that makes the memory vivid\n` +
-      `- One lingering question to ask next time`
-    )
+    const summary =
+      `${who} walks through ${m.title.toLowerCase()}, focusing on what mattered most in the moment.` +
+      ` They share a vivid detail and what it changed for them afterward.`
+
+    const themes = ['Family', 'Friendship', 'Growing up']
+    const people = [who]
+    const places = ['—']
+    return { summary, themes, people, places }
   }
 
   const buildDummyTranscript = (m: Memory) => {
@@ -1350,19 +1350,19 @@ const Build: React.FC = () => {
     )
   }
 
-  const buildDummyNotes = (m: Memory) => {
-    return `${buildDummySummary(m)}\n\nTranscript\n—\n${buildDummyTranscript(m).replace(/^Transcript\n—\n/, '')}`
+  const buildDummyTranscriptOnly = (m: Memory) => {
+    // Keep only the transcript body (drawer header already says TRANSCRIPT)
+    return buildDummyTranscript(m).replace(/^Transcript\n—\n/, '')
   }
 
   // Generate panel content with a typewriter feel
   useEffect(() => {
     if (!panelMode || !activeMemory) return
 
-    const full = buildDummyNotes(activeMemory)
+    const full = buildDummyTranscriptOnly(activeMemory)
     setPanelText(full)
     setPanelDisplayed('')
     setPanelIsGenerating(true)
-    notesAutoscrollActiveRef.current = false
 
     if (panelTimerRef.current) {
       window.clearInterval(panelTimerRef.current)
@@ -1393,23 +1393,6 @@ const Build: React.FC = () => {
       }
     }
   }, [panelMode, activeMemory, prefersReducedMotion])
-
-  // When Transcript starts, auto-scroll so it's obvious there's more content below Summary.
-  useEffect(() => {
-    if (panelMode !== 'notes') return
-    const el = drawerBodyRef.current
-    if (!el) return
-
-    const marker = '\n\nTranscript\n—\n'
-    const transcriptStarted = panelDisplayed.includes(marker)
-    if (!transcriptStarted) return
-
-    // Once transcript begins, keep pinned to bottom while generating.
-    notesAutoscrollActiveRef.current = true
-    if (panelIsGenerating) {
-      el.scrollTop = el.scrollHeight
-    }
-  }, [panelDisplayed, panelIsGenerating, panelMode])
 
   const skipPanelGeneration = () => {
     if (!panelIsGenerating) return
@@ -1459,6 +1442,7 @@ const Build: React.FC = () => {
     nextCallTimeZone?: string
     nextCallTopicMode?: 'biography' | 'custom'
     nextCallPrompt?: string
+    nextCallTopicVisibility?: 'private' | 'shared'
   }
 
   type AccountNextCall = {
@@ -1644,6 +1628,9 @@ const Build: React.FC = () => {
               ? meName || 'You'
               : listPeople.find((p) => p.id === listFilterPersonId)?.displayName ?? (meName || 'You')}
           </span>
+          <span className="person-selector-caret" aria-hidden="true">
+            ▾
+          </span>
         </button>
 
         {isPersonDropdownOpen && (
@@ -1657,6 +1644,7 @@ const Build: React.FC = () => {
                     key={opt.id}
                     className={`person-selector-item ${isSelected ? 'selected' : ''}`}
                     onClick={() => {
+                      closePlayerAndReset()
                       setListFilterPersonId(opt.id)
                       setIsPersonDropdownOpen(false)
                     }}
@@ -1793,16 +1781,43 @@ const Build: React.FC = () => {
                   </div>
                 </section>
 
-                <section className="build-list-card build-list-card--nextcall">
-                  <div className="build-list-label">NEXT CALL</div>
-                  {!nextCallSource ? (
+                <section className={`build-list-card ${activeMemory ? 'build-list-card--summary' : 'build-list-card--nextcall'}`}>
+                  <div className="build-list-label">{activeMemory ? 'SUMMARY' : 'NEXT CALL'}</div>
+                  {activeMemory ? (
+                    (() => {
+                      const s = buildDummyCallSummaryAndTags(activeMemory)
+                      return (
+                        <div className="build-summary-scroll ember-scroll">
+                          <div className="build-call-list">
+                            <div className="build-call-row">
+                              <div className="build-call-topic">
+                                <span className="build-call-note">{s.summary}</span>
+                              </div>
+                              <div className="build-call-when">Tagged themes, people, places:</div>
+                              <div className="build-call-topic">
+                                <span className="build-call-note">Themes: {s.themes.join(', ') || '—'}</span>
+                                <span className="build-call-note">People: {s.people.join(', ') || '—'}</span>
+                                <span className="build-call-note">Places: {s.places.join(', ') || '—'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()
+                  ) : !nextCallSource ? (
                     <div className="build-list-empty">No schedule yet.</div>
                   ) : (
                     <>
                       {(() => {
                         const next = nextCallsPreview(nextCallSource, 1)[0] ?? null
-                        const topicText =
-                          typeof nextCallSource.nextCallPrompt === 'string' ? nextCallSource.nextCallPrompt.trim() : ''
+                        const topicText = (() => {
+                          if (p.id !== 'me' && nextCallSource?.nextCallTopicVisibility === 'private') {
+                            const who = p.displayName || 'They'
+                            const isHank = who.toLowerCase().includes('hank')
+                            return `${who} has set ${isHank ? 'his' : 'their'} topic to private.`
+                          }
+                          return typeof nextCallSource.nextCallPrompt === 'string' ? nextCallSource.nextCallPrompt.trim() : ''
+                        })()
                         return (
                           <div className="build-call-list">
                             <div className="build-call-row">
@@ -2394,10 +2409,10 @@ const Build: React.FC = () => {
         <>
           {/* Drawer above the player */}
           {panelMode && (
-            <div className="build-player-drawer" role="region" aria-label="Notes">
+            <div className="build-player-drawer" role="region" aria-label="Transcript">
               <div className="drawer-header">
                 <div className="drawer-title">
-                  NOTES
+                  TRANSCRIPT
                   {panelIsGenerating && <span className="drawer-generating">Generating…</span>}
                 </div>
                 <button
@@ -2421,6 +2436,9 @@ const Build: React.FC = () => {
           )}
 
           <div ref={playerRef} className="build-player" role="region" aria-label="Audio player">
+            <button type="button" className="player-close-top" onClick={handleClosePlayer} aria-label="Close player">
+              CLOSE
+            </button>
           <div className="player-left">
             <div
               className={`player-dot ${(activeMemory.visibility ?? 'shared') === 'private' ? 'glass-clear private-orb' : 'glass-solid'}`}
@@ -2558,9 +2576,7 @@ const Build: React.FC = () => {
 
           <div className="player-right">
             <div className="player-actions">
-              <button type="button" className="player-action" onClick={handleNotes}>
-                Notes
-              </button>
+              <button type="button" className="player-action" onClick={handleTranscript}>Transcript</button>
             </div>
             {activeMemory.personId === 'me' && (
               <div className="player-visibility" aria-label="Visibility">
@@ -2580,9 +2596,7 @@ const Build: React.FC = () => {
                 </button>
               </div>
             )}
-            <button type="button" className="player-close" onClick={handleClosePlayer} aria-label="Close player">
-              ×
-            </button>
+            
           </div>
 
           <audio ref={audioRef} preload="metadata" />

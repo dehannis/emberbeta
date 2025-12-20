@@ -20,6 +20,7 @@ interface SharingContact {
   id: string
   name: string
   phone: string
+  accountRole?: 'admin' | 'regular'
   birthYear?: string
   relationship: Relationship
   verificationStatus?: 'unverified' | 'pending' | 'accepted' | 'declined' | 'error'
@@ -32,10 +33,18 @@ interface SharingContact {
   nextCallVoice: string
   nextCallTopicMode: TopicMode
   nextCallPrompt: string
+  nextCallTopicVisibility?: 'private' | 'shared'
 }
 
 const CONTACTS_KEY = 'emberContactsV1'
 const VERIFY_API_BASE = (import.meta as any).env?.VITE_EVI_PROXY_HTTP ?? 'http://localhost:8788'
+
+
+const inviteUrlFor = (inviteId?: string) => {
+  const digits = typeof inviteId === 'string' ? (inviteId.match(/\d+/g) || []).join('') : ''
+  const code = digits || '4271993'
+  return `https://ember.build/${code}`
+}
 
 const autoResizeTextarea = (el: HTMLTextAreaElement | null) => {
   if (!el) return
@@ -83,6 +92,7 @@ const Share: React.FC = () => {
         nextCallLanguage: 'English',
         nextCallVoice: 'female',
         nextCallTopicMode: 'biography',
+        nextCallTopicVisibility: 'shared',
         nextCallPrompt: defaultBiographyNotes('Suchan Chae'),
       },
       {
@@ -99,6 +109,7 @@ const Share: React.FC = () => {
         nextCallLanguage: 'English',
         nextCallVoice: 'female',
         nextCallTopicMode: 'biography',
+        nextCallTopicVisibility: 'private',
         nextCallPrompt: defaultBiographyNotes('Hank Lee'),
       },
     ],
@@ -185,10 +196,23 @@ const Share: React.FC = () => {
   const [contacts, setContacts] = useState<SharingContact[]>([])
   const [savedContacts, setSavedContacts] = useState<SharingContact[]>([])
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
+  const [adminAccessRequestTarget, setAdminAccessRequestTarget] = useState<SharingContact | null>(null)
+  const INVITES_REMAINING_KEY = 'emberInviteRemainingV1'
+  const [invitesRemaining, setInvitesRemaining] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem(INVITES_REMAINING_KEY)
+      const n = raw ? Number(JSON.parse(raw)) : 5
+      return Number.isFinite(n) ? Math.max(0, Math.min(99, Math.floor(n))) : 5
+    } catch {
+      return 5
+    }
+  })
+  const [copiedInviteForId, setCopiedInviteForId] = useState<string | null>(null)
   // Allow the "days" field to be temporarily empty while typing (mobile-friendly).
   const [daysDraftById, setDaysDraftById] = useState<Record<string, string>>({})
   const [form, setForm] = useState<Omit<SharingContact, 'id'>>({
     name: '',
+    accountRole: 'regular',
     phone: '',
     birthYear: '',
     relationship: 'mother',
@@ -200,6 +224,7 @@ const Share: React.FC = () => {
     nextCallVoice: 'female',
     nextCallTopicMode: 'biography',
     nextCallPrompt: '',
+      nextCallTopicVisibility: 'shared',
   })
 
   useLayoutEffect(() => {
@@ -256,6 +281,10 @@ const Share: React.FC = () => {
           id: typeof c.id === 'string' ? c.id : `c-${idx + 1}`,
           name: c.name,
           phone: c.phone,
+          accountRole:
+            c.accountRole === 'admin'
+              ? 'admin'
+              : (typeof c.name === 'string' && c.name.toLowerCase().includes('suchan') ? 'admin' : 'regular'),
           birthYear: typeof c.birthYear === 'string' ? c.birthYear : '',
           relationship: normalizeRelationship(c.relationship),
           verificationStatus:
@@ -275,6 +304,11 @@ const Share: React.FC = () => {
           nextCallLanguage: typeof c.nextCallLanguage === 'string' ? c.nextCallLanguage : 'English',
           nextCallVoice: typeof c.nextCallVoice === 'string' ? c.nextCallVoice : 'female',
           nextCallTopicMode: (c.nextCallTopicMode === 'custom' ? 'custom' : 'biography') as TopicMode,
+          nextCallTopicVisibility: c.nextCallTopicVisibility === 'private'
+            ? 'private'
+            : (typeof c.name === 'string' && c.name.toLowerCase().includes('hank')
+              ? 'private'
+              : 'shared'),
           nextCallPrompt:
             typeof c.nextCallPrompt === 'string' && c.nextCallPrompt.trim()
               ? c.nextCallPrompt
@@ -338,7 +372,7 @@ const Share: React.FC = () => {
             if (!match) return c
             const status =
               match.status === 'accepted' ? 'accepted' : match.status === 'declined' ? 'declined' : 'pending'
-            return { ...c, verificationStatus: status }
+            return { ...c, verificationStatus: status, accountRole: status === 'accepted' ? 'regular' : (c.accountRole ?? 'regular') }
           }),
         )
       } catch {
@@ -386,6 +420,16 @@ const Share: React.FC = () => {
               : c,
           ),
         )
+
+        setInvitesRemaining((prev) => {
+          const next = Math.max(0, prev - 1)
+          try {
+            localStorage.setItem(INVITES_REMAINING_KEY, JSON.stringify(next))
+          } catch {
+            // ignore
+          }
+          return next
+        })
       } catch {
         setContacts((prev) =>
           prev.map((c) => (c.id === newContact.id ? { ...c, verificationStatus: 'error' } : c)),
@@ -460,13 +504,17 @@ const Share: React.FC = () => {
     if (!saved) return true
     const pick = (x: SharingContact) => ({
       name: x.name,
+      accountRole: x.accountRole ?? 'regular',
       birthYear: x.birthYear ?? '',
       relationship: x.relationship,
       nextCallEveryDays: x.nextCallEveryDays,
       nextCallTime: x.nextCallTime,
       nextCallTimeZone: x.nextCallTimeZone,
+      nextCallLanguage: x.nextCallLanguage,
+      nextCallVoice: x.nextCallVoice,
       nextCallTopicMode: x.nextCallTopicMode,
       nextCallPrompt: x.nextCallPrompt,
+      nextCallTopicVisibility: x.nextCallTopicVisibility === 'private' ? 'private' : 'shared',
     })
     return JSON.stringify(pick(saved)) !== JSON.stringify(pick(c))
   }
@@ -491,7 +539,22 @@ const Share: React.FC = () => {
             <div className="sharing-with-list">
               {contacts.map((c) => (
                 <div key={c.id} className="sharing-with-card">
-                  <div className="sharing-card-top">
+                                    <div className="sharing-card-top">
+                    <div className="sharing-card-actions sharing-card-actions--header">
+                      {c.verificationStatus === 'pending' ? (
+                        <div className="sharing-pending-badge">PENDING VERIFICATION</div>
+                      ) : (c.accountRole ?? 'regular') === 'admin' ? (
+                        <div className="sharing-admin-badge">Admin Access</div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="sharing-admin-request"
+                          onClick={() => setAdminAccessRequestTarget(c)}
+                        >
+                          Request Admin Access
+                        </button>
+                      )}
+                    </div>
                     <div className="sharing-card-ident">
                       <div className="sharing-top-grid">
                         <div className="sharing-field">
@@ -518,7 +581,6 @@ const Share: React.FC = () => {
                           />
                           {c.verificationStatus && c.verificationStatus !== 'accepted' && (
                             <div className="sharing-status">
-                              {c.verificationStatus === 'pending' && 'Pending verification'}
                               {c.verificationStatus === 'declined' && 'Declined'}
                               {c.verificationStatus === 'error' && 'Verification error'}
                             </div>
@@ -527,9 +589,7 @@ const Share: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="sharing-card-actions">
-                      {/* Intentionally empty: actions live in footer for calmer layout */}
-                    </div>
+
                   </div>
 
                   <div className="sharing-card-bottom">
@@ -544,6 +604,7 @@ const Share: React.FC = () => {
                           value={c.birthYear ?? ''}
                           onChange={(e) => updateContact(c.id, { birthYear: e.target.value })}
                           placeholder="YYYY"
+                          disabled={!((c.accountRole ?? 'regular') === 'admin' || c.verificationStatus === 'pending')}
                         />
                       </div>
 
@@ -569,6 +630,7 @@ const Share: React.FC = () => {
 
                       <div className="sharing-field">
                         <label className="sharing-field-label" htmlFor={`contact-lang-${c.id}`}>
+
                           Language
                         </label>
                         <div className="sharing-select">
@@ -576,7 +638,11 @@ const Share: React.FC = () => {
                             id={`contact-lang-${c.id}`}
                             className="sharing-control"
                             value={c.nextCallLanguage}
-                            onChange={(e) => updateContact(c.id, { nextCallLanguage: e.target.value })}
+                            onChange={(e) => {
+                              if ((c.accountRole ?? 'regular') !== 'admin' && c.verificationStatus !== 'pending') return
+                              updateContact(c.id, { nextCallLanguage: e.target.value })
+                            }}
+                            disabled={!((c.accountRole ?? 'regular') === 'admin' || c.verificationStatus === 'pending')}
                           >
                             {LANGUAGE_OPTIONS.map((opt) => (
                               <option key={opt.value} value={opt.value}>
@@ -589,14 +655,18 @@ const Share: React.FC = () => {
 
                       <div className="sharing-field">
                         <label className="sharing-field-label" htmlFor={`contact-voice-${c.id}`}>
-                          Voice
+                          Ember Voice
                         </label>
                         <div className="sharing-select">
                           <select
                             id={`contact-voice-${c.id}`}
                             className="sharing-control"
                             value={c.nextCallVoice}
-                            onChange={(e) => updateContact(c.id, { nextCallVoice: e.target.value })}
+                            onChange={(e) => {
+                              if ((c.accountRole ?? 'regular') !== 'admin' && c.verificationStatus !== 'pending') return
+                              updateContact(c.id, { nextCallVoice: e.target.value })
+                            }}
+                            disabled={!((c.accountRole ?? 'regular') === 'admin' || c.verificationStatus === 'pending')}
                           >
                             {VOICE_OPTIONS.map((opt) => (
                               <option key={opt.value} value={opt.value}>
@@ -609,7 +679,42 @@ const Share: React.FC = () => {
 
                     </div>
 
-                    <div className="sharing-section-divider" />
+                                        {c.verificationStatus === 'pending' ? (
+                      <>
+                        <div className="sharing-section-divider" />
+                        <div className="sharing-pending-invite">
+                          <div
+                            className="url-content sharing-invite-url"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              const url = inviteUrlFor(c.inviteId)
+                              navigator.clipboard?.writeText?.(url).catch(() => {})
+                              setCopiedInviteForId(c.id)
+                              setTimeout(() => setCopiedInviteForId((prev) => (prev === c.id ? null : prev)), 900)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                const url = inviteUrlFor(c.inviteId)
+                                navigator.clipboard?.writeText?.(url).catch(() => {})
+                                setCopiedInviteForId(c.id)
+                                setTimeout(() => setCopiedInviteForId((prev) => (prev === c.id ? null : prev)), 900)
+                              }
+                            }}
+                          >
+                            <div className="url-text">{inviteUrlFor(c.inviteId)}</div>
+                            <div className="copy-text">{copiedInviteForId === c.id ? 'COPIED' : 'COPY'}</div>
+                          </div>
+                          <div className="sharing-pending-desc">
+                            Share this unique invite link with <strong>{(c.name || '').trim().split(/\s+/)[0] || 'them'}</strong>.{' '}
+                            <strong>{invitesRemaining}</strong> invitations remaining.
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="sharing-section-divider" />
 
                     <div className="sharing-card-section">Schedule call</div>
                     <div className="sharing-frequency">
@@ -622,11 +727,16 @@ const Share: React.FC = () => {
                           className="sharing-control sharing-control--days"
                           value={daysDraftById[c.id] ?? String(c.nextCallEveryDays ?? 1)}
                           onChange={(e) => {
+                            if ((c.accountRole ?? 'regular') !== 'admin') return
                             // Keep only digits, allow empty, cap to 2 chars for 0-99.
                             const digits = e.target.value.replace(/\D/g, '').slice(0, 2)
                             setDaysDraftById((prev) => ({ ...prev, [c.id]: digits }))
                           }}
-                          onBlur={() => commitDaysDraft(c.id)}
+                          onBlur={() => {
+                            if ((c.accountRole ?? 'regular') !== 'admin') return
+                            commitDaysDraft(c.id)
+                          }}
+                          disabled={(c.accountRole ?? 'regular') !== 'admin'}
                         />
                         <div className="sharing-frequency-label freq-days">days at</div>
                         <div className="sharing-select sharing-select--time">
@@ -634,6 +744,7 @@ const Share: React.FC = () => {
                             className="sharing-control"
                             value={c.nextCallTime}
                             onChange={(e) => updateContact(c.id, { nextCallTime: e.target.value })}
+                            disabled={(c.accountRole ?? 'regular') !== 'admin'}
                           >
                             {[
                               ['00:00', '12:00 AM'],
@@ -660,6 +771,7 @@ const Share: React.FC = () => {
                             className="sharing-control"
                             value={c.nextCallTimeZone}
                             onChange={(e) => updateContact(c.id, { nextCallTimeZone: e.target.value })}
+                            disabled={(c.accountRole ?? 'regular') !== 'admin'}
                           >
                             {TIME_ZONES.map((tz) => (
                               <option key={tz.value} value={tz.value}>
@@ -682,49 +794,71 @@ const Share: React.FC = () => {
 
                     <div className="sharing-topic-grid">
                       <div className="sharing-topic-label">Topic of Next Call</div>
-                      <div className="sharing-select">
-                        <select
-                          className="sharing-control"
-                          value={c.nextCallTopicMode}
-                          onChange={(e) => {
-                            const mode = e.target.value as TopicMode
-                            if (mode === 'biography') {
-                              updateContact(c.id, {
-                                nextCallTopicMode: 'biography',
-                                nextCallPrompt: defaultBiographyNotes(c.name),
-                              })
-                            } else {
-                              updateContact(c.id, { nextCallTopicMode: 'custom' })
+                      {c.nextCallTopicVisibility === 'private' ? (
+                        <div className="sharing-topic-privacy" aria-label="Topic visibility">
+                          PRIVATE
+                        </div>
+                      ) : (c.accountRole ?? 'regular') === 'admin' ? (
+                        <>
+                          <div className="sharing-select">
+                            <select
+                              className="sharing-control"
+                              value={c.nextCallTopicMode}
+                              onChange={(e) => {
+                                const mode = e.target.value as TopicMode
+                                if (mode === 'biography') {
+                                  updateContact(c.id, {
+                                    nextCallTopicMode: 'biography',
+                                    nextCallPrompt: defaultBiographyNotes(c.name),
+                                  })
+                                } else {
+                                  updateContact(c.id, { nextCallTopicMode: 'custom' })
+                                }
+                              }}
+                            >
+                              <option value="biography">Biography (Default)</option>
+                              <option value="custom">Custom</option>
+                            </select>
+                          </div>
+                          <textarea
+                            className="sharing-control sharing-control--notes ember-scroll"
+                            value={c.nextCallPrompt}
+                            onChange={(e) => {
+                              autoResizeTextarea(e.currentTarget)
+                              updateContact(c.id, { nextCallPrompt: e.target.value })
+                            }}
+                            readOnly={c.nextCallTopicMode !== 'custom'}
+                            placeholder={
+                              c.nextCallTopicMode === 'custom'
+                                ? 'Example: Tell me about the first country you traveled to'
+                                : 'Biography notes…'
                             }
-                          }}
-                        >
-                          <option value="biography">Biography (Default)</option>
-                          <option value="custom">Custom</option>
-                        </select>
-                      </div>
-                      <textarea
-                        className="sharing-control sharing-control--notes ember-scroll"
-                        value={c.nextCallPrompt}
-                        onChange={(e) => {
-                          autoResizeTextarea(e.currentTarget)
-                          updateContact(c.id, { nextCallPrompt: e.target.value })
-                        }}
-                        readOnly={c.nextCallTopicMode !== 'custom'}
-                        placeholder={
-                          c.nextCallTopicMode === 'custom'
-                            ? 'Example: Tell me about the first country you traveled to'
-                            : 'Biography notes…'
-                        }
-                        aria-required={c.nextCallTopicMode === 'custom'}
-                        aria-invalid={c.nextCallTopicMode === 'custom' && !c.nextCallPrompt.trim()}
-                        rows={2}
-                      />
+                            aria-required={c.nextCallTopicMode === 'custom'}
+                            aria-invalid={c.nextCallTopicMode === 'custom' && !c.nextCallPrompt.trim()}
+                            rows={2}
+                          />
+                        </>
+                      ) : (
+                        <textarea
+                          className="sharing-control sharing-control--notes ember-scroll"
+                          value={c.nextCallPrompt}
+                          readOnly
+                          rows={2}
+                        />
+                      )}
                     </div>
-                    {c.nextCallTopicMode === 'custom' && !c.nextCallPrompt.trim() && (
-                      <div className="sharing-required-hint">Notes are required when using Custom.</div>
+                    {(c.accountRole ?? 'regular') === 'admin' &&
+                      c.nextCallTopicVisibility !== 'private' &&
+                      c.nextCallTopicMode === 'custom' &&
+                      !c.nextCallPrompt.trim() && (
+                        <div className="sharing-required-hint">Notes are required when using Custom.</div>
+                      )}
+
+                    
+                      </>
                     )}
 
-                    <div className="sharing-card-footer">
+<div className="sharing-card-footer">
                       {isDirty(c) && (
                         <button
                           type="button"
@@ -764,7 +898,7 @@ const Share: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    className="share-modal-btn danger"
+                    className="share-modal-btn"
                     onClick={() => {
                       const id = confirmRemoveId
                       setConfirmRemoveId(null)
@@ -772,6 +906,33 @@ const Share: React.FC = () => {
                     }}
                   >
                     REMOVE
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {adminAccessRequestTarget && (
+            <div
+              className="share-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Request admin access"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) setAdminAccessRequestTarget(null)
+              }}
+            >
+              <div className="share-modal-card">
+                <div className="share-modal-title">
+                  Admin access is most useful for family members looking to guide parents/grandparents through the
+                  Ember process. Would you like to request admin access?
+                </div>
+                <div className="share-modal-actions">
+                  <button type="button" className="share-modal-btn ghost" onClick={() => setAdminAccessRequestTarget(null)}>
+                    CANCEL
+                  </button>
+                  <button type="button" className="share-modal-btn" onClick={() => setAdminAccessRequestTarget(null)}>
+                    REQUEST
                   </button>
                 </div>
               </div>

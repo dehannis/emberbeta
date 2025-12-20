@@ -439,6 +439,14 @@
   transition: color 0.2s ease;
 }
 
+.person-selector-caret {
+  margin-left: 0.15rem;
+  font-size: 0.65rem;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.95);
+  transform: translateY(-0.02rem) scaleY(0.78);
+}
+
 .person-selector-trigger:hover .person-selector-name {
   color: rgba(255, 255, 255, 1);
 }
@@ -1784,6 +1792,7 @@
    =========================== */
 .build-player {
   position: fixed;
+  position: fixed;
   left: 50%;
   bottom: 1.1rem;
   transform: translateX(-50%);
@@ -2305,6 +2314,26 @@
   white-space: nowrap;
 }
 
+
+.player-close-top {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.65rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.5625rem;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.player-close-top:hover {
+  color: rgba(255, 255, 255, 0.95);
+}
 .player-close {
   background: transparent;
   border: none;
@@ -2834,6 +2863,38 @@
   /* Next Call: always fully visible */
   .build-list-card--nextcall {
     flex: 0 0 auto;
+  }
+
+  /* Summary: same behavior as Next Call (card stays visible), but content can scroll if long */
+  .build-list-card--summary {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .build-list-card--summary .build-summary-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 42vh;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 0.25rem;
+  }
+
+  /* Summary spacing tweaks */
+  .build-list-card--summary .build-list-label {
+    margin-bottom: 0.4rem;
+  }
+
+  .build-list-card--summary .build-call-row {
+    gap: 0.4rem;
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+  }
+
+  .build-list-card--summary .build-call-topic {
+    gap: 0.18rem;
   }
 
 

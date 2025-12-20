@@ -628,10 +628,10 @@
 /* Intentionally no “card hover brighten” — keep hover feedback on inputs/buttons instead. */
 
 .sharing-card-top {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 0.75rem;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    align-items: stretch;
 }
 
 .sharing-card-ident {
@@ -660,6 +660,96 @@
     display: flex;
     align-items: flex-start;
     gap: 0.9rem;
+}
+
+.sharing-card-actions--header {
+    justify-content: flex-end;
+    align-self: flex-end;
+}
+
+
+.sharing-admin-badge {
+    font-size: 0.62rem;
+    font-weight: 300;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+    white-space: nowrap;
+}
+
+.sharing-admin-request {
+    appearance: none;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 0.62rem;
+    font-weight: 300;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.32);
+    cursor: pointer;
+    transition: color 180ms ease;
+    white-space: nowrap;
+}
+
+.sharing-admin-request:hover {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+
+.sharing-pending-badge {
+    font-size: 0.62rem;
+    font-weight: 300;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.92);
+    white-space: nowrap;
+}
+
+.sharing-pending-invite {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.sharing-invite-url {
+    padding: 0.7rem;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+
+.sharing-invite-url .url-text {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+
+.sharing-invite-url.url-content {
+    padding: 0.55rem 0.75rem;
+    align-items: center;
+}
+
+.sharing-invite-url .copy-text {
+    font-size: 0.625rem;
+}
+
+.sharing-invite-url:hover {
+    background: rgba(0, 0, 0, 0.16);
+    border-color: rgba(255, 255, 255, 0.10);
+}
+
+.sharing-pending-desc {
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.6;
 }
 
 .sharing-save {
@@ -955,6 +1045,7 @@ input[type="number"].sharing-control {
 
 .sharing-with-card--add .sharing-card-section {
     margin-bottom: 0.75rem;
+    color: rgba(255, 255, 255, 0.95);
 }
 
 .sharing-frequency-label {
@@ -1016,6 +1107,16 @@ input[type="number"].sharing-control {
     margin-bottom: -0.1rem;
 }
 
+
+.sharing-topic-privacy {
+    grid-column: 1 / -1;
+    margin-top: -0.15rem;
+    font-size: 0.5625rem;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.32);
+}
 .sharing-topic-grid {
     margin-top: 0.6rem;
     display: grid;

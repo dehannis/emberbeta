@@ -26,7 +26,7 @@
 .save-button {
     background: transparent;
     border: none;
-    color: var(--gray-light);
+    color: var(--white);
     font-size: 0.75rem;
     font-weight: 300;
     letter-spacing: 0.05em;
@@ -39,6 +39,16 @@
 }
 
 .save-button:hover {
+    color: var(--white);
+}
+
+
+.save-button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.save-button:disabled:hover {
     color: var(--white);
 }
 
@@ -193,6 +203,49 @@
     gap: 0.45rem;
 }
 
+
+.account-nextcall-topic-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.account-nextcall-privacy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.18rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.14);
+}
+
+.account-nextcall-privacy-btn {
+    background: transparent;
+    border: none;
+    padding: 0.32rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.5rem;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+    font-family: inherit;
+}
+
+.account-nextcall-privacy-btn:hover {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.account-nextcall-privacy-btn.active {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.72);
+}
+
 .account-nextcall-notes {
     resize: none;
     overflow: hidden;
@@ -228,7 +281,7 @@
     padding: 0.625rem 0.75rem;
     font-size: 0.875rem;
     font-weight: 300;
-    color: var(--gray-light);
+    color: var(--white);
     cursor: pointer;
     transition: all 0.3s ease;
     font-family: inherit;
@@ -317,6 +370,17 @@
 .add-contact-name {
     color: var(--gray-medium);
     transition: color 0.3s ease;
+}
+
+
+.account-save-bottom {
+    margin-top: 0.5rem;
+    padding-bottom: 0;
+    text-align: center;
+}
+
+.account-save-bottom + .sign-out-section {
+    margin-top: 0.6rem;
 }
 
 .sign-out-section {
