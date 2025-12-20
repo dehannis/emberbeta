@@ -507,9 +507,16 @@ const saveModifiedSeedEntity = (entity: Entity) => {
 const findEntitiesByQuery = (store: MemoryStore, query: string): Entity[] => {
   const q = query.toLowerCase();
   return store.entities.filter(
-    (e) =>
-      e.name.toLowerCase().includes(q) ||
-      (e.aliases || []).some((a) => a.toLowerCase().includes(q))
+    (e) => {
+      const name = e.name.toLowerCase();
+      // Match if entity name contains query OR query contains entity name
+      return name.includes(q) ||
+        q.includes(name) ||
+        (e.aliases || []).some((a) => {
+          const alias = a.toLowerCase();
+          return alias.includes(q) || q.includes(alias);
+        });
+    }
   );
 };
 
