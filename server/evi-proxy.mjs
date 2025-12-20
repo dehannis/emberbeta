@@ -74,8 +74,12 @@ const log = (...args) => {
 }
 
 wss.on('connection', (clientWs, req) => {
+  // Parse query params for resume chat support
+  const url = new URL(req.url, `http://${req.headers.host}`)
+  const resumedChatGroupId = url.searchParams.get('resumed_chat_group_id')
+
   const clientAddr = req.socket?.remoteAddress ?? 'unknown'
-  log('client connected', clientAddr)
+  log('client connected', clientAddr, resumedChatGroupId ? `(resuming ${resumedChatGroupId})` : '')
 
   const closeBoth = (code = 1000, reason = 'closing') => {
     try {
@@ -92,11 +96,14 @@ wss.on('connection', (clientWs, req) => {
 
   const evi = hume.empathicVoice.chat.connect({
     configId: HUME_EVI_CONFIG_ID || undefined,
+    resumedChatGroupId: resumedChatGroupId || undefined,
     // Some accounts/environments require this flag to permit connection.
     allowConnection: true,
     // Tell EVI we're sending PCM linear16 @ 16kHz mono (matches our mic pipeline).
-    sessionSettings: { audio: { encoding: 'linear16', sampleRate: 16000, channels: 1 } },
-  })
+    sessionSettings: {
+      audio: { encoding: 'linear16', sampleRate: 16000, channels: 1 },
+    },
+  });
 
   let eviIsOpen = false
   const pendingPublishes = []
@@ -188,6 +195,55 @@ wss.on('connection', (clientWs, req) => {
           return
         }
         evi.sendSessionSettings(rest)
+        return
+      }
+
+      // Handle pause assistant
+      if (parsed?.type === 'pause_assistant_message') {
+        if (!eviIsOpen) {
+          pendingPublishes.push({ type: 'pause_assistant_message' })
+          if (pendingPublishes.length > 50) pendingPublishes.shift()
+          return
+        }
+        log('pausing assistant')
+        evi.pauseAssistant()
+        return
+      }
+
+      // Handle resume assistant
+      if (parsed?.type === 'resume_assistant_message') {
+        if (!eviIsOpen) {
+          pendingPublishes.push({ type: 'resume_assistant_message' })
+          if (pendingPublishes.length > 50) pendingPublishes.shift()
+          return
+        }
+        log('resuming assistant')
+        evi.resumeAssistant()
+        return
+      }
+
+      // Handle tool response (convert snake_case to camelCase for SDK)
+      if (parsed?.type === 'tool_response') {
+        const { tool_call_id, content } = parsed
+        if (!eviIsOpen) {
+          pendingPublishes.push(parsed)
+          if (pendingPublishes.length > 50) pendingPublishes.shift()
+          return
+        }
+        log('sending tool response', tool_call_id)
+        evi.sendToolResponseMessage({ toolCallId: tool_call_id, content })
+        return
+      }
+
+      // Handle assistant_input (for injecting assistant messages like greetings)
+      if (parsed?.type === 'assistant_input' && typeof parsed?.text === 'string') {
+        if (!eviIsOpen) {
+          pendingPublishes.push({ type: 'assistant_input', text: parsed.text })
+          if (pendingPublishes.length > 50) pendingPublishes.shift()
+          return
+        }
+        log('sending assistant input')
+        evi.sendAssistantInput({ text: parsed.text })
         return
       }
 
