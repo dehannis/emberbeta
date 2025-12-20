@@ -1434,9 +1434,11 @@ IMPORTANT: Only tag emotions they explicitly express. Never assume feelings.`;
   };
 
   const ensurePlaybackCtx = () => {
-    if (!playbackAudioCtxRef.current)
+    // Check if context is missing OR closed (closed contexts can't be reused)
+    if (!playbackAudioCtxRef.current || playbackAudioCtxRef.current.state === 'closed') {
       playbackAudioCtxRef.current = new (window.AudioContext ||
         (window as any).webkitAudioContext)();
+    }
     return playbackAudioCtxRef.current;
   };
 
@@ -1591,6 +1593,11 @@ IMPORTANT: Only tag emotions they explicitly express. Never assume feelings.`;
           if (parsed?.type === 'proxy_error') {
             setVoiceStatus('error');
             setVoiceError(parsed?.message);
+            return;
+          }
+          // Handle Hume EVI disconnect (e.g., inactivity timeout)
+          if (parsed?.type === 'proxy_status' && parsed?.status === 'disconnected') {
+            addToLog(`🔌 Hume disconnected (code: ${parsed?.code || 'unknown'})`);
             return;
           }
           if (parsed?.type === 'chat_metadata' && parsed.chat_group_id) {
