@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useLayoutEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import './Account.css'
@@ -8,13 +8,16 @@ interface AccountData {
   birthYear: string
   language: string
   voice: string
-  accountType: string
 }
 
-interface SharingContactSummary {
-  id: string
-  name: string
-  phone: string
+type TopicMode = 'biography' | 'custom'
+
+interface NextCallSettings {
+  everyDays: number
+  time: string
+  timeZone: string
+  topicMode: TopicMode
+  prompt: string
 }
 
 const Account: React.FC = () => {
@@ -24,47 +27,113 @@ const Account: React.FC = () => {
     birthYear: '',
     language: 'English',
     voice: 'female',
-    accountType: 'ember',
   }
 
   const [formData, setFormData] = useState<AccountData>(defaultFormData)
   const [initialFormData, setInitialFormData] = useState<AccountData>(defaultFormData)
 
-  const CONTACTS_KEY = 'emberContactsV1'
-  const defaultContacts: SharingContactSummary[] = [
-    { id: 'c-1', name: 'Suchan Chae', phone: '+1-555-123-4567' },
-    { id: 'c-2', name: 'Hank Lee', phone: '+1-555-987-6543' },
-  ]
-  const [contacts, setContacts] = useState<SharingContactSummary[]>(defaultContacts)
+  const NEXT_CALL_KEY = 'emberAccountNextCallV1'
+
+  const TIME_ZONES = [
+    { value: 'America/Los_Angeles', label: 'PT', short: 'PT' },
+    { value: 'America/New_York', label: 'ET', short: 'ET' },
+    { value: 'Europe/London', label: 'UK', short: 'UK' },
+    { value: 'Asia/Seoul', label: 'KST', short: 'KST' },
+    { value: 'Asia/Tokyo', label: 'JST', short: 'JST' },
+    { value: 'America/Mexico_City', label: 'MXT', short: 'MXT' },
+    { value: 'America/Sao_Paulo', label: 'BRT', short: 'BRT' },
+  ] as const
+
+  const tzShort = (tz: string) => TIME_ZONES.find((t) => t.value === tz)?.short ?? tz
+
+  const defaultBiographyNotes = () => {
+    return `In your last conversation, you shared a meaningful story. For this next conversation, we’ll continue by exploring what happened next and how it shaped your life.`
+  }
+
+  const defaultNextCall: NextCallSettings = {
+    everyDays: 1,
+    time: '18:00',
+    timeZone: 'America/Los_Angeles',
+    topicMode: 'biography',
+    prompt: defaultBiographyNotes(),
+  }
+
+  const [nextCall, setNextCall] = useState<NextCallSettings>(defaultNextCall)
+  const [initialNextCall, setInitialNextCall] = useState<NextCallSettings>(defaultNextCall)
+  const [daysDraft, setDaysDraft] = useState<string>(String(defaultNextCall.everyDays))
+
+  const autoResizeTextarea = (el: HTMLTextAreaElement | null) => {
+    if (!el) return
+    el.style.height = '0px'
+    el.style.height = `${el.scrollHeight}px`
+  }
+
+  const formatNextScheduled = (everyDays: number, hhmm: string) => {
+    const d = Number.isFinite(everyDays) ? Math.max(0, Math.min(99, Math.floor(everyDays))) : 1
+    const [hh, mm] = (hhmm || '18:00').split(':')
+    const base = new Date()
+    base.setDate(base.getDate() + d)
+    base.setHours(Number(hh) || 18, Number(mm) || 0, 0, 0)
+    return base.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+  }
+
+  const commitDaysDraft = () => {
+    const digits = (daysDraft || '').replace(/\D/g, '').slice(0, 2)
+    const n = digits === '' ? 1 : Math.max(0, Math.min(99, Number(digits)))
+    setDaysDraft(String(n))
+    setNextCall((prev) => ({ ...prev, everyDays: n }))
+  }
 
   useEffect(() => {
     const savedData = localStorage.getItem('emberAccountData')
     if (savedData) {
-      const parsedData: AccountData = JSON.parse(savedData)
-      setFormData(parsedData)
-      setInitialFormData(parsedData)
+      const parsed: any = JSON.parse(savedData)
+      const cleaned: AccountData = {
+        name: typeof parsed?.name === 'string' ? parsed.name : '',
+        birthYear: typeof parsed?.birthYear === 'string' ? parsed.birthYear : '',
+        language: typeof parsed?.language === 'string' ? parsed.language : 'English',
+        voice: typeof parsed?.voice === 'string' ? parsed.voice : 'female',
+      }
+      setFormData(cleaned)
+      setInitialFormData(cleaned)
     }
 
-    // Load “Sharing with” list so it matches Share page edits.
     try {
-      const raw = localStorage.getItem(CONTACTS_KEY)
-      const parsed = raw ? JSON.parse(raw) : null
-      const list = Array.isArray(parsed) ? parsed : null
-      if (!list) return
-      const cleaned = list
-        .filter((c: any) => c && typeof c.name === 'string' && typeof c.phone === 'string')
-        .map((c: any, idx: number) => ({
-          id: typeof c.id === 'string' ? c.id : `c-${idx + 1}`,
-          name: c.name,
-          phone: c.phone,
-        }))
-      if (cleaned.length) setContacts(cleaned)
+      const raw = localStorage.getItem(NEXT_CALL_KEY)
+      const parsed: any = raw ? JSON.parse(raw) : null
+      if (!parsed) return
+
+      const cleaned: NextCallSettings = {
+        everyDays: Number.isFinite(parsed?.everyDays) ? Math.max(0, Math.min(99, Math.floor(parsed.everyDays))) : 1,
+        time: typeof parsed?.time === 'string' ? parsed.time : '18:00',
+        timeZone: typeof parsed?.timeZone === 'string' ? parsed.timeZone : 'America/Los_Angeles',
+        topicMode: parsed?.topicMode === 'custom' ? 'custom' : 'biography',
+        prompt: typeof parsed?.prompt === 'string' ? parsed.prompt : defaultBiographyNotes(),
+      }
+
+      setNextCall(cleaned)
+      setInitialNextCall(cleaned)
+      setDaysDraft(String(cleaned.everyDays ?? 1))
     } catch {
       // ignore
     }
   }, [])
 
-  const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialFormData)
+  // Ensure biography prompt stays in sync with the name (unless user is customizing).
+  useEffect(() => {
+    if (nextCall.topicMode !== 'biography') return
+    setNextCall((prev) => ({ ...prev, prompt: defaultBiographyNotes() }))
+  }, [formData.name, nextCall.topicMode])
+
+  useLayoutEffect(() => {
+    document
+      .querySelectorAll<HTMLTextAreaElement>('textarea.account-nextcall-notes')
+      .forEach((el) => autoResizeTextarea(el))
+  }, [nextCall.prompt, nextCall.topicMode])
+
+  const hasChanges =
+    JSON.stringify(formData) !== JSON.stringify(initialFormData) ||
+    JSON.stringify(nextCall) !== JSON.stringify(initialNextCall)
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -78,7 +147,9 @@ const Account: React.FC = () => {
 
   const handleSave = () => {
     localStorage.setItem('emberAccountData', JSON.stringify(formData))
+    localStorage.setItem(NEXT_CALL_KEY, JSON.stringify(nextCall))
     setInitialFormData(formData)
+    setInitialNextCall(nextCall)
     console.log('Saved account data:', formData)
   }
 
@@ -183,50 +254,108 @@ const Account: React.FC = () => {
           </section>
 
           <section className="account-section">
-            <h2 className="section-title">Account Type</h2>
+            <h2 className="section-title">NEXT CALL</h2>
             <div className="section-box">
-              <div className="account-type-options">
-                <button
-                  type="button"
-                  className={`account-type-btn ${formData.accountType === 'ember' ? 'active' : ''}`}
-                  onClick={() => setFormData((prev) => ({ ...prev, accountType: 'ember' }))}
-                >
-                  Ember (Free)
-                </button>
-                <button
-                  type="button"
-                  className="account-type-btn disabled"
-                  disabled
-                >
-                  Campfire <span className="coming-soon-text">Coming Soon</span>
-                </button>
-                <button
-                  type="button"
-                  className="account-type-btn disabled"
-                  disabled
-                >
-                  Bonfire <span className="coming-soon-text">Coming Soon</span>
-                </button>
-              </div>
-            </div>
-          </section>
+              <div className="account-nextcall">
+                <div className="account-nextcall-row">
+                  <div className="account-nextcall-label">Every</div>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="form-input account-nextcall-days"
+                    value={daysDraft}
+                    onChange={(e) => setDaysDraft(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                    onBlur={commitDaysDraft}
+                  />
+                  <div className="account-nextcall-label">days at</div>
+                  <div className="select-wrapper account-nextcall-time">
+                    <select
+                      className="form-select"
+                      value={nextCall.time}
+                      onChange={(e) => setNextCall((p) => ({ ...p, time: e.target.value }))}
+                    >
+                      {[
+                        ['00:00', '12:00 AM'],
+                        ['06:00', '6:00 AM'],
+                        ['08:00', '8:00 AM'],
+                        ['09:00', '9:00 AM'],
+                        ['10:00', '10:00 AM'],
+                        ['12:00', '12:00 PM'],
+                        ['15:00', '3:00 PM'],
+                        ['17:00', '5:00 PM'],
+                        ['18:00', '6:00 PM'],
+                        ['19:00', '7:00 PM'],
+                        ['20:00', '8:00 PM'],
+                        ['21:00', '9:00 PM'],
+                      ].map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="select-wrapper account-nextcall-tz">
+                    <select
+                      className="form-select"
+                      value={nextCall.timeZone}
+                      onChange={(e) => setNextCall((p) => ({ ...p, timeZone: e.target.value }))}
+                    >
+                      {TIME_ZONES.map((tz) => (
+                        <option key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
-          <section className="account-section">
-            <h2 className="section-title">SHARING WITH</h2>
-            <div className="section-box">
-              <div className="contacts-list">
-                {contacts.map((contact) => (
-                  <div key={contact.id} className="contact-item">
-                    <div className="contact-info">
-                      <span className="contact-name">{contact.name}</span>
-                      <span className="contact-phone">{contact.phone}</span>
-                    </div>
+                <div className="account-nextcall-sub">
+                  Next call scheduled on{' '}
+                  <strong>
+                    {formatNextScheduled(nextCall.everyDays, nextCall.time)} ({tzShort(nextCall.timeZone)})
+                  </strong>
+                  .
+                </div>
+
+                <div className="account-nextcall-topic">
+                  <div className="form-label">TOPIC OF NEXT CALL</div>
+                  <div className="select-wrapper">
+                    <select
+                      className="form-select"
+                      value={nextCall.topicMode}
+                      onChange={(e) => {
+                        const mode = e.target.value as TopicMode
+                        if (mode === 'biography') {
+                          setNextCall((p) => ({
+                            ...p,
+                            topicMode: 'biography',
+                            prompt: defaultBiographyNotes(),
+                          }))
+                        } else {
+                          setNextCall((p) => ({ ...p, topicMode: 'custom' }))
+                        }
+                      }}
+                    >
+                      <option value="biography">Biography (Default)</option>
+                      <option value="custom">Custom</option>
+                    </select>
                   </div>
-                ))}
-                <div className="contact-item add-contact-item" onClick={() => navigate('/share')}>
-                  <div className="contact-info">
-                    <span className="contact-name add-contact-name">Add</span>
-                  </div>
+                  <textarea
+                    className="form-input account-nextcall-notes ember-scroll"
+                    value={nextCall.prompt}
+                    readOnly={nextCall.topicMode !== 'custom'}
+                    onChange={(e) => {
+                      autoResizeTextarea(e.currentTarget)
+                      setNextCall((p) => ({ ...p, prompt: e.target.value }))
+                    }}
+                    placeholder={
+                      nextCall.topicMode === 'custom'
+                        ? 'Example: Tell me about the first country you traveled to'
+                        : 'Biography notes…'
+                    }
+                    rows={2}
+                  />
                 </div>
               </div>
             </div>

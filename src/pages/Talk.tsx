@@ -165,12 +165,13 @@ const Talk: React.FC = () => {
   }
 
   const handleOrbClick = () => {
-    // If we haven't started mic capture yet, use this click to enable it.
+    // Always cycle the orb color on click.
+    setColorIndex((prev) => (prev + 1) % colorSchemes.length)
+
+    // Also use early clicks to request mic permission (so we can show listening bars).
     if (!mediaStreamRef.current) {
       void startMicCapture()
-      return
     }
-    setColorIndex((prev) => (prev + 1) % colorSchemes.length)
   }
 
   const base64FromBytes = (bytes: Uint8Array) => {
@@ -321,9 +322,9 @@ const Talk: React.FC = () => {
       const rms = Math.sqrt(sum / data.length)
       const level = Math.max(0, Math.min(1, rms * 3.2))
       w.style.setProperty('--ember-level', level.toFixed(3))
-      const alpha = Math.max(0, Math.min(0.30, 0.07 + level * 0.23))
+      const alpha = Math.max(0, Math.min(0.42, 0.08 + level * 0.34))
       w.style.setProperty('--ember-alpha', alpha.toFixed(3))
-      w.style.setProperty('--ember-alpha2', Math.max(0, Math.min(0.24, alpha * 0.65)).toFixed(3))
+      w.style.setProperty('--ember-alpha2', Math.max(0, Math.min(0.32, alpha * 0.72)).toFixed(3))
 
       // Speech-inflection dots: move/brighten based on Ember voice energy (with smoothing).
       const prev = emberLevelSmoothedRef.current
@@ -333,14 +334,14 @@ const Talk: React.FC = () => {
       emberLevelSmoothedRef.current = smooth
 
       // Also pulse the orb itself (subtle) based on smoothed Ember inflection.
-      w.style.setProperty('--ember-scale', (1 + smooth * 0.05).toFixed(3))
+      w.style.setProperty('--ember-scale', (1 + smooth * 0.09).toFixed(3))
 
-      const y1 = -2 - smooth * 8
-      const y2 = -1 - smooth * 6.5
-      const y3 = -2 - smooth * 7.5
-      const o1 = 0.18 + smooth * 0.55
-      const o2 = 0.14 + smooth * 0.45
-      const o3 = 0.16 + smooth * 0.50
+      const y1 = -3 - smooth * 13
+      const y2 = -2 - smooth * 11
+      const y3 = -3 - smooth * 12
+      const o1 = 0.22 + smooth * 0.70
+      const o2 = 0.18 + smooth * 0.60
+      const o3 = 0.20 + smooth * 0.66
       w.style.setProperty('--dot1y', `${y1.toFixed(2)}px`)
       w.style.setProperty('--dot2y', `${y2.toFixed(2)}px`)
       w.style.setProperty('--dot3y', `${y3.toFixed(2)}px`)
@@ -381,7 +382,7 @@ const Talk: React.FC = () => {
     try {
       wsRef.current?.send(
         JSON.stringify({
-          type: 'assistant_input',
+          type: 'user_input',
           text: 'Hey. I’m here with you. What’s on your mind?',
         }),
       )
@@ -474,10 +475,10 @@ const Talk: React.FC = () => {
           const rms = Math.sqrt(sum / data.length)
           const level = Math.max(0, Math.min(1, rms * 2.2))
           wrap.style.setProperty('--mic-level', level.toFixed(3))
-          const alpha = Math.max(0, Math.min(0.28, 0.06 + level * 0.22))
-          const scale = 1 + level * 0.18
+          const alpha = Math.max(0, Math.min(0.40, 0.08 + level * 0.30))
+          const scale = 1 + level * 0.28
           wrap.style.setProperty('--mic-alpha', alpha.toFixed(3))
-          wrap.style.setProperty('--mic-alpha2', Math.max(0, Math.min(0.22, alpha * 0.65)).toFixed(3))
+          wrap.style.setProperty('--mic-alpha2', Math.max(0, Math.min(0.30, alpha * 0.72)).toFixed(3))
           wrap.style.setProperty('--mic-scale', scale.toFixed(3))
 
           const band = (from: number, to: number) => {
@@ -496,7 +497,7 @@ const Talk: React.FC = () => {
           const b3 = band(Math.floor(n * 0.18), Math.floor(n * 0.32))
           const b4 = band(Math.floor(n * 0.32), Math.floor(n * 0.55))
           const b5 = band(Math.floor(n * 0.55), Math.floor(n * 0.85))
-          const map = (x: number) => 0.22 + x * 1.15
+          const map = (x: number) => 0.22 + x * 1.65
           wrap.style.setProperty('--bar1', map(b1).toFixed(3))
           wrap.style.setProperty('--bar2', map(b2).toFixed(3))
           wrap.style.setProperty('--bar3', map(b3).toFixed(3))

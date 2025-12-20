@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import Header from '../components/Header'
 import './Share.css'
 
@@ -37,7 +37,36 @@ interface SharingContact {
 const CONTACTS_KEY = 'emberContactsV1'
 const VERIFY_API_BASE = (import.meta as any).env?.VITE_EVI_PROXY_HTTP ?? 'http://localhost:8788'
 
+const autoResizeTextarea = (el: HTMLTextAreaElement | null) => {
+  if (!el) return
+  // Mobile-safe autosize: shrink first, then grow to fit content.
+  // Using 0px (vs "auto") avoids Safari cases where it won’t shrink correctly.
+  el.style.height = '0px'
+  el.style.height = `${el.scrollHeight}px`
+}
+
 const Share: React.FC = () => {
+  const defaultBiographyNotes = (name: string) => {
+    const n = name.trim() || 'They'
+    const key = n.toLowerCase()
+    if (key.includes('suchan')) {
+      return (
+        `In his last conversation, Suchan spoke about his best friend growing up, and how they enjoyed riding a bike together.\n` +
+        `For this next conversation, we’ll explore his relationship with his best friend, how things evolved as they grew up, and the last time they connected.`
+      )
+    }
+    if (key.includes('hank')) {
+      return (
+        `In his last conversation, Hank talked about a job that shaped his twenties, and the mentor who pushed him to take bigger risks.\n` +
+        `For this next conversation, we’ll explore how that mentorship changed his confidence, what he learned the hard way, and the moment he realized he’d outgrown that chapter.`
+      )
+    }
+    return (
+      `In their last conversation, ${n} shared a meaningful early memory and what it taught them.\n` +
+      `For this next conversation, we’ll continue that thread—what changed over time, who stayed close, and a moment that still feels vivid today.`
+    )
+  }
+
   const DEFAULT_CONTACTS: SharingContact[] = useMemo(
     () => [
       {
@@ -54,7 +83,7 @@ const Share: React.FC = () => {
         nextCallLanguage: 'English',
         nextCallVoice: 'female',
         nextCallTopicMode: 'biography',
-        nextCallPrompt: '',
+        nextCallPrompt: defaultBiographyNotes('Suchan Chae'),
       },
       {
         id: 'c-2',
@@ -70,7 +99,7 @@ const Share: React.FC = () => {
         nextCallLanguage: 'English',
         nextCallVoice: 'female',
         nextCallTopicMode: 'biography',
-        nextCallPrompt: '',
+        nextCallPrompt: defaultBiographyNotes('Hank Lee'),
       },
     ],
     [],
@@ -113,6 +142,27 @@ const Share: React.FC = () => {
     [],
   )
 
+  const LANGUAGE_OPTIONS = useMemo(
+    () =>
+      [
+        { value: 'English', label: 'English' },
+        { value: 'Spanish', label: 'Spanish' },
+        { value: 'Korean', label: 'Korean' },
+        { value: 'Japanese', label: 'Japanese' },
+        { value: 'Portuguese', label: 'Portuguese' },
+      ] as const,
+    [],
+  )
+
+  const VOICE_OPTIONS = useMemo(
+    () =>
+      [
+        { value: 'female', label: 'Female' },
+        { value: 'male', label: 'Male' },
+      ] as const,
+    [],
+  )
+
   const normalizeRelationship = (raw: unknown): Relationship => {
     if (typeof raw !== 'string') return 'other'
     const v = raw.trim().toLowerCase()
@@ -135,6 +185,8 @@ const Share: React.FC = () => {
   const [contacts, setContacts] = useState<SharingContact[]>([])
   const [savedContacts, setSavedContacts] = useState<SharingContact[]>([])
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
+  // Allow the "days" field to be temporarily empty while typing (mobile-friendly).
+  const [daysDraftById, setDaysDraftById] = useState<Record<string, string>>({})
   const [form, setForm] = useState<Omit<SharingContact, 'id'>>({
     name: '',
     phone: '',
@@ -149,6 +201,42 @@ const Share: React.FC = () => {
     nextCallTopicMode: 'biography',
     nextCallPrompt: '',
   })
+
+  useLayoutEffect(() => {
+    // Keep all "Topic of Next Call" textareas sized to their content.
+    document
+      .querySelectorAll<HTMLTextAreaElement>('textarea.sharing-control--notes')
+      .forEach((el) => autoResizeTextarea(el))
+  }, [contacts])
+
+  useEffect(() => {
+    // On mobile, line-wrapping changes with viewport width/keyboard/orientation,
+    // so we need to recompute textarea heights even when the text hasn't changed.
+    const resizeAll = () => {
+      document
+        .querySelectorAll<HTMLTextAreaElement>('textarea.sharing-control--notes')
+        .forEach((el) => autoResizeTextarea(el))
+    }
+
+    const onResize = () => {
+      // Wait a tick so layout settles (esp. iOS Safari + virtual keyboard).
+      requestAnimationFrame(() => resizeAll())
+      setTimeout(resizeAll, 0)
+    }
+
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+    window.visualViewport?.addEventListener('resize', onResize)
+
+    // Initial pass.
+    onResize()
+
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+      window.visualViewport?.removeEventListener('resize', onResize)
+    }
+  }, [])
 
   useEffect(() => {
     try {
@@ -187,10 +275,13 @@ const Share: React.FC = () => {
           nextCallLanguage: typeof c.nextCallLanguage === 'string' ? c.nextCallLanguage : 'English',
           nextCallVoice: typeof c.nextCallVoice === 'string' ? c.nextCallVoice : 'female',
           nextCallTopicMode: (c.nextCallTopicMode === 'custom' ? 'custom' : 'biography') as TopicMode,
-          nextCallPrompt: typeof c.nextCallPrompt === 'string' ? c.nextCallPrompt : '',
+          nextCallPrompt:
+            typeof c.nextCallPrompt === 'string' && c.nextCallPrompt.trim()
+              ? c.nextCallPrompt
+              : ((c.nextCallTopicMode === 'custom' ? '' : defaultBiographyNotes(c.name)) as string),
         }))
-      setContacts(cleaned)
-      setSavedContacts(cleaned)
+      // If we auto-filled defaults, persist them so the UI doesn't show as "dirty".
+      persistContacts(cleaned)
     } catch {
       setContacts(DEFAULT_CONTACTS)
       setSavedContacts(DEFAULT_CONTACTS)
@@ -320,6 +411,28 @@ const Share: React.FC = () => {
 
   const updateContact = (id: string, patch: Partial<Omit<SharingContact, 'id' | 'phone'>>) => {
     setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+    // If we committed days, clear any draft so it snaps back to the saved value.
+    if ((patch as any).nextCallEveryDays !== undefined) {
+      setDaysDraftById((prev) => {
+        if (!(id in prev)) return prev
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+    }
+  }
+
+  const commitDaysDraft = (id: string) => {
+    const draft = daysDraftById[id]
+    if (draft === undefined) return
+    const trimmed = draft.trim()
+    if (!trimmed) {
+      updateContact(id, { nextCallEveryDays: 1 })
+      return
+    }
+    const parsed = parseInt(trimmed, 10)
+    const clamped = Math.max(0, Math.min(99, Number.isFinite(parsed) ? parsed : 1))
+    updateContact(id, { nextCallEveryDays: clamped })
   }
 
   const formatNextScheduled = (everyDays: number, hhmm: string) => {
@@ -454,6 +567,46 @@ const Share: React.FC = () => {
                         </div>
                       </div>
 
+                      <div className="sharing-field">
+                        <label className="sharing-field-label" htmlFor={`contact-lang-${c.id}`}>
+                          Language
+                        </label>
+                        <div className="sharing-select">
+                          <select
+                            id={`contact-lang-${c.id}`}
+                            className="sharing-control"
+                            value={c.nextCallLanguage}
+                            onChange={(e) => updateContact(c.id, { nextCallLanguage: e.target.value })}
+                          >
+                            {LANGUAGE_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="sharing-field">
+                        <label className="sharing-field-label" htmlFor={`contact-voice-${c.id}`}>
+                          Voice
+                        </label>
+                        <div className="sharing-select">
+                          <select
+                            id={`contact-voice-${c.id}`}
+                            className="sharing-control"
+                            value={c.nextCallVoice}
+                            onChange={(e) => updateContact(c.id, { nextCallVoice: e.target.value })}
+                          >
+                            {VOICE_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
                     </div>
 
                     <div className="sharing-section-divider" />
@@ -463,14 +616,17 @@ const Share: React.FC = () => {
                       <div className="sharing-frequency-row">
                         <div className="sharing-frequency-label freq-every">Every</div>
                         <input
-                          type="number"
-                          min={0}
-                          max={99}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           className="sharing-control sharing-control--days"
-                          value={String(c.nextCallEveryDays ?? 1)}
-                          onChange={(e) =>
-                            updateContact(c.id, { nextCallEveryDays: Number(e.target.value || 1) })
-                          }
+                          value={daysDraftById[c.id] ?? String(c.nextCallEveryDays ?? 1)}
+                          onChange={(e) => {
+                            // Keep only digits, allow empty, cap to 2 chars for 0-99.
+                            const digits = e.target.value.replace(/\D/g, '').slice(0, 2)
+                            setDaysDraftById((prev) => ({ ...prev, [c.id]: digits }))
+                          }}
+                          onBlur={() => commitDaysDraft(c.id)}
                         />
                         <div className="sharing-frequency-label freq-days">days at</div>
                         <div className="sharing-select sharing-select--time">
@@ -525,27 +681,39 @@ const Share: React.FC = () => {
                     </div>
 
                     <div className="sharing-topic-grid">
-                      <div className="sharing-topic-label">Topic of Conversation</div>
+                      <div className="sharing-topic-label">Topic of Next Call</div>
                       <div className="sharing-select">
                         <select
                           className="sharing-control"
                           value={c.nextCallTopicMode}
-                          onChange={(e) =>
-                            updateContact(c.id, { nextCallTopicMode: e.target.value as TopicMode })
-                          }
+                          onChange={(e) => {
+                            const mode = e.target.value as TopicMode
+                            if (mode === 'biography') {
+                              updateContact(c.id, {
+                                nextCallTopicMode: 'biography',
+                                nextCallPrompt: defaultBiographyNotes(c.name),
+                              })
+                            } else {
+                              updateContact(c.id, { nextCallTopicMode: 'custom' })
+                            }
+                          }}
                         >
                           <option value="biography">Biography (Default)</option>
-                          <option value="custom">Custom Topic</option>
+                          <option value="custom">Custom</option>
                         </select>
                       </div>
                       <textarea
-                        className="sharing-control sharing-control--notes"
+                        className="sharing-control sharing-control--notes ember-scroll"
                         value={c.nextCallPrompt}
-                        onChange={(e) => updateContact(c.id, { nextCallPrompt: e.target.value })}
+                        onChange={(e) => {
+                          autoResizeTextarea(e.currentTarget)
+                          updateContact(c.id, { nextCallPrompt: e.target.value })
+                        }}
+                        readOnly={c.nextCallTopicMode !== 'custom'}
                         placeholder={
                           c.nextCallTopicMode === 'custom'
                             ? 'Example: Tell me about the first country you traveled to'
-                            : 'Optional notes…'
+                            : 'Biography notes…'
                         }
                         aria-required={c.nextCallTopicMode === 'custom'}
                         aria-invalid={c.nextCallTopicMode === 'custom' && !c.nextCallPrompt.trim()}
@@ -553,7 +721,7 @@ const Share: React.FC = () => {
                       />
                     </div>
                     {c.nextCallTopicMode === 'custom' && !c.nextCallPrompt.trim() && (
-                      <div className="sharing-required-hint">Notes are required when using a Custom Topic.</div>
+                      <div className="sharing-required-hint">Notes are required when using Custom.</div>
                     )}
 
                     <div className="sharing-card-footer">

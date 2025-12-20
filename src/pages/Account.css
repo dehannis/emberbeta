@@ -144,6 +144,75 @@
     color: var(--white);
 }
 
+.account-nextcall {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.account-nextcall-row {
+    display: grid;
+    grid-template-columns: auto 56px auto 1fr 88px;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.account-nextcall-label {
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.55);
+    white-space: nowrap;
+}
+
+.account-nextcall-days {
+    padding: 0.5rem 0.65rem;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.account-nextcall-time .form-select,
+.account-nextcall-tz .form-select {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-radius: 10px;
+}
+
+.account-nextcall-sub {
+    margin-top: 0.15rem;
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.88);
+    line-height: 1.8;
+}
+
+.account-nextcall-topic {
+    margin-top: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.account-nextcall-notes {
+    resize: none;
+    overflow: hidden;
+    box-sizing: border-box;
+    min-height: 2.75rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.68);
+}
+
+.account-nextcall-notes[readonly] {
+    color: rgba(255, 255, 255, 0.46);
+}
+
+@media (max-width: 480px) {
+    .account-nextcall-row {
+        grid-template-columns: auto 54px auto 1fr 92px;
+        gap: 0.45rem;
+    }
+}
+
 .account-type-options {
     display: flex;
     flex-direction: column;

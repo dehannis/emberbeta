@@ -63,12 +63,12 @@
 
 /* Clear “connecting” motion even before any audio arrives */
 .ember-orb.connecting .ember-ring.speak {
-    opacity: 0.35;
-    inset: -30px;
+    opacity: 0.48;
+    inset: -34px;
     animation: emberBreath 1.8s ease-in-out infinite;
     box-shadow:
-        0 0 38px rgba(var(--color-primary, 140, 200, 255), 0.10),
-        0 0 80px rgba(var(--color-secondary, 100, 180, 255), 0.08);
+        0 0 48px rgba(var(--color-primary, 140, 200, 255), 0.14),
+        0 0 102px rgba(var(--color-secondary, 100, 180, 255), 0.11);
 }
 
 @keyframes emberBreath {
@@ -91,10 +91,10 @@
 }
 
 .ember-dots span {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.42);
     transition: transform 70ms linear, opacity 70ms linear;
 }
 
@@ -135,9 +135,9 @@
 
 .ember-bars span {
     width: 3px;
-    height: 10px;
+    height: 12px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.34);
     transform-origin: bottom;
     transition: transform 70ms linear, opacity 70ms linear;
 }
@@ -197,8 +197,8 @@
     opacity: var(--mic-alpha);
     transform: scale(var(--mic-scale));
     box-shadow:
-        0 0 calc(12px + (var(--mic-level) * 18px)) rgba(var(--color-primary, 140, 200, 255), calc(0.04 + (var(--mic-level) * 0.10))),
-        0 0 calc(28px + (var(--mic-level) * 40px)) rgba(var(--color-secondary, 100, 180, 255), calc(0.03 + (var(--mic-level) * 0.08)));
+        0 0 calc(14px + (var(--mic-level) * 26px)) rgba(var(--color-primary, 140, 200, 255), calc(0.04 + (var(--mic-level) * 0.10))),
+        0 0 calc(34px + (var(--mic-level) * 58px)) rgba(var(--color-secondary, 100, 180, 255), calc(0.03 + (var(--mic-level) * 0.08)));
 }
 
 .ember-orb.muted .ember-ring.mic {
@@ -209,11 +209,11 @@
 /* Ember speaking pulse: smooth, rhythmic glow while audio plays */
 .ember-orb.speaking .ember-ring.speak {
     opacity: var(--ember-alpha);
-    inset: -30px;
+    inset: -34px;
     transform: scale(var(--ember-scale));
     box-shadow:
-        0 0 calc(16px + (var(--ember-level) * 24px)) rgba(var(--color-primary, 140, 200, 255), calc(0.04 + (var(--ember-level) * 0.10))),
-        0 0 calc(38px + (var(--ember-level) * 56px)) rgba(var(--color-secondary, 100, 180, 255), calc(0.03 + (var(--ember-level) * 0.09)));
+        0 0 calc(18px + (var(--ember-level) * 34px)) rgba(var(--color-primary, 140, 200, 255), calc(0.04 + (var(--ember-level) * 0.10))),
+        0 0 calc(44px + (var(--ember-level) * 74px)) rgba(var(--color-secondary, 100, 180, 255), calc(0.03 + (var(--ember-level) * 0.09)));
 }
 
 /* No keyframes here: speaking visuals are driven by real-time playback volume (var(--ember-level)). */

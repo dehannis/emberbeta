@@ -893,7 +893,7 @@ input[type="number"].sharing-control {
 }
 
 .sharing-frequency {
-    padding: 0.65rem 0.65rem 0.6rem 0.65rem;
+    padding: 0.75rem 0.75rem 0.7rem 0.75rem;
     border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 12px;
     background: rgba(0, 0, 0, 0.12);
@@ -904,6 +904,10 @@ input[type="number"].sharing-control {
     grid-template-columns: auto minmax(44px, 72px) auto minmax(0, 1fr) minmax(0, 1fr);
     align-items: center;
     gap: 0.5rem;
+}
+
+.sharing-frequency-row + .sharing-frequency-sub {
+    margin-top: 0.7rem;
 }
 
 .sharing-control--days {
@@ -965,7 +969,7 @@ input[type="number"].sharing-control {
 }
 
 .sharing-frequency-sub {
-    margin-top: 0.45rem;
+    margin-top: 0.55rem;
     font-size: 0.75rem;
     font-weight: 300;
     color: rgba(255, 255, 255, 0.88);
@@ -985,9 +989,20 @@ input[type="number"].sharing-control {
 }
 
 .sharing-control--notes {
-    min-height: 3.25rem;
-    resize: vertical;
-    line-height: 1.35;
+    min-height: 2.75rem;
+    resize: none;
+    overflow: hidden;
+    box-sizing: border-box;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.68);
+}
+
+.sharing-control--notes[readonly] {
+    color: rgba(255, 255, 255, 0.46);
+}
+
+.sharing-control--notes::placeholder {
+    color: rgba(255, 255, 255, 0.35);
 }
 
 
