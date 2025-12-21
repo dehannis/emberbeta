@@ -31,7 +31,7 @@ const BuildSwipeExperience: React.FC = () => {
   const [transcriptOpen, setTranscriptOpen] = useState(false)
 
   const [audioEnabled, setAudioEnabled] = useState(false) // flips true after any user gesture/click
-  const [, setAutoplayBlocked] = useState(false)
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // Entry/transition UI helpers
@@ -372,6 +372,9 @@ const BuildSwipeExperience: React.FC = () => {
                     {i + 1}/{activeRecording.snippets.length}
                   </div>
                   <div className="feed-transport-sub">Highlight</div>
+                  {autoplayBlocked && inner.kind === 'SNIPPET_PAGE_ACTIVE' && inner.index === i && (
+                    <div className="feed-transport-note">Audio locked until you swipe</div>
+                  )}
                 </div>
                 <div className="feed-transport-right">
                   <button
@@ -398,19 +401,15 @@ const BuildSwipeExperience: React.FC = () => {
               accent={activeRecording.coverArtSet?.accent}
               calm
             />
-            <div className="feed-full">
-              <div className="feed-full-header">
-                <div className="feed-full-kicker">Full recording</div>
-                <div className="feed-full-title">
-                  {activeRecording.speakerName}
-                  <span className="feed-full-dur">{formatDuration(activeRecording.durationSec)}</span>
-                </div>
-                <div className="feed-full-sub">
-                  The long thread. Context, pauses, what didn’t fit in highlights.
-                </div>
+            <div className="feed-full-card">
+              <div className="feed-full-kicker">Full recording</div>
+              <div className="feed-full-titleRow">
+                <div className="feed-full-speaker">{activeRecording.speakerName}</div>
+                <div className="feed-full-dur">{formatDuration(activeRecording.durationSec)}</div>
               </div>
+              <div className="feed-full-sub">The long thread: context, pauses, what didn’t fit in highlights.</div>
 
-              <div className="feed-full-hero">
+              <div className="feed-full-actions">
                 <button
                   className="feed-full-play"
                   type="button"
@@ -431,8 +430,7 @@ const BuildSwipeExperience: React.FC = () => {
               </div>
 
               <div className="feed-full-divider" />
-
-              <div className="feed-full-markersTitle">Highlights</div>
+              <div className="feed-full-sectionTitle">Highlights</div>
               <div className="feed-full-markersGrid">
                 {activeRecording.snippets.map((sn, idx) => (
                   <button
@@ -444,7 +442,7 @@ const BuildSwipeExperience: React.FC = () => {
                     <div className="feed-marker-num">{idx + 1}</div>
                     <div className="feed-marker-body">
                       <div className="feed-marker-title">{sn.summary}</div>
-                      <div className="feed-marker-tags">{sn.themes.slice(0, 2).join(' · ')}</div>
+                      <div className="feed-marker-tags">{sn.themes.slice(0, 3).join(' · ')}</div>
                     </div>
                   </button>
                 ))}
