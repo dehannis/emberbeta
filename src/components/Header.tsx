@@ -23,16 +23,28 @@ const Header: React.FC<HeaderProps> = ({ hidePhone = false }) => {
     navigate('/')
   }
 
+  const handleFeedClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    navigate('/feed')
+  }
+
   return (
     <header className="header">
       <span className="home-icon" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>
         ○
       </span>
-      {!hidePhone && (
-        <span className="phone-number" onClick={handlePhoneClick} style={{ cursor: 'pointer' }}>
-          +1-781-915-9663
-        </span>
-      )}
+      <div className="header-right">
+        {location.pathname === '/' && (
+          <button className="feed-beta-btn" onClick={handleFeedClick} type="button">
+            Feed (Beta)
+          </button>
+        )}
+        {!hidePhone && (
+          <span className="phone-number" onClick={handlePhoneClick} style={{ cursor: 'pointer' }}>
+            +1-781-915-9663
+          </span>
+        )}
+      </div>
     </header>
   )
 }
