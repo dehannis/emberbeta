@@ -1,12 +1,16 @@
 import React from 'react'
-import Header from '../components/Header'
+import { useNavigate } from 'react-router-dom'
+import BuildSwipeExperience from './feed/BuildSwipeExperience'
+import './Feed.css'
 
 const Feed: React.FC = () => {
+  const navigate = useNavigate()
   return (
-    <div className="container">
-      <Header />
-      {/* Empty page for now */}
-      <main className="main-content" />
+    <div className="feed-shell">
+      <button className="feed-home-btn" type="button" onClick={() => navigate('/')}>
+        ○
+      </button>
+      <BuildSwipeExperience />
     </div>
   )
 }
