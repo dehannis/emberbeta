@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { FeedTopState, Recording, RecordingInnerState } from './types'
 import { SAMPLE_RECORDINGS } from './sampleFeed'
 import { useSwipeRouter } from './useSwipeRouter'
+import CollageBackground from './CollageBackground'
 import './feed.css'
 
 type InteractionSheetState =
@@ -30,7 +31,7 @@ const BuildSwipeExperience: React.FC = () => {
   const [transcriptOpen, setTranscriptOpen] = useState(false)
 
   const [audioEnabled, setAudioEnabled] = useState(false) // flips true after any user gesture/click
-  const [autoplayBlocked, setAutoplayBlocked] = useState(false)
+  const [, setAutoplayBlocked] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // Entry/transition UI helpers
@@ -225,7 +226,7 @@ const BuildSwipeExperience: React.FC = () => {
   if (topState === 'END_OF_FEED_REST') {
     return (
       <div className="feed-stage feed-rest" {...swipe}>
-        <div className="feed-collage feed-collage--rest" />
+        <CollageBackground variantKey="rest" calm />
         <div className="feed-rest-poster">
           <div className="feed-rest-line">That’s everything that’s been shared so far.</div>
           {restCtaVisible && (
@@ -246,7 +247,7 @@ const BuildSwipeExperience: React.FC = () => {
   if (topState === 'REQUEST_STORY') {
     return (
       <div className="feed-stage feed-request" {...swipe}>
-        <div className="feed-collage feed-collage--request" />
+        <CollageBackground variantKey="request" calm />
         <div className="feed-request-card">
           <div className="feed-stamp">REQUEST</div>
           <div className="feed-request-title">Ask for the next story</div>
@@ -296,9 +297,6 @@ const BuildSwipeExperience: React.FC = () => {
 
   return (
     <div className="feed-stage" {...swipe}>
-      {/* Collage backdrop (recording-specific) */}
-      <div className={`feed-collage feed-collage--${activeRecording.coverArtSet?.accent ?? 'cyan'}`} />
-
       {/* Transition card on recording change */}
       {transitionCard?.visible && (
         <div className="feed-transition-card" aria-hidden="true">
@@ -326,6 +324,10 @@ const BuildSwipeExperience: React.FC = () => {
         >
           {activeRecording.snippets.map((sn, i) => (
             <section key={sn.snippetId} className="feed-page" aria-label={`Snippet ${i + 1}`}>
+              <CollageBackground
+                variantKey={`${activeRecording.recordingId}:${sn.snippetId}`}
+                accent={activeRecording.coverArtSet?.accent}
+              />
               <button
                 type="button"
                 className="feed-headline feed-headline-btn"
@@ -351,20 +353,6 @@ const BuildSwipeExperience: React.FC = () => {
                     <div className="feed-transcript-body">{sn.transcriptExcerpt}</div>
                   </div>
                 )}
-
-              {autoplayBlocked && inner.kind === 'SNIPPET_PAGE_ACTIVE' && inner.index === i && (
-                <button
-                  type="button"
-                  className="feed-tap-to-listen"
-                  onClick={() => {
-                    setAudioEnabled(true)
-                    setAutoplayBlocked(false)
-                    audioRef.current?.play().catch(() => setAutoplayBlocked(true))
-                  }}
-                >
-                  Tap to listen
-                </button>
-              )}
 
               <div className="feed-rail">
                 <button className="feed-rail-btn" type="button" onClick={() => openSheet('react')}>
@@ -405,40 +393,62 @@ const BuildSwipeExperience: React.FC = () => {
 
           {/* Full recording page */}
           <section className="feed-page feed-page--full" aria-label="Full recording">
-            <div className="feed-full-title">
-              Full recording <span className="feed-full-dur">{formatDuration(activeRecording.durationSec)}</span>
-            </div>
-            <div className="feed-full-sub">After the highlights: context, pauses, the long thread.</div>
-            <div className="feed-full-actions">
-              <button
-                className="feed-full-play"
-                type="button"
-                onClick={() => {
-                  setAudioEnabled(true)
-                  if (!audioRef.current) audioRef.current = new Audio()
-                  const a = audioRef.current
-                  a.src = activeRecording.fullAudioUrl
-                  a.currentTime = 0
-                  a.play().catch(() => setAutoplayBlocked(true))
-                }}
-              >
-                Play
-              </button>
-              <button className="feed-full-secondary" type="button" onClick={() => openSheet('followup')}>
-                Request follow-up
-              </button>
-            </div>
-            <div className="feed-full-markers">
-              {activeRecording.snippets.map((sn, idx) => (
+            <CollageBackground
+              variantKey={`${activeRecording.recordingId}:full`}
+              accent={activeRecording.coverArtSet?.accent}
+              calm
+            />
+            <div className="feed-full">
+              <div className="feed-full-header">
+                <div className="feed-full-kicker">Full recording</div>
+                <div className="feed-full-title">
+                  {activeRecording.speakerName}
+                  <span className="feed-full-dur">{formatDuration(activeRecording.durationSec)}</span>
+                </div>
+                <div className="feed-full-sub">
+                  The long thread. Context, pauses, what didn’t fit in highlights.
+                </div>
+              </div>
+
+              <div className="feed-full-hero">
                 <button
-                  key={sn.snippetId}
-                  className="feed-marker"
+                  className="feed-full-play"
                   type="button"
-                  onClick={() => setInner({ kind: 'SNIPPET_PAGE_ACTIVE', index: idx })}
+                  onClick={() => {
+                    setAudioEnabled(true)
+                    if (!audioRef.current) audioRef.current = new Audio()
+                    const a = audioRef.current
+                    a.src = activeRecording.fullAudioUrl
+                    a.currentTime = 0
+                    a.play().catch(() => setAutoplayBlocked(true))
+                  }}
                 >
-                  {idx + 1}. {sn.themes[0] ?? 'Marker'}
+                  Play full recording
                 </button>
-              ))}
+                <button className="feed-full-secondary" type="button" onClick={() => openSheet('followup')}>
+                  Request follow-up
+                </button>
+              </div>
+
+              <div className="feed-full-divider" />
+
+              <div className="feed-full-markersTitle">Highlights</div>
+              <div className="feed-full-markersGrid">
+                {activeRecording.snippets.map((sn, idx) => (
+                  <button
+                    key={sn.snippetId}
+                    className="feed-marker"
+                    type="button"
+                    onClick={() => setInner({ kind: 'SNIPPET_PAGE_ACTIVE', index: idx })}
+                  >
+                    <div className="feed-marker-num">{idx + 1}</div>
+                    <div className="feed-marker-body">
+                      <div className="feed-marker-title">{sn.summary}</div>
+                      <div className="feed-marker-tags">{sn.themes.slice(0, 2).join(' · ')}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </section>
         </div>
