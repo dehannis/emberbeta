@@ -3,6 +3,69 @@
   background: #07070b;
   color: rgba(255, 255, 255, 0.92);
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--ember-tabs-height, 0px) + 22px);
+  position: relative;
+  overflow-x: hidden;
+}
+
+.peopleStage::before {
+  /* People-only: liquid glass / futuristic gradient field (do not reuse elsewhere) */
+  content: '';
+  position: fixed;
+  inset: -22%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    conic-gradient(from 210deg at 48% 42%,
+      rgba(0, 255, 220, 0.10),
+      rgba(255, 90, 220, 0.09),
+      rgba(180, 255, 90, 0.08),
+      rgba(255, 220, 160, 0.07),
+      rgba(90, 140, 255, 0.10),
+      rgba(0, 255, 220, 0.10)
+    ),
+    radial-gradient(820px 620px at 22% 18%, rgba(255, 255, 255, 0.035), rgba(0,0,0,0) 62%),
+    radial-gradient(820px 620px at 78% 22%, rgba(255, 255, 255, 0.028), rgba(0,0,0,0) 64%),
+    radial-gradient(860px 680px at 70% 86%, rgba(255, 255, 255, 0.022), rgba(0,0,0,0) 66%),
+    #07070b;
+  filter: blur(22px) saturate(1.15) contrast(1.08);
+  opacity: 0.72;
+  transform: translate3d(0, 0, 0);
+  animation: peopleLiquidDrift 14s ease-in-out infinite alternate;
+}
+
+.peopleStage::after {
+  /* glass refraction + grain */
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(500px 420px at 18% 32%, rgba(255, 255, 255, 0.05), rgba(0,0,0,0) 70%),
+    radial-gradient(560px 460px at 82% 68%, rgba(255, 255, 255, 0.04), rgba(0,0,0,0) 72%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px);
+  mix-blend-mode: overlay;
+  opacity: 0.22;
+}
+
+@keyframes peopleLiquidDrift {
+  0% { transform: translate3d(-10px, -6px, 0) rotate(-0.6deg) scale(1.02); }
+  100% { transform: translate3d(12px, 8px, 0) rotate(0.7deg) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peopleStage::before { animation: none; }
+}
+
+/* Ensure People content renders above the background layers */
+.peopleTop,
+.peopleWall,
+.personHero,
+.personBody,
+.snipStage,
+.listenSheetBackdrop {
+  position: relative;
+  z-index: 1;
 }
 
 .peopleTop {
