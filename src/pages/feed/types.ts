@@ -25,7 +25,13 @@ export interface Recording {
   fullAudioUrl: string
 }
 
-export type FeedTopState = 'LOADING_FEED' | 'RECORDING_STACK_ACTIVE' | 'END_OF_FEED_REST' | 'REQUEST_STORY'
+export type FeedTopState =
+  | 'LOADING_FEED'
+  | 'RECORDING_STACK_ACTIVE'
+  | 'END_OF_FEED_REST'
+  | 'END_OF_FEED_ACTIONS'
+  | 'REQUEST_STORY'
+  | 'PHOTO_TRIGGER'
 
 export type RecordingInnerState =
   | { kind: 'SNIPPET_PAGE_ACTIVE'; index: number }
