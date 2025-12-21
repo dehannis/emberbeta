@@ -397,6 +397,19 @@ const BuildSwipeExperience: React.FC = () => {
             >
               💬
             </button>
+            <button
+              type="button"
+              className="feed-reactTop-option"
+              onClick={() => {
+                setReactMenuOpen(false)
+                openSheet('followup')
+              }}
+              role="menuitem"
+              aria-label="Request follow-up"
+              title="Request follow-up"
+            >
+              ?
+            </button>
           </div>
         )}
       </div>
