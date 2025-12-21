@@ -170,7 +170,7 @@
   right: 0;
   padding-left: calc(env(safe-area-inset-left, 0px) + 22px);
   padding-right: calc(env(safe-area-inset-right, 0px) + 22px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--ember-tabs-height, 0px) + 10px);
   z-index: 6;
   display: flex;
   flex-direction: column;
