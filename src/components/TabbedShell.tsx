@@ -7,7 +7,7 @@ export default function TabbedShell() {
   const showTabs = location.pathname.startsWith('/feed') || location.pathname.startsWith('/people')
 
   return (
-    <div style={{ ['--ember-tabs-height' as any]: showTabs ? '64px' : '0px' } as React.CSSProperties}>
+    <div style={{ ['--ember-tabs-height' as any]: showTabs ? '44px' : '0px' } as React.CSSProperties}>
       <Outlet />
       {showTabs && <BottomTabs />}
     </div>
