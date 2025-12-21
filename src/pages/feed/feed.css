@@ -161,8 +161,8 @@
 
 .feed-footer {
   position: absolute;
-  left: 12px;
-  right: 12px;
+  left: calc(env(safe-area-inset-left, 0px) + 22px);
+  right: calc(env(safe-area-inset-right, 0px) + 22px);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
   z-index: 6;
   display: flex;
@@ -178,7 +178,8 @@
 }
 
 .feed-footer-inner {
-  width: min(760px, calc(100vw - 24px));
+  width: min(760px, calc(100vw - 44px));
+  box-sizing: border-box;
 }
 
 .feed-miniBar {
@@ -254,16 +255,16 @@
 }
 
 .feed-reactTop-btn {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(0, 0, 0, 0.30);
-  color: rgba(255, 255, 255, 0.80);
-  padding: 10px 12px;
-  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  padding: 0;
+  border-radius: 0;
   cursor: pointer;
   font-size: 11px;
   letter-spacing: 0.10em;
   text-transform: uppercase;
-  backdrop-filter: blur(10px);
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.60);
 }
 
 .feed-reactTop-menu {
@@ -273,8 +274,9 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(10, 10, 12, 0.82);
   backdrop-filter: blur(14px);
-  display: grid;
-  grid-template-columns: repeat(4, 44px);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
   gap: 10px;
   justify-content: end;
 }
