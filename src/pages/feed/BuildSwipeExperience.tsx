@@ -39,7 +39,6 @@ const BuildSwipeExperience: React.FC = () => {
 
   // Entry/transition UI helpers
   const [transitionCard, setTransitionCard] = useState<{ visible: boolean; label: string; sub: string } | null>(null)
-  const [restCtaVisible, setRestCtaVisible] = useState(false)
 
   const activeRecording = recordings[recordingIdx] ?? null
 
@@ -179,16 +178,20 @@ const BuildSwipeExperience: React.FC = () => {
     }
   }, [topState])
 
-  // --- End-of-feed rest CTA reveal ---
-  useEffect(() => {
-    if (topState !== 'END_OF_FEED_REST') {
-      setRestCtaVisible(false)
-      return
-    }
-    const reduced = prefersReducedMotion()
-    const t = setTimeout(() => setRestCtaVisible(true), reduced ? 300 : 1600)
-    return () => clearTimeout(t)
-  }, [topState])
+  const sessions = useMemo(() => {
+    // Chronological (MVP): use current ordering in the queue.
+    return recordings.map((r) => {
+      const themes = Array.from(
+        new Set(
+          r.snippets
+            .flatMap((s) => s.themes || [])
+            .map((t) => String(t).trim())
+            .filter(Boolean),
+        ),
+      ).slice(0, 5)
+      return { recording: r, themes }
+    })
+  }, [recordings])
 
   const goNextWithinStack = () => {
     if (!activeRecording) return
@@ -254,7 +257,14 @@ const BuildSwipeExperience: React.FC = () => {
       },
       onSwipeDown: () => {
         setAudioEnabled(true)
-        goNextRecording()
+        if (topState === 'RECORDING_STACK_ACTIVE') {
+          goNextRecording()
+          return
+        }
+        if (topState === 'END_OF_FEED_REST') {
+          setTopState('END_OF_FEED_ACTIONS')
+          return
+        }
       },
       onSwipeUp: () => {
         setAudioEnabled(true)
@@ -293,18 +303,79 @@ const BuildSwipeExperience: React.FC = () => {
     return (
       <div className="feed-stage feed-rest" {...swipe}>
         <CollageBackground variantKey="rest" calm />
-        <div className="feed-rest-poster">
-          <div className="feed-rest-line">That’s everything that’s been shared so far.</div>
-          {restCtaVisible && (
-            <button className="feed-rest-cta" type="button" onClick={() => setTopState('REQUEST_STORY')}>
-              Ask for the next story
-            </button>
-          )}
-          {!restCtaVisible && <div className="feed-rest-hint">…</div>}
-        </div>
+        <div className="feed-rest-line feed-rest-line--solo">That’s everything that’s been shared so far.</div>
         <div className="feed-rest-gestures">
-          <div className="feed-rest-gesture">Swipe left to loop</div>
-          <div className="feed-rest-gesture">Swipe up to revisit (soon)</div>
+          <div className="feed-rest-gesture">Swipe down for options</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (topState === 'END_OF_FEED_ACTIONS') {
+    return (
+      <div className="feed-stage feed-actions" {...swipe}>
+        <CollageBackground variantKey="actions" calm />
+        <div className="feed-actions-wrap">
+          <div className="feed-actions-title">What would you like to do next?</div>
+          <div className="feed-actions-grid">
+            <button className="feed-actions-btn" type="button" onClick={() => setTopState('REQUEST_STORY')}>
+              Request a new story
+            </button>
+            <button className="feed-actions-btn" type="button" onClick={() => setTopState('PHOTO_TRIGGER')}>
+              Upload and discuss a photo
+            </button>
+          </div>
+
+          <div className="feed-actions-sub">Previous sessions</div>
+          <div className="feed-sessions">
+            {sessions.map(({ recording, themes }) => (
+              <div key={recording.recordingId} className="feed-sessionCard">
+                <div className="feed-sessionTop">
+                  <div className="feed-sessionName">{recording.speakerName}</div>
+                  <div className="feed-sessionDate">{recording.dateLabel ?? 'Recorded'}</div>
+                </div>
+                <div className="feed-sessionThemes">
+                  {themes.map((t) => (
+                    <span key={t} className="feed-sessionTheme">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button className="feed-ghost" type="button" onClick={() => setTopState('RECORDING_STACK_ACTIVE')}>
+            Back to feed
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (topState === 'PHOTO_TRIGGER') {
+    return (
+      <div className="feed-stage feed-request" {...swipe}>
+        <CollageBackground variantKey="photo-trigger" calm />
+        <div className="feed-request-card">
+          <div className="feed-stamp">PHOTO</div>
+          <div className="feed-request-title">Upload & discuss a photo</div>
+          <div className="feed-request-form">
+            <label className="feed-label">
+              Photo
+              <input className="feed-input" type="file" accept="image/*" />
+            </label>
+            <label className="feed-label">
+              What should we talk about?
+              <input className="feed-input" placeholder="Who’s in this photo? Where was it taken?" />
+            </label>
+            <button className="feed-submit" type="button" onClick={() => setTopState('RECORDING_STACK_ACTIVE')}>
+              Start discussion
+            </button>
+            <button className="feed-ghost" type="button" onClick={() => setTopState('END_OF_FEED_ACTIONS')}>
+              Back
+            </button>
+          </div>
         </div>
       </div>
     )
