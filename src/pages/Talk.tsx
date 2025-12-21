@@ -32,6 +32,8 @@ const Talk: React.FC = () => {
   const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown')
   const [needsAudioGesture, setNeedsAudioGesture] = useState(false)
   const didAutoGreetRef = useRef(false)
+  const didEmberSpeakOnceRef = useRef(false)
+  const didRequestMicRef = useRef(false)
   const wsRef = useRef<WebSocket | null>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
@@ -68,6 +70,7 @@ const Talk: React.FC = () => {
   }
   
   const [colorIndex, setColorIndex] = useState(getInitialColorIndex)
+
   const isInitialMount = useRef(true)
 
   const currentColor = colorSchemes[colorIndex]
@@ -91,7 +94,6 @@ const Talk: React.FC = () => {
     }
     localStorage.setItem('emberTalkOrbColor', colorIndex.toString())
   }, [colorIndex])
-
   // Entrance animation
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -99,7 +101,6 @@ const Talk: React.FC = () => {
     }, 100)
     return () => clearTimeout(timer)
   }, [])
-
   const handleMuteToggle = () => {
     setIsMuted(!isMuted)
   }
@@ -163,12 +164,13 @@ const Talk: React.FC = () => {
   }
 
   const handleOrbClick = () => {
-    // If we haven't started mic capture yet, use this click to enable it.
-    if (!mediaStreamRef.current) {
-      void startVoice()
-      return
-    }
+    // Always cycle the orb color on click.
     setColorIndex((prev) => (prev + 1) % colorSchemes.length)
+
+    // Also use early clicks to request mic permission (so we can show listening bars).
+    if (!mediaStreamRef.current) {
+      void startMicCapture()
+    }
   }
 
   const base64FromBytes = (bytes: Uint8Array) => {
@@ -246,6 +248,7 @@ const Talk: React.FC = () => {
 
     playingRef.current = true
     isEmberSpeakingRef.current = true
+    didEmberSpeakOnceRef.current = true
     setIsEmberSpeaking(true)
 
     const wrap = orbWrapRef.current
@@ -318,9 +321,9 @@ const Talk: React.FC = () => {
       const rms = Math.sqrt(sum / data.length)
       const level = Math.max(0, Math.min(1, rms * 3.2))
       w.style.setProperty('--ember-level', level.toFixed(3))
-      const alpha = Math.max(0, Math.min(0.30, 0.07 + level * 0.23))
+      const alpha = Math.max(0, Math.min(0.42, 0.08 + level * 0.34))
       w.style.setProperty('--ember-alpha', alpha.toFixed(3))
-      w.style.setProperty('--ember-alpha2', Math.max(0, Math.min(0.24, alpha * 0.65)).toFixed(3))
+      w.style.setProperty('--ember-alpha2', Math.max(0, Math.min(0.32, alpha * 0.72)).toFixed(3))
 
       // Speech-inflection dots: move/brighten based on Ember voice energy (with smoothing).
       const prev = emberLevelSmoothedRef.current
@@ -330,14 +333,14 @@ const Talk: React.FC = () => {
       emberLevelSmoothedRef.current = smooth
 
       // Also pulse the orb itself (subtle) based on smoothed Ember inflection.
-      w.style.setProperty('--ember-scale', (1 + smooth * 0.05).toFixed(3))
+      w.style.setProperty('--ember-scale', (1 + smooth * 0.09).toFixed(3))
 
-      const y1 = -2 - smooth * 8
-      const y2 = -1 - smooth * 6.5
-      const y3 = -2 - smooth * 7.5
-      const o1 = 0.18 + smooth * 0.55
-      const o2 = 0.14 + smooth * 0.45
-      const o3 = 0.16 + smooth * 0.50
+      const y1 = -3 - smooth * 13
+      const y2 = -2 - smooth * 11
+      const y3 = -3 - smooth * 12
+      const o1 = 0.22 + smooth * 0.70
+      const o2 = 0.18 + smooth * 0.60
+      const o3 = 0.20 + smooth * 0.66
       w.style.setProperty('--dot1y', `${y1.toFixed(2)}px`)
       w.style.setProperty('--dot2y', `${y2.toFixed(2)}px`)
       w.style.setProperty('--dot3y', `${y3.toFixed(2)}px`)
@@ -378,12 +381,135 @@ const Talk: React.FC = () => {
     try {
       wsRef.current?.send(
         JSON.stringify({
-          type: 'assistant_input',
+          type: 'user_input',
           text: 'Hey. I’m here with you. What’s on your mind?',
         }),
       )
     } catch {
       // ignore
+    }
+  }
+
+  const startMicCapture = async () => {
+    if (didRequestMicRef.current) return
+    didRequestMicRef.current = true
+    setMicPermission('unknown')
+
+    const ws = wsRef.current
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      // If the socket isn't open yet, we'll try again later (effect below).
+      didRequestMicRef.current = false
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      })
+      mediaStreamRef.current = stream
+      setIsMicOn(true)
+      setMicPermission('granted')
+
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      audioCtxRef.current = ctx
+
+      const source = ctx.createMediaStreamSource(stream)
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 1024
+      analyser.smoothingTimeConstant = 0.75
+      micAnalyserRef.current = analyser
+      const processor = ctx.createScriptProcessor(4096, 1, 1)
+      processorRef.current = processor
+
+      processor.onaudioprocess = (e) => {
+        if (isMutedRef.current) return
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+        if (isSendingRef.current) return
+
+        const ch0 = e.inputBuffer.getChannelData(0)
+        const down = downsampleTo16k(ch0, ctx.sampleRate)
+        const bytes = floatToPcm16(down)
+        const b64 = base64FromBytes(bytes)
+        const msg = { type: 'audio_input', data: b64 }
+
+        try {
+          isSendingRef.current = true
+          wsRef.current.send(JSON.stringify(msg))
+        } finally {
+          isSendingRef.current = false
+        }
+      }
+
+      source.connect(processor)
+      source.connect(analyser)
+      processor.connect(ctx.destination) // keeps processor alive
+
+      const data = new Uint8Array(analyser.fftSize)
+      const freq = new Uint8Array(analyser.frequencyBinCount)
+      const tick = () => {
+        const wrap = orbWrapRef.current
+        if (!wrap || !micAnalyserRef.current) {
+          micRafRef.current = requestAnimationFrame(tick)
+          return
+        }
+
+        if (isMutedRef.current) {
+          wrap.style.setProperty('--mic-level', '0')
+          wrap.style.setProperty('--mic-alpha', '0')
+          wrap.style.setProperty('--mic-alpha2', '0')
+          wrap.style.setProperty('--mic-scale', '1')
+          wrap.style.setProperty('--bar1', '0.25')
+          wrap.style.setProperty('--bar2', '0.25')
+          wrap.style.setProperty('--bar3', '0.25')
+          wrap.style.setProperty('--bar4', '0.25')
+          wrap.style.setProperty('--bar5', '0.25')
+        } else {
+          micAnalyserRef.current.getByteTimeDomainData(data)
+          micAnalyserRef.current.getByteFrequencyData(freq)
+          let sum = 0
+          for (let i = 0; i < data.length; i++) {
+            const v = (data[i] - 128) / 128
+            sum += v * v
+          }
+          const rms = Math.sqrt(sum / data.length)
+          const level = Math.max(0, Math.min(1, rms * 2.2))
+          wrap.style.setProperty('--mic-level', level.toFixed(3))
+          const alpha = Math.max(0, Math.min(0.40, 0.08 + level * 0.30))
+          const scale = 1 + level * 0.28
+          wrap.style.setProperty('--mic-alpha', alpha.toFixed(3))
+          wrap.style.setProperty('--mic-alpha2', Math.max(0, Math.min(0.30, alpha * 0.72)).toFixed(3))
+          wrap.style.setProperty('--mic-scale', scale.toFixed(3))
+
+          const band = (from: number, to: number) => {
+            let s = 0
+            let c = 0
+            for (let i = from; i < to; i++) {
+              s += freq[i] ?? 0
+              c++
+            }
+            const avg = c ? s / c : 0
+            return Math.max(0, Math.min(1, avg / 255))
+          }
+          const n = freq.length
+          const b1 = band(0, Math.floor(n * 0.08))
+          const b2 = band(Math.floor(n * 0.08), Math.floor(n * 0.18))
+          const b3 = band(Math.floor(n * 0.18), Math.floor(n * 0.32))
+          const b4 = band(Math.floor(n * 0.32), Math.floor(n * 0.55))
+          const b5 = band(Math.floor(n * 0.55), Math.floor(n * 0.85))
+          const map = (x: number) => 0.22 + x * 1.65
+          wrap.style.setProperty('--bar1', map(b1).toFixed(3))
+          wrap.style.setProperty('--bar2', map(b2).toFixed(3))
+          wrap.style.setProperty('--bar3', map(b3).toFixed(3))
+          wrap.style.setProperty('--bar4', map(b4).toFixed(3))
+          wrap.style.setProperty('--bar5', map(b5).toFixed(3))
+        }
+        micRafRef.current = requestAnimationFrame(tick)
+      }
+      micRafRef.current = requestAnimationFrame(tick)
+    } catch {
+      didRequestMicRef.current = false
+      setMicPermission('denied')
+      setVoiceError('Microphone blocked. Please allow mic access in the browser prompt or site settings.')
     }
   }
 
@@ -400,117 +526,8 @@ const Talk: React.FC = () => {
         setVoiceStatus('live')
         sendAutoGreeting()
 
-        if (!opts.startMic) return
-
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-          })
-          mediaStreamRef.current = stream
-          setIsMicOn(true)
-          setMicPermission('granted')
-
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-          audioCtxRef.current = ctx
-
-          const source = ctx.createMediaStreamSource(stream)
-          const analyser = ctx.createAnalyser()
-          analyser.fftSize = 1024
-          analyser.smoothingTimeConstant = 0.75
-          micAnalyserRef.current = analyser
-          const processor = ctx.createScriptProcessor(4096, 1, 1)
-          processorRef.current = processor
-
-          processor.onaudioprocess = (e) => {
-            if (isMutedRef.current) return
-            if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
-            if (isSendingRef.current) return
-
-            const ch0 = e.inputBuffer.getChannelData(0)
-            const down = downsampleTo16k(ch0, ctx.sampleRate)
-            const bytes = floatToPcm16(down)
-            const b64 = base64FromBytes(bytes)
-
-            const msg = { type: 'audio_input', data: b64 }
-
-            try {
-              isSendingRef.current = true
-              ws.send(JSON.stringify(msg))
-            } finally {
-              isSendingRef.current = false
-            }
-          }
-
-          source.connect(processor)
-          source.connect(analyser)
-          processor.connect(ctx.destination) // keeps processor alive
-
-          const data = new Uint8Array(analyser.fftSize)
-          const freq = new Uint8Array(analyser.frequencyBinCount)
-          const tick = () => {
-            const wrap = orbWrapRef.current
-            if (!wrap || !micAnalyserRef.current) {
-              micRafRef.current = requestAnimationFrame(tick)
-              return
-            }
-
-            if (isMutedRef.current) {
-              wrap.style.setProperty('--mic-level', '0')
-              wrap.style.setProperty('--mic-alpha', '0')
-              wrap.style.setProperty('--mic-alpha2', '0')
-              wrap.style.setProperty('--mic-scale', '1')
-              wrap.style.setProperty('--bar1', '0.25')
-              wrap.style.setProperty('--bar2', '0.25')
-              wrap.style.setProperty('--bar3', '0.25')
-              wrap.style.setProperty('--bar4', '0.25')
-              wrap.style.setProperty('--bar5', '0.25')
-            } else {
-              micAnalyserRef.current.getByteTimeDomainData(data)
-              micAnalyserRef.current.getByteFrequencyData(freq)
-              let sum = 0
-              for (let i = 0; i < data.length; i++) {
-                const v = (data[i] - 128) / 128
-                sum += v * v
-              }
-              const rms = Math.sqrt(sum / data.length)
-              const level = Math.max(0, Math.min(1, rms * 2.2))
-              wrap.style.setProperty('--mic-level', level.toFixed(3))
-              const alpha = Math.max(0, Math.min(0.28, 0.06 + level * 0.22))
-              const scale = 1 + level * 0.18
-              wrap.style.setProperty('--mic-alpha', alpha.toFixed(3))
-              wrap.style.setProperty('--mic-alpha2', Math.max(0, Math.min(0.22, alpha * 0.65)).toFixed(3))
-              wrap.style.setProperty('--mic-scale', scale.toFixed(3))
-
-              const band = (from: number, to: number) => {
-                let s = 0
-                let c = 0
-                for (let i = from; i < to; i++) {
-                  s += freq[i] ?? 0
-                  c++
-                }
-                const avg = c ? s / c : 0
-                return Math.max(0, Math.min(1, avg / 255))
-              }
-              const n = freq.length
-              const b1 = band(0, Math.floor(n * 0.08))
-              const b2 = band(Math.floor(n * 0.08), Math.floor(n * 0.18))
-              const b3 = band(Math.floor(n * 0.18), Math.floor(n * 0.32))
-              const b4 = band(Math.floor(n * 0.32), Math.floor(n * 0.55))
-              const b5 = band(Math.floor(n * 0.55), Math.floor(n * 0.85))
-
-              const map = (x: number) => 0.22 + x * 1.15
-              wrap.style.setProperty('--bar1', map(b1).toFixed(3))
-              wrap.style.setProperty('--bar2', map(b2).toFixed(3))
-              wrap.style.setProperty('--bar3', map(b3).toFixed(3))
-              wrap.style.setProperty('--bar4', map(b4).toFixed(3))
-              wrap.style.setProperty('--bar5', map(b5).toFixed(3))
-            }
-            micRafRef.current = requestAnimationFrame(tick)
-          }
-          micRafRef.current = requestAnimationFrame(tick)
-        } catch {
-          setMicPermission('denied')
-          setVoiceError('Microphone blocked. Please allow mic access in the browser prompt or site settings.')
+        if (opts.startMic) {
+          void startMicCapture()
         }
       }
 
@@ -544,8 +561,6 @@ const Talk: React.FC = () => {
       setVoiceError('Voice initialization failed.')
     }
   }
-
-  const startVoice = async () => connectVoice({ startMic: true })
 
   const stopVoice = () => {
     if (emberRafRef.current != null) {
@@ -629,11 +644,21 @@ const Talk: React.FC = () => {
 
   // Auto-connect and have Ember speak immediately on entry.
   useEffect(() => {
-    // Trigger Chrome's mic permission prompt immediately on entry so "Listening" can work without a click.
-    // (This is the only browser-approved way to show the mic permission UI.)
-    connectVoice({ startMic: true })
+    // Start with Ember speaking first (no “Listening” state yet).
+    connectVoice({ startMic: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // After Ember has spoken once and finished the opening line, request mic permission and start listening.
+  useEffect(() => {
+    if (needsAudioGesture) return
+    if (voiceStatus !== 'live') return
+    if (mediaStreamRef.current) return
+    if (!didEmberSpeakOnceRef.current) return
+    if (isEmberSpeaking) return
+    void startMicCapture()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceStatus, isEmberSpeaking, needsAudioGesture])
 
   // If autoplay is blocked, resume audio on the next user gesture and continue playback.
   useEffect(() => {

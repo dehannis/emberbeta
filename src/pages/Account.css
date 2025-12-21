@@ -2,6 +2,59 @@
     padding-top: 4vh;
 }
 
+/* Account — dark glossy futuristic gradient background */
+.account-page {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(980px 720px at 18% 18%, rgba(140, 90, 255, 0.09), rgba(0, 0, 0, 0) 62%),
+        radial-gradient(920px 680px at 86% 24%, rgba(70, 190, 255, 0.08), rgba(0, 0, 0, 0) 64%),
+        radial-gradient(860px 620px at 72% 88%, rgba(80, 255, 200, 0.05), rgba(0, 0, 0, 0) 62%),
+        radial-gradient(760px 560px at 30% 86%, rgba(255, 120, 210, 0.045), rgba(0, 0, 0, 0) 66%),
+        radial-gradient(720px 520px at 50% 52%, rgba(255, 255, 255, 0.016), rgba(0, 0, 0, 0) 62%),
+        #01020a;
+}
+
+.account-page::before {
+    content: '';
+    position: absolute;
+    inset: -18%;
+    pointer-events: none;
+    background:
+        linear-gradient(135deg,
+            rgba(255, 255, 255, 0.055),
+            rgba(255, 255, 255, 0.00) 46%,
+            rgba(255, 255, 255, 0.02) 82%,
+            rgba(255, 255, 255, 0.00)
+        ),
+        radial-gradient(900px 540px at 16% 16%, rgba(185, 140, 255, 0.06), rgba(0, 0, 0, 0) 66%),
+        radial-gradient(860px 540px at 86% 22%, rgba(120, 215, 255, 0.05), rgba(0, 0, 0, 0) 64%);
+    opacity: 0.95;
+    mix-blend-mode: screen;
+    transform: translateZ(0);
+}
+
+.account-page::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    /* ultra subtle texture */
+    background:
+        radial-gradient(1px 1px at 18% 22%, rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0) 60%),
+        radial-gradient(1px 1px at 62% 18%, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0) 60%),
+        radial-gradient(1px 1px at 84% 58%, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0) 60%),
+        radial-gradient(1px 1px at 28% 74%, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0) 60%);
+    opacity: 0.10;
+    mix-blend-mode: overlay;
+}
+
+.account-page > * {
+    position: relative;
+    z-index: 1;
+}
+
+
 .account-container {
     width: 100%;
 }
@@ -20,6 +73,7 @@
     font-weight: 300;
     letter-spacing: -0.02em;
     color: var(--white);
+    padding-left: 0.35rem;
     animation: fadeIn 1s ease-out;
 }
 
@@ -39,6 +93,16 @@
 }
 
 .save-button:hover {
+    color: var(--white);
+}
+
+
+.save-button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.save-button:disabled:hover {
     color: var(--white);
 }
 
@@ -70,14 +134,19 @@
 }
 
 .section-box {
-    background: rgba(20, 20, 20, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    padding: 0.875rem;
+    padding: 0.9rem 0.9rem 0.85rem 0.9rem;
+    background: rgba(18, 18, 18, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 16px;
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     gap: 0.625rem;
+    transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
+
+/* Intentionally no “card hover brighten” — keep hover feedback on inputs/buttons instead. */
 
 .form-group {
     margin-bottom: 0;
@@ -96,11 +165,11 @@
 .form-input,
 .form-select {
     width: 100%;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-    padding: 0.625rem 0.75rem;
-    font-size: 0.875rem;
+    background: rgba(0, 0, 0, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 12px;
+    padding: 0.56rem 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 300;
     color: var(--white);
     transition: border-color 0.3s ease;
@@ -114,7 +183,7 @@
 .form-input:focus,
 .form-select:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.22);
 }
 
 .form-input-disabled {
@@ -139,6 +208,118 @@
     color: var(--white);
 }
 
+.account-nextcall {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.account-nextcall-row {
+    display: grid;
+    grid-template-columns: auto 56px auto 1fr 88px;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.account-nextcall-label {
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.55);
+    white-space: nowrap;
+}
+
+.account-nextcall-days {
+    padding: 0.5rem 0.65rem;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.account-nextcall-time .form-select,
+.account-nextcall-tz .form-select {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-radius: 10px;
+}
+
+.account-nextcall-sub {
+    margin-top: 0.15rem;
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.88);
+    line-height: 1.8;
+}
+
+.account-nextcall-topic {
+    margin-top: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+
+.account-nextcall-topic-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.account-nextcall-privacy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.18rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.14);
+}
+
+.account-nextcall-privacy-btn {
+    background: transparent;
+    border: none;
+    padding: 0.32rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.5rem;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+    font-family: inherit;
+}
+
+.account-nextcall-privacy-btn:hover {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.account-nextcall-privacy-btn.active {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.account-nextcall-notes {
+    resize: none;
+    overflow: hidden;
+    box-sizing: border-box;
+    min-height: 2.75rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.68);
+}
+
+.account-nextcall-notes[readonly] {
+    color: rgba(255, 255, 255, 0.46);
+}
+
+@media (max-width: 480px) {
+    .account-nextcall-row {
+        grid-template-columns: auto 54px auto 1fr 92px;
+        gap: 0.45rem;
+    }
+}
+
 .account-type-options {
     display: flex;
     flex-direction: column;
@@ -154,7 +335,7 @@
     padding: 0.625rem 0.75rem;
     font-size: 0.875rem;
     font-weight: 300;
-    color: var(--gray-light);
+    color: var(--white);
     cursor: pointer;
     transition: all 0.3s ease;
     font-family: inherit;
@@ -245,9 +426,20 @@
     transition: color 0.3s ease;
 }
 
+
+.account-save-bottom {
+    margin-top: 0.5rem;
+    padding-bottom: 0;
+    text-align: center;
+}
+
+.account-save-bottom + .sign-out-section {
+    margin-top: 0.6rem;
+}
+
 .sign-out-section {
     margin-top: 2rem;
-    padding-bottom: 4.5rem;
+    padding-bottom: 1.5rem;
     animation: fadeInUp 1s ease-out 0.7s both;
     text-align: center;
 }
@@ -285,4 +477,13 @@
     .section-box {
         padding: 0.75rem;
     }
+}
+
+
+/* Mobile web: match Build audio player horizontal inset (0.75rem per side at <= 768px) */
+@media (max-width: 768px) {
+  .container {
+    padding-left: calc(0.75rem + env(safe-area-inset-left));
+    padding-right: calc(0.75rem + env(safe-area-inset-right));
+  }
 }

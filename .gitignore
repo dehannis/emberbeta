@@ -9,16 +9,9 @@ lerna-debug.log*
 
 node_modules
 dist
-.env
-.env.local
-.env.*.local
 dist-ssr
 *.local
 .vite
-
-# Relics from prior Build page iterations (not used by current routing)
-src/pages/build/
-src/pages/buildPage/
 
 # Editor directories and files
 .vscode/*
@@ -31,3 +24,9 @@ src/pages/buildPage/
 *.sln
 *.sw?
 
+# Local server state (SMS invite statuses, etc.)
+server/data/
+
+
+# Env files
+.env

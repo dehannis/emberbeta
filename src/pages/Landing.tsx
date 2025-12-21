@@ -5,9 +5,9 @@ import Footer from '../components/Footer'
 
 const Landing: React.FC = () => {
   return (
-    <div className="container">
+    <div className="container landing-container">
       <Header />
-      <main className="main-content">
+      <main className="main-content landing-main">
         <Options />
       </main>
       <Footer />

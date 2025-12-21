@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import './Build.css'
@@ -182,6 +182,9 @@ function normalizeMemories(value: unknown): Memory[] | null {
       return null
     }
 
+    const normalizedVisibility =
+      personId === 'me' ? ((visibility as 'private' | 'shared' | undefined) ?? 'shared') : 'shared'
+
     result.push({
       id,
       title,
@@ -190,7 +193,7 @@ function normalizeMemories(value: unknown): Memory[] | null {
       aboutDate,
       recordedOn,
       durationSec: durationSec as number | undefined,
-      visibility: (visibility as 'private' | 'shared' | undefined) ?? 'shared',
+      visibility: normalizedVisibility,
       audioUrl: audioUrl as string | undefined,
     })
   }
@@ -200,6 +203,14 @@ function normalizeMemories(value: unknown): Memory[] | null {
 const Build: React.FC = () => {
   const navigate = useNavigate()
   const spiralRef = useRef<HTMLDivElement | null>(null)
+  // MVP: list-only Build page (visual view removed from UI).
+  // Keep `buildView` as state (without exposing a UI toggle) so the legacy visual code can remain without TS narrowing errors.
+  const [buildView] = useState<'visual' | 'list'>('list')
+  const playerRef = useRef<HTMLDivElement | null>(null)
+  const [playerMetrics, setPlayerMetrics] = useState<{ bottomPx: number; heightPx: number }>({
+    bottomPx: 24,
+    heightPx: 96,
+  })
   const [memoriesData, setMemoriesData] = useState<Memory[]>(() => {
     try {
       const raw = localStorage.getItem('emberMemoriesV1')
@@ -219,6 +230,10 @@ const Build: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false)
   const [meName, setMeName] = useState('You')
   const [activeMemoryId, setActiveMemoryId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Memory | null>(null)
+  const [requestStoryFor, setRequestStoryFor] = useState<{ personId: string; personName: string } | null>(null)
+  const [requestStoryPrompt, setRequestStoryPrompt] = useState('')
+  const [requestStoryError, setRequestStoryError] = useState('')
   const [isRecentering, setIsRecentering] = useState(false)
   const recenterTimerRef = useRef<number | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -231,13 +246,13 @@ const Build: React.FC = () => {
   const [isEditingAboutDate, setIsEditingAboutDate] = useState(false)
   const [draftAboutDate, setDraftAboutDate] = useState('')
   const aboutDateInputRef = useRef<HTMLInputElement>(null)
-  const [panelMode, setPanelMode] = useState<'notes' | null>(null)
+  const [panelMode, setPanelMode] = useState<'transcript' | null>(null)
   const [panelText, setPanelText] = useState('')
   const [panelDisplayed, setPanelDisplayed] = useState('')
   const [panelIsGenerating, setPanelIsGenerating] = useState(false)
   const panelTimerRef = useRef<number | null>(null)
   const drawerBodyRef = useRef<HTMLDivElement | null>(null)
-  const notesAutoscrollActiveRef = useRef(false)
+  const [showStoryBuilder, setShowStoryBuilder] = useState(false)
   
   // Chapter state
   const [activeChapter, setActiveChapter] = useState<string | null>(null)
@@ -275,6 +290,57 @@ const Build: React.FC = () => {
       }
     }
   }, [])
+
+  // Measure the bottom player to prevent list/window overlap (works for idle + active player, desktop + mobile).
+  useLayoutEffect(() => {
+    const el = playerRef.current
+    if (!el || typeof window === 'undefined') return
+
+    let raf = 0
+    const measure = () => {
+      if (!playerRef.current) return
+      const rect = playerRef.current.getBoundingClientRect()
+      const bottomPx = Math.max(0, window.innerHeight - rect.bottom)
+      const heightPx = Math.max(0, rect.height)
+      setPlayerMetrics((prev) => {
+        if (Math.abs(prev.bottomPx - bottomPx) < 1 && Math.abs(prev.heightPx - heightPx) < 1) return prev
+        return { bottomPx, heightPx }
+      })
+    }
+
+    const onResize = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(measure)
+    }
+
+    measure()
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+
+    // iOS Safari: address bar / toolbars can change viewport without a full window resize.
+    const vv = window.visualViewport
+    if (vv) {
+      vv.addEventListener('resize', onResize)
+      vv.addEventListener('scroll', onResize)
+    }
+
+    let ro: ResizeObserver | null = null
+    if ('ResizeObserver' in window) {
+      ro = new ResizeObserver(() => onResize())
+      ro.observe(el)
+    }
+
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+      if (vv) {
+        vv.removeEventListener('resize', onResize)
+        vv.removeEventListener('scroll', onResize)
+      }
+      ro?.disconnect()
+    }
+  }, [activeMemoryId, buildView, panelMode])
   
   // Persist chapters to localStorage
   useEffect(() => {
@@ -362,11 +428,7 @@ const Build: React.FC = () => {
     }
   }, [chaptersInitialized])
 
-  const selectPerson = (id: string) => {
-    setSelectedPerson(id)
-    setIsPersonDropdownOpen(false)
-    setActiveMemoryId(null) // Reset selected memory when changing person
-  }
+  // (Legacy helper removed) Person selection is handled inline in the selector menu now.
 
   // Effective chapters (editable): use saved chapters if present, otherwise seed from birth year.
   const availableChapters = useMemo((): TimelineChapter[] => {
@@ -405,8 +467,8 @@ const Build: React.FC = () => {
 
   const jumpToChapter = (chapterId: string) => {
     if (chapterId === activeChapter) return
+    closePlayerAndReset()
     setActiveChapter(chapterId)
-    setActiveMemoryId(null)
 
     if (!prefersReducedMotion) {
       setIsRecentering(true)
@@ -421,8 +483,8 @@ const Build: React.FC = () => {
   // Toggle chapter selection
   const toggleChapter = (chapterId: string) => {
     const next = activeChapter === chapterId ? null : chapterId
+    closePlayerAndReset()
     setActiveChapter(next)
-    setActiveMemoryId(null) // Reset selected memory when changing chapter
 
     // Swivel the timeline as we jump to a chapter timeframe (avoid if reduced motion).
     if (!prefersReducedMotion) {
@@ -505,6 +567,7 @@ const Build: React.FC = () => {
 
   // Filter and sort memories (also filter by chapter if one is selected)
   const visibleMemories = useMemo(() => {
+    if (buildView !== 'visual') return []
     let filtered = memoriesData.filter(m => m.personId === selectedPerson)
     
     // If a chapter is selected, filter to only memories within that year range
@@ -516,7 +579,7 @@ const Build: React.FC = () => {
     }
     
     return filtered.sort((a, b) => new Date(b.aboutDate).getTime() - new Date(a.aboutDate).getTime())
-  }, [selectedPerson, memoriesData, activeChapterRange])
+  }, [selectedPerson, memoriesData, activeChapterRange, buildView])
 
   // Timeline U-shape: cubic Bezier for steeper sides, flatter rounded middle
   // Endpoints at top corners; two control points create the U shape
@@ -663,6 +726,7 @@ const Build: React.FC = () => {
   const pointerISO = useMemo(() => isoForFrac(pointerFrac), [pointerFrac, scaleTimes])
 
   const snappedMemoryId = useMemo(() => {
+    if (buildView !== 'visual') return null
     if (visibleMemories.length === 0) return null
     // Snap should feel like the pointer is "over" a memory, i.e. the rendered orb is near the center.
     // Use screen-space distance to avoid mismatches between time-scale math and what the user sees.
@@ -685,7 +749,7 @@ const Build: React.FC = () => {
     const SNAP_PX = 42
     if (best && best.dist <= SNAP_PX) return best.id
     return null
-  }, [visibleMemories, fracForISO, displayTForFrac, arcPoint])
+  }, [visibleMemories, fracForISO, displayTForFrac, arcPoint, buildView])
 
   const snappedMemory = useMemo(() => {
     if (!snappedMemoryId) return null
@@ -702,6 +766,7 @@ const Build: React.FC = () => {
   }, [snappedMemoryId])
 
   useEffect(() => {
+    if (buildView !== 'visual') return
     // Pointer orb drives active memory; when not snapped, player closes.
     if (snappedMemoryId) {
       if (activeMemoryId !== snappedMemoryId) setActiveMemoryId(snappedMemoryId)
@@ -709,7 +774,7 @@ const Build: React.FC = () => {
       if (activeMemoryId !== null) setActiveMemoryId(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snappedMemoryId])
+  }, [snappedMemoryId, buildView])
 
   const yearTicks = useMemo(() => {
     if (visibleMemories.length === 0 && !activeChapterRange) return []
@@ -791,7 +856,7 @@ const Build: React.FC = () => {
       audio.removeEventListener('loadedmetadata', handleLoaded)
       audio.removeEventListener('ended', handleEnded)
     }
-  }, [])
+  }, [activeMemoryId])
 
   // When active memory changes, load & play immediately (if possible)
   useEffect(() => {
@@ -832,13 +897,7 @@ const Build: React.FC = () => {
     }
   }, [isPlaying, activeMemory?.audioUrl])
 
-  const handleSelectMemory = (memory: Memory) => {
-    // Clicking a memory jumps the pointer to that date (which may snap and open the player).
-    setPointerFrac(fracForISO(memory.aboutDate))
-    markPointerInteracting()
-  }
-
-  const handleClosePlayer = () => {
+  const closePlayerAndReset = () => {
     const audio = audioRef.current
     if (audio) audio.pause()
     setIsPlaying(false)
@@ -849,6 +908,16 @@ const Build: React.FC = () => {
     setDraftTitle('')
     setIsEditingAboutDate(false)
     setDraftAboutDate('')
+    setPanelMode(null)
+  }
+
+  const handleSelectMemory = (memory: Memory) => {
+    // Clicking a memory jumps the pointer to that date (which may snap and open the player).
+    setPointerFrac(fracForISO(memory.aboutDate))
+    markPointerInteracting()
+  }
+  const handleClosePlayer = () => {
+    closePlayerAndReset()
   }
 
   const handleSeek = (value: number) => {
@@ -858,12 +927,10 @@ const Build: React.FC = () => {
     setCurrentTime(value)
   }
 
-  const handleNotes = () => {
-    // TODO: Backend: fetch both summary + transcript for activeMemoryId
-    // - summary: LLM summarization over transcript/audio
-    // - transcript: ASR pipeline
+  const handleTranscript = () => {
+    // TODO: Backend: fetch transcript for activeMemoryId (ASR pipeline)
     if (!activeMemory) return
-    setPanelMode('notes')
+    setPanelMode('transcript')
   }
 
   const formatTime = (seconds: number) => {
@@ -882,6 +949,52 @@ const Build: React.FC = () => {
     }
   }
 
+  const confirmDeleteStory = () => {
+    if (!deleteTarget) return
+    const id = deleteTarget.id
+    setDeleteTarget(null)
+
+    if (activeMemoryId === id) handleClosePlayer()
+    persistMemories(memoriesData.filter((m) => m.id !== id))
+  }
+
+  const openRequestStory = (personId: string, personName: string) => {
+    setRequestStoryFor({ personId, personName })
+    setRequestStoryPrompt('')
+    setRequestStoryError('')
+  }
+
+  const sendRequestStory = () => {
+    if (!requestStoryFor) return
+    const prompt = requestStoryPrompt.trim()
+    if (!prompt) {
+      setRequestStoryError('Please enter a topic.')
+      return
+    }
+
+    const item = {
+      id: `req-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      toPersonId: requestStoryFor.personId,
+      toPersonName: requestStoryFor.personName,
+      prompt,
+      createdAt: new Date().toISOString(),
+    }
+
+    try {
+      const raw = localStorage.getItem('emberStoryRequestsV1')
+      const parsed: unknown = raw ? JSON.parse(raw) : []
+      const list = Array.isArray(parsed) ? parsed : []
+      list.push(item)
+      localStorage.setItem('emberStoryRequestsV1', JSON.stringify(list))
+    } catch {
+      // ignore
+    }
+
+    setRequestStoryFor(null)
+    setRequestStoryPrompt('')
+    setRequestStoryError('')
+  }
+
   // Ensure requested preloaded orbs exist even if localStorage already had data.
   const preloadedInjectedRef = useRef(false)
   useEffect(() => {
@@ -895,7 +1008,11 @@ const Build: React.FC = () => {
   }, [memoriesData])
 
   const setMemoryVisibility = (memoryId: string, visibility: 'private' | 'shared') => {
-    const next = memoriesData.map((m) => (m.id === memoryId ? { ...m, visibility } : m))
+    const next = memoriesData.map((m) => {
+      if (m.id !== memoryId) return m
+      if (m.personId !== 'me') return { ...m, visibility: 'shared' as const }
+      return { ...m, visibility }
+    })
     persistMemories(next)
   }
 
@@ -1208,17 +1325,16 @@ const Build: React.FC = () => {
   }, [memoriesData, availableChapters])
 
   // Dummy generation text examples (replace with backend output)
-  const buildDummySummary = (m: Memory) => {
+  const buildDummyCallSummaryAndTags = (m: Memory) => {
     const who = getPersonName(m.personId)
-    return (
-      `Summary\n` +
-      `—\n` +
-      `${who} reflects on ${m.title.toLowerCase()}, touching on what felt important in the moment.\n\n` +
-      `Highlights\n` +
-      `- A clear turning point and what changed afterward\n` +
-      `- A small detail that makes the memory vivid\n` +
-      `- One lingering question to ask next time`
-    )
+    const summary =
+      `${who} walks through ${m.title.toLowerCase()}, focusing on what mattered most in the moment.` +
+      ` They share a vivid detail and what it changed for them afterward.`
+
+    const themes = ['Family', 'Friendship', 'Growing up']
+    const people = [who]
+    const places = ['—']
+    return { summary, themes, people, places }
   }
 
   const buildDummyTranscript = (m: Memory) => {
@@ -1234,19 +1350,19 @@ const Build: React.FC = () => {
     )
   }
 
-  const buildDummyNotes = (m: Memory) => {
-    return `${buildDummySummary(m)}\n\nTranscript\n—\n${buildDummyTranscript(m).replace(/^Transcript\n—\n/, '')}`
+  const buildDummyTranscriptOnly = (m: Memory) => {
+    // Keep only the transcript body (drawer header already says TRANSCRIPT)
+    return buildDummyTranscript(m).replace(/^Transcript\n—\n/, '')
   }
 
   // Generate panel content with a typewriter feel
   useEffect(() => {
     if (!panelMode || !activeMemory) return
 
-    const full = buildDummyNotes(activeMemory)
+    const full = buildDummyTranscriptOnly(activeMemory)
     setPanelText(full)
     setPanelDisplayed('')
     setPanelIsGenerating(true)
-    notesAutoscrollActiveRef.current = false
 
     if (panelTimerRef.current) {
       window.clearInterval(panelTimerRef.current)
@@ -1277,23 +1393,6 @@ const Build: React.FC = () => {
       }
     }
   }, [panelMode, activeMemory, prefersReducedMotion])
-
-  // When Transcript starts, auto-scroll so it's obvious there's more content below Summary.
-  useEffect(() => {
-    if (panelMode !== 'notes') return
-    const el = drawerBodyRef.current
-    if (!el) return
-
-    const marker = '\n\nTranscript\n—\n'
-    const transcriptStarted = panelDisplayed.includes(marker)
-    if (!transcriptStarted) return
-
-    // Once transcript begins, keep pinned to bottom while generating.
-    notesAutoscrollActiveRef.current = true
-    if (panelIsGenerating) {
-      el.scrollTop = el.scrollHeight
-    }
-  }, [panelDisplayed, panelIsGenerating, panelMode])
 
   const skipPanelGeneration = () => {
     if (!panelIsGenerating) return
@@ -1330,11 +1429,194 @@ const Build: React.FC = () => {
     setDraftAboutDate('')
   }
 
+  // ============ List View (per-person stories + upcoming calls) ============
+  // (Legacy) placeholder for future "show more" UI if needed.
+  const [listFilterPersonId, setListFilterPersonId] = useState<string>('me')
+
+  type ShareContact = {
+    id?: string
+    name?: string
+    phone?: string
+    nextCallEveryDays?: number
+    nextCallTime?: string
+    nextCallTimeZone?: string
+    nextCallTopicMode?: 'biography' | 'custom'
+    nextCallPrompt?: string
+    nextCallTopicVisibility?: 'private' | 'shared'
+  }
+
+  type AccountNextCall = {
+    everyDays?: number
+    time?: string
+    timeZone?: string
+    topicMode?: 'biography' | 'custom'
+    prompt?: string
+  }
+
+  const defaultAccountBiographyPrompt = () => {
+    return `In your last conversation, you shared a meaningful story. For this next conversation, we’ll continue by exploring what happened next and how it shaped your life.`
+  }
+
+  const shareContacts: ShareContact[] = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('emberContactsV1')
+      const parsed = raw ? (JSON.parse(raw) as unknown) : null
+      return Array.isArray(parsed) ? (parsed as ShareContact[]) : []
+    } catch {
+      return []
+    }
+  }, [])
+
+  const accountProfileName: string = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('emberAccountData')
+      const parsed = raw ? (JSON.parse(raw) as any) : null
+      return typeof parsed?.name === 'string' ? parsed.name : ''
+    } catch {
+      return ''
+    }
+  }, [])
+
+  const accountNextCall: AccountNextCall | null = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('emberAccountNextCallV1')
+      const parsed = raw ? (JSON.parse(raw) as any) : null
+      const fallback = {
+        everyDays: 1,
+        time: '18:00',
+        timeZone: 'America/Los_Angeles',
+        topicMode: 'biography' as const,
+        prompt: defaultAccountBiographyPrompt(),
+      }
+      if (!parsed || typeof parsed !== 'object') return fallback
+      return {
+        everyDays: Number.isFinite(parsed.everyDays) ? Math.max(0, Math.min(99, Math.floor(parsed.everyDays))) : 1,
+        time: typeof parsed.time === 'string' ? parsed.time : '18:00',
+        timeZone: typeof parsed.timeZone === 'string' ? parsed.timeZone : 'America/Los_Angeles',
+        topicMode: parsed.topicMode === 'custom' ? 'custom' : 'biography',
+        prompt:
+          typeof parsed.prompt === 'string' && parsed.prompt.trim()
+            ? parsed.prompt
+            : defaultAccountBiographyPrompt(),
+      }
+    } catch {
+      return {
+        everyDays: 1,
+        time: '18:00',
+        timeZone: 'America/Los_Angeles',
+        topicMode: 'biography',
+        prompt: defaultAccountBiographyPrompt(),
+      }
+    }
+  }, [accountProfileName])
+
+  const shareContactByName = useMemo(() => {
+    const map = new Map<string, ShareContact>()
+    for (const c of shareContacts) {
+      const key = typeof c?.name === 'string' ? c.name.trim().toLowerCase() : ''
+      if (!key) continue
+      map.set(key, c)
+    }
+    return map
+  }, [shareContacts])
+
+  const listPeople = useMemo(() => {
+    return ALL_PEOPLE.map((p) => ({
+      ...p,
+      displayName: p.id === 'me' ? (meName || 'You') : p.name,
+    }))
+  }, [meName])
+
+  const listPerson = useMemo(() => {
+    return listPeople.find((p) => p.id === listFilterPersonId) ?? listPeople[0] ?? null
+  }, [listPeople, listFilterPersonId])
+
+  const memoriesByPerson = useMemo(() => {
+    const map = new Map<string, Memory[]>()
+    for (const p of listPeople) map.set(p.id, [])
+    for (const m of memoriesData) {
+      if (!map.has(m.personId)) map.set(m.personId, [])
+      map.get(m.personId)!.push(m)
+    }
+    for (const [k, arr] of map.entries()) {
+      arr.sort((a, b) => new Date(b.aboutDate).getTime() - new Date(a.aboutDate).getTime())
+      map.set(k, arr)
+    }
+    return map
+  }, [memoriesData, listPeople])
+
+  const tzShort = (tz: string) =>
+    (tz === 'America/Los_Angeles' && 'PT') ||
+    (tz === 'America/Denver' && 'MT') ||
+    (tz === 'America/Chicago' && 'CT') ||
+    (tz === 'America/New_York' && 'ET') ||
+    (tz === 'Europe/London' && 'UK') ||
+    (tz === 'Asia/Seoul' && 'KST') ||
+    (tz === 'Asia/Tokyo' && 'JST') ||
+    (tz === 'America/Sao_Paulo' && 'BRT') ||
+    (tz === 'America/Mexico_City' && 'MX') ||
+    (tz === 'UTC' && 'UTC') ||
+    tz
+
+  const nextCallsPreview = (c: ShareContact, count: number) => {
+    const everyDays = Math.max(0, Math.min(99, Number(c.nextCallEveryDays ?? 1) || 1))
+    const time = typeof c.nextCallTime === 'string' && /^\d{2}:\d{2}$/.test(c.nextCallTime) ? c.nextCallTime : '18:00'
+    const [hh, mm] = time.split(':').map((x) => parseInt(x, 10))
+    const tz = tzShort(typeof c.nextCallTimeZone === 'string' ? c.nextCallTimeZone : '')
+
+    const now = new Date()
+    let base = new Date(now)
+    base.setSeconds(0, 0)
+    base.setHours(Number.isFinite(hh) ? hh : 18, Number.isFinite(mm) ? mm : 0, 0, 0)
+    if (base.getTime() <= now.getTime()) base = new Date(base.getTime() + everyDays * 24 * 60 * 60 * 1000)
+
+    const timeLabel = (() => {
+      try {
+        const d = new Date()
+        d.setHours(Number.isFinite(hh) ? hh : 18, Number.isFinite(mm) ? mm : 0, 0, 0)
+        return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      } catch {
+        return time
+      }
+    })()
+
+    const items: Array<{ when: string; topic: string; note?: string }> = []
+    for (let i = 0; i < count; i++) {
+      const d = new Date(base.getTime() + i * everyDays * 24 * 60 * 60 * 1000)
+      const when = `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${timeLabel}${tz ? ` ${tz}` : ''}`
+      const topic = c.nextCallTopicMode === 'custom' ? 'Custom Topic' : 'Biography (Default)'
+      const note =
+        c.nextCallTopicMode === 'custom' && typeof c.nextCallPrompt === 'string' && c.nextCallPrompt.trim()
+          ? c.nextCallPrompt.trim()
+          : undefined
+      items.push({ when, topic, note })
+    }
+    return items
+  }
+
+  const selectMemoryFromList = (m: Memory) => {
+    setActiveMemoryId(m.id)
+    setIsPlaying(true)
+  }
+
+  useEffect(() => {
+    // If a track is selected, keep the UI focused on the player.
+    if (activeMemoryId) setShowStoryBuilder(false)
+  }, [activeMemoryId])
+
   return (
-    <div className="build-page">
+    <div
+      className="build-page list-view"
+      style={
+        {
+          '--build-player-bottom-px': `${playerMetrics.bottomPx}px`,
+          '--build-player-height-px': `${playerMetrics.heightPx}px`,
+        } as React.CSSProperties
+      }
+    >
       <Header hidePhone />
 
-      {/* Person Selector - Header area (Top Right) */}
+      {/* Person Selector - Top Right (Visual: chooses timeline. List: filters people.) */}
       <div className={`person-selector ${isLoaded ? 'visible' : ''}`}>
         <button
           className="person-selector-trigger"
@@ -1342,24 +1624,32 @@ const Build: React.FC = () => {
         >
           <span className="person-selector-label">TIMELINE:</span>
           <span className="person-selector-name">
-            {selectedPerson === 'me' ? (meName || 'You') : ALL_PEOPLE.find(p => p.id === selectedPerson)?.name}
+            {listFilterPersonId === 'me'
+              ? meName || 'You'
+              : listPeople.find((p) => p.id === listFilterPersonId)?.displayName ?? (meName || 'You')}
+          </span>
+          <span className="person-selector-caret-btn" aria-hidden="true">
+            ▾
           </span>
         </button>
-        
+
         {isPersonDropdownOpen && (
           <>
             <div className="person-selector-backdrop" onClick={() => setIsPersonDropdownOpen(false)} />
             <div className="person-selector-menu">
-              {ALL_PEOPLE.map(person => {
-                const isSelected = selectedPerson === person.id
-                const displayName = person.id === 'me' ? (meName || 'You') : person.name
+              {listPeople.map((p) => ({ id: p.id, name: p.displayName })).map((opt) => {
+                const isSelected = listFilterPersonId === opt.id
                 return (
                   <button
-                    key={person.id}
+                    key={opt.id}
                     className={`person-selector-item ${isSelected ? 'selected' : ''}`}
-                    onClick={() => selectPerson(person.id)}
+                    onClick={() => {
+                      closePlayerAndReset()
+                      setListFilterPersonId(opt.id)
+                      setIsPersonDropdownOpen(false)
+                    }}
                   >
-                    {displayName}
+                    {opt.name}
                   </button>
                 )
               })}
@@ -1368,10 +1658,269 @@ const Build: React.FC = () => {
         )}
       </div>
 
-{/* Chapter filter moved to bottom, above player */}
+      {buildView === 'list' ? (
+        <>
+          <div className="build-list-window ember-scroll">
+          {(() => {
+            if (!listPerson) return null
+            const p = listPerson
+            const storiesAll = memoriesByPerson.get(p.id) ?? []
+            const stories = p.id === 'me' ? storiesAll : storiesAll.filter((m) => (m.visibility ?? 'shared') === 'shared')
+            const share = shareContactByName.get(p.displayName.trim().toLowerCase()) ?? null
+            const nextCallSource: ShareContact | null =
+              p.id === 'me'
+                ? {
+                    nextCallEveryDays: accountNextCall?.everyDays,
+                    nextCallTime: accountNextCall?.time,
+                    nextCallTimeZone: accountNextCall?.timeZone,
+                    nextCallTopicMode: accountNextCall?.topicMode,
+                    nextCallPrompt: accountNextCall?.prompt,
+                  }
+                : share
+            // (Legacy) expandedCalls retained for future "show more" UI if needed.
 
-      {/* Edit/Add Chapters Modal */}
-      {showEditChapters && (
+            return (
+              <div className="build-list-grid">
+                                <section className="build-list-card build-list-card--stories">
+                  <div className="build-list-label">STORIES</div>
+                  <div className="build-story-list ember-scroll">
+                    {p.id === 'me' && (
+                      <div
+                        className="build-story-alert"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => navigate('/talk')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            navigate('/talk')
+                          }
+                        }}
+                        aria-label="Go to Talk to respond to a story request"
+                      >
+                        <span className="build-story-alert-text">Hank has requested a story from you.</span>
+                      </div>
+                    )}
+                    {stories.length === 0 ? <div className="build-list-empty">No stories yet.</div> : null}
+                    {stories.map((m) => (
+                      <div
+                        key={m.id}
+                        className={`build-story-row ${activeMemoryId === m.id ? 'active' : ''} ${
+                          m.personId === 'me' && (m.visibility ?? 'shared') === 'private' ? 'is-private' : ''
+                        }`}
+                        onClick={() => selectMemoryFromList(m)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            selectMemoryFromList(m)
+                          }
+                        }}
+                      >
+                        <div
+                          className={`player-dot build-story-orb ${m.personId === 'me' && (m.visibility ?? 'shared') === 'private' ? 'glass-clear private-orb' : 'glass-solid'}`}
+                          style={
+                            {
+                              '--player-color':
+                                m.personId === 'me' && (m.visibility ?? 'shared') === 'private'
+                                  ? '#616161'
+                                  : getPersonPrimaryColor(m.personId),
+                            } as React.CSSProperties
+                          }
+                        />
+                        <div className="build-story-meta">
+                          <div className="build-story-title">{m.title}</div>
+                          <div className="build-story-sub">
+                            <span>RECORDED ON {formatDateNumeric(m.recordedOn)}</span>
+                            {typeof m.durationSec === 'number' && isFinite(m.durationSec) ? (
+                              <>
+                                <span className="build-story-dot">·</span>
+                                <span>{formatTime(m.durationSec)}</span>
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="build-story-delete"
+                          aria-label="Delete story"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteTarget(m)
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {p.id !== 'me' && (
+                      <div
+                        className="build-story-row build-story-row--request"
+                        onClick={() => openRequestStory(p.id, p.displayName)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            openRequestStory(p.id, p.displayName)
+                          }
+                        }}
+                        aria-label="Request a story"
+                      >
+                        <div
+                          className="player-dot build-story-orb build-story-request-orb glass-clear private-orb"
+                          style={{ '--player-color': '#2a2a2a' } as React.CSSProperties}
+                        />
+                        <div className="build-story-meta">
+                          <div className="build-story-sub build-story-request-text">REQUEST A STORY</div>
+                        </div>
+                        <div aria-hidden="true" />
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                <section className={`build-list-card ${activeMemory ? 'build-list-card--summary' : 'build-list-card--nextcall'}`}>
+                  <div className="build-list-label">{activeMemory ? 'SUMMARY' : 'NEXT CALL'}</div>
+                  {activeMemory ? (
+                    (() => {
+                      const s = buildDummyCallSummaryAndTags(activeMemory)
+                      return (
+                        <div className="build-summary-scroll ember-scroll">
+                          <div className="build-call-list">
+                            <div className="build-call-row">
+                              <div className="build-call-topic">
+                                <span className="build-call-note">{s.summary}</span>
+                              </div>
+                              <div className="build-call-when">Tagged themes, people, places:</div>
+                              <div className="build-call-topic">
+                                <span className="build-call-note">Themes: {s.themes.join(', ') || '—'}</span>
+                                <span className="build-call-note">People: {s.people.join(', ') || '—'}</span>
+                                <span className="build-call-note">Places: {s.places.join(', ') || '—'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()
+                  ) : !nextCallSource ? (
+                    <div className="build-list-empty">No schedule yet.</div>
+                  ) : (
+                    <>
+                      {(() => {
+                        const next = nextCallsPreview(nextCallSource, 1)[0] ?? null
+                        const topicText = (() => {
+                          if (p.id !== 'me' && nextCallSource?.nextCallTopicVisibility === 'private') {
+                            const who = p.displayName || 'They'
+                            const isHank = who.toLowerCase().includes('hank')
+                            return `${who} has set ${isHank ? 'his' : 'their'} topic to private.`
+                          }
+                          return typeof nextCallSource.nextCallPrompt === 'string' ? nextCallSource.nextCallPrompt.trim() : ''
+                        })()
+                        return (
+                          <div className="build-call-list">
+                            <div className="build-call-row">
+                              <div className="build-call-when">Scheduled: {next ? next.when : '—'}</div>
+                              <div className="build-call-topic">
+                                <span className="build-call-note">{topicText || '—'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </>
+                  )}
+                </section>
+              </div>
+            )
+          })()}
+        </div>
+
+          {deleteTarget && (
+            <div
+              className="build-confirm-overlay"
+              onClick={() => setDeleteTarget(null)}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="build-confirm-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="build-confirm-text">Are you sure you want to delete this story?</div>
+                <div className="build-confirm-actions">
+                  <button type="button" className="build-confirm-btn" onClick={() => setDeleteTarget(null)}>
+                    Cancel
+                  </button>
+                  <button type="button" className="build-confirm-btn danger" onClick={confirmDeleteStory}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+
+          {requestStoryFor && (
+            <div
+              className="build-confirm-overlay"
+              onClick={() => {
+                setRequestStoryFor(null)
+                setRequestStoryPrompt('')
+                setRequestStoryError('')
+              }}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="build-confirm-modal build-request-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="build-request-heading">Request a Story</div>
+                <div className="build-request-subheading">
+                  What topic do you want to hear about from {requestStoryFor.personName.trim().split(/\s+/)[0] || "them"}?
+                </div>
+                <textarea
+                  className="build-request-input ember-scroll"
+                  value={requestStoryPrompt}
+                  onChange={(e) => {
+                    setRequestStoryPrompt(e.target.value)
+                    if (requestStoryError) setRequestStoryError('')
+                  }}
+                  placeholder="Example: Tell me about your first impression of me."
+                  rows={4}
+                />
+                {requestStoryError ? (
+                  <div className="build-request-error" role="alert">
+                    {requestStoryError}
+                  </div>
+                ) : null}
+                <div className="build-confirm-actions">
+                  <button
+                    type="button"
+                    className="build-confirm-btn"
+                    onClick={() => {
+                      setRequestStoryFor(null)
+                      setRequestStoryPrompt('')
+                      setRequestStoryError('')
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="build-confirm-btn primary"
+                    onClick={sendRequestStory}
+                    disabled={!requestStoryPrompt.trim()}
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Chapter filter moved to bottom, above player */}
+
+          {/* Edit/Add Chapters Modal */}
+          {showEditChapters && (
         <div className="chapter-modal-overlay" onClick={closeEditChapters}>
           <div className="chapter-modal" onClick={(e) => e.stopPropagation()}>
             <button className="chapter-modal-close" onClick={closeEditChapters}>×</button>
@@ -1386,7 +1935,7 @@ const Build: React.FC = () => {
                   <div className="chapter-editor-error" role="alert">
                     {chapterSaveError}
                   </div>
-                )}
+          )}
 
                 {draftChapters.length > 0 && (
                   <div className="chapter-editor-list ember-scroll">
@@ -1491,7 +2040,7 @@ const Build: React.FC = () => {
       )}
 
       {/* Chapter Bar - Above timeline graphic */}
-      {(availableChapters.length > 0 || birthYear) && (
+          {(availableChapters.length > 0 || birthYear) && (
         <div className={`chapter-bar ${isLoaded ? 'visible' : ''}`}>
           <span className="chapter-bar-label">CHAPTERS</span>
           <div className="chapter-bar-scroll">
@@ -1523,10 +2072,10 @@ const Build: React.FC = () => {
             )}
           </div>
         </div>
-      )}
+          )}
 
       {/* Spiral Constellation */}
-      <div
+          <div
         ref={spiralRef}
         className={`spiral-container ${isRecentering ? 'recentering' : ''}`}
         onWheel={(e) => {
@@ -1851,17 +2400,19 @@ const Build: React.FC = () => {
             </div>
           )
         })}
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Bottom player (Spotify-style) */}
-      {activeMemory && (
+      {activeMemory ? (
         <>
           {/* Drawer above the player */}
           {panelMode && (
-            <div className="build-player-drawer" role="region" aria-label="Notes">
+            <div className="build-player-drawer" role="region" aria-label="Transcript">
               <div className="drawer-header">
                 <div className="drawer-title">
-                  NOTES
+                  TRANSCRIPT
                   {panelIsGenerating && <span className="drawer-generating">Generating…</span>}
                 </div>
                 <button
@@ -1884,10 +2435,13 @@ const Build: React.FC = () => {
             </div>
           )}
 
-          <div className="build-player" role="region" aria-label="Audio player">
+          <div ref={playerRef} className="build-player" role="region" aria-label="Audio player">
+            <button type="button" className="player-close-top" onClick={handleClosePlayer} aria-label="Close player">
+              CLOSE
+            </button>
           <div className="player-left">
             <div
-              className={`player-dot ${(activeMemory.visibility ?? 'shared') === 'private' ? 'glass-clear private-orb' : (activeMemory.personId === 'me' ? 'glass-solid' : 'glass-clear')}`}
+              className={`player-dot ${(activeMemory.visibility ?? 'shared') === 'private' ? 'glass-clear private-orb' : 'glass-solid'}`}
               style={{
                 '--player-color':
                   (activeMemory.visibility ?? 'shared') === 'private'
@@ -2022,40 +2576,63 @@ const Build: React.FC = () => {
 
           <div className="player-right">
             <div className="player-actions">
-              <button type="button" className="player-action" onClick={handleNotes}>
-                Notes
-              </button>
+              <button type="button" className="player-action" onClick={handleTranscript}>Transcript</button>
             </div>
-            <div className="player-visibility" aria-label="Visibility">
-              <button
-                type="button"
-                className={`vis-toggle ${(activeMemory.visibility ?? 'shared') === 'private' ? 'active' : ''}`}
-                onClick={() => setMemoryVisibility(activeMemory.id, 'private')}
-              >
-                PRIVATE
-              </button>
-              <button
-                type="button"
-                className={`vis-toggle ${(activeMemory.visibility ?? 'shared') === 'shared' ? 'active' : ''}`}
-                onClick={() => setMemoryVisibility(activeMemory.id, 'shared')}
-              >
-                SHARED
-              </button>
-            </div>
-            <button type="button" className="player-close" onClick={handleClosePlayer} aria-label="Close player">
-              ×
-            </button>
+            {activeMemory.personId === 'me' && (
+              <div className="player-visibility" aria-label="Visibility">
+                <button
+                  type="button"
+                  className={`vis-toggle ${(activeMemory.visibility ?? 'shared') === 'private' ? 'active' : ''}`}
+                  onClick={() => setMemoryVisibility(activeMemory.id, 'private')}
+                >
+                  PRIVATE
+                </button>
+                <button
+                  type="button"
+                  className={`vis-toggle ${(activeMemory.visibility ?? 'shared') === 'shared' ? 'active' : ''}`}
+                  onClick={() => setMemoryVisibility(activeMemory.id, 'shared')}
+                >
+                  SHARED
+                </button>
+              </div>
+            )}
+            
           </div>
 
           <audio ref={audioRef} preload="metadata" />
           </div>
         </>
+      ) : (
+        <div ref={playerRef} className="build-player idle" role="region" aria-label="Audio player">
+          <div className="player-left">
+            <div className="player-meta">
+              <div className="player-idle-label">Select a story to play</div>
+            </div>
+          </div>
+
+          <div className="player-center">
+            <button type="button" className="player-btn" disabled aria-label="Play (disabled)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5.5v13a1 1 0 0 0 1.55.83l10-6.5a1 1 0 0 0 0-1.66l-10-6.5A1 1 0 0 0 8 5.5z" />
+              </svg>
+            </button>
+            <div className="player-progress">
+              <span className="player-time">0:00</span>
+              <input className="player-slider" type="range" min={0} max={1} value={0} disabled />
+              <span className="player-time">0:00</span>
+            </div>
+          </div>
+
+          <div className="player-right">
+            <div className="player-actions" />
+          </div>
+        </div>
       )}
 
-      {/* Chapter empty state: prompt editor (no "No memories" copy). */}
-      {activeChapterRange && visibleMemories.length === 0 && isLoaded && (
+      {/* Story Builder: stays hidden until the user presses "New story". */}
+      {buildView === 'visual' && showStoryBuilder && activeChapterRange && isLoaded && (
         <div
-          className={`prompt-player ${isMobile ? 'mobile' : ''} ${isMobile && !isStoryBuilderExpanded ? 'collapsed' : ''}`}
+          className={`prompt-player lifted ${isMobile ? 'mobile' : ''} ${isMobile && !isStoryBuilderExpanded ? 'collapsed' : ''}`}
           role="region"
           aria-label="Story builder"
         >
@@ -2077,6 +2654,12 @@ const Build: React.FC = () => {
             <div className="prompt-header-actions">
               <button type="button" className="prompt-reset" onClick={resetPromptBox}>
                 RESET
+              </button>
+              <button type="button" className="prompt-reset" onClick={handleTalkNowFromEmptyOrb}>
+                TALK NOW
+              </button>
+              <button type="button" className="prompt-reset" onClick={() => setShowStoryBuilder(false)} aria-label="Close story builder">
+                ×
               </button>
             </div>
           </div>
