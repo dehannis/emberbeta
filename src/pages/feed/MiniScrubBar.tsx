@@ -24,6 +24,9 @@ export default function MiniScrubBar(props: {
 
   return (
     <div className="feed-miniBar" aria-label={label ?? 'Audio scrubber'}>
+      <div className="feed-miniBar-left" aria-hidden="true">
+        {formatTime(safeCurrent)}
+      </div>
       <input
         className="feed-miniBar-range"
         type="range"
@@ -35,8 +38,8 @@ export default function MiniScrubBar(props: {
         onChange={(e) => onSeek(Number(e.target.value))}
         aria-label="Seek"
       />
-      <div className="feed-miniBar-time" aria-hidden="true">
-        {formatTime(safeCurrent)} / {formatTime(safeDuration)}
+      <div className="feed-miniBar-right" aria-hidden="true">
+        {formatTime(safeDuration)}
       </div>
     </div>
   )

@@ -393,28 +393,6 @@ const BuildSwipeExperience: React.FC = () => {
                 variantKey={`${activeRecording.recordingId}:${sn.snippetId}`}
                 accent={activeRecording.coverArtSet?.accent}
               />
-              {inner.kind === 'SNIPPET_PAGE_ACTIVE' && inner.index === i && (
-                <MiniScrubBar
-                  currentSec={scrubSec}
-                  durationSec={Math.max(0, (sn.endTimeSec ?? 0) - (sn.startTimeSec ?? 0))}
-                  onSeek={(next) => {
-                    const a = audioRef.current
-                    if (!a) return
-                    setAudioEnabled(true)
-                    const start = sn.startTimeSec ?? 0
-                    const end = sn.endTimeSec ?? 0
-                    const dur = Math.max(0, end - start)
-                    const clamped = dur > 0 ? Math.max(0, Math.min(dur, next)) : 0
-                    setScrubSec(clamped)
-                    try {
-                      a.currentTime = start + clamped
-                    } catch {
-                      // ignore
-                    }
-                  }}
-                  label="Snippet seek"
-                />
-              )}
               <button
                 type="button"
                 className="feed-headline feed-headline-btn"
@@ -453,30 +431,55 @@ const BuildSwipeExperience: React.FC = () => {
                 </button>
               </div>
 
-              <div className="feed-transport">
-                <div className="feed-transport-left">
-                  <div className="feed-transport-label">
-                    {i + 1}/{activeRecording.snippets.length}
+              <div className="feed-footer">
+                <div className="feed-transport">
+                  <div className="feed-transport-left">
+                    <div className="feed-transport-label">
+                      {i + 1}/{activeRecording.snippets.length}
+                    </div>
+                    <div className="feed-transport-sub">Highlight</div>
+                    {autoplayBlocked && inner.kind === 'SNIPPET_PAGE_ACTIVE' && inner.index === i && (
+                      <div className="feed-transport-note">Audio locked until you swipe</div>
+                    )}
                   </div>
-                  <div className="feed-transport-sub">Highlight</div>
-                  {autoplayBlocked && inner.kind === 'SNIPPET_PAGE_ACTIVE' && inner.index === i && (
-                    <div className="feed-transport-note">Audio locked until you swipe</div>
-                  )}
+                  <div className="feed-transport-right">
+                    <button
+                      className="feed-play"
+                      type="button"
+                      onClick={() => {
+                        setAudioEnabled(true)
+                        if (!audioRef.current) return
+                        if (audioRef.current.paused) audioRef.current.play().catch(() => setAutoplayBlocked(true))
+                        else audioRef.current.pause()
+                      }}
+                    >
+                      Play / Pause
+                    </button>
+                  </div>
                 </div>
-                <div className="feed-transport-right">
-                  <button
-                    className="feed-play"
-                    type="button"
-                    onClick={() => {
+
+                {inner.kind === 'SNIPPET_PAGE_ACTIVE' && inner.index === i && (
+                  <MiniScrubBar
+                    currentSec={scrubSec}
+                    durationSec={Math.max(0, (sn.endTimeSec ?? 0) - (sn.startTimeSec ?? 0))}
+                    onSeek={(next) => {
+                      const a = audioRef.current
+                      if (!a) return
                       setAudioEnabled(true)
-                      if (!audioRef.current) return
-                      if (audioRef.current.paused) audioRef.current.play().catch(() => setAutoplayBlocked(true))
-                      else audioRef.current.pause()
+                      const start = sn.startTimeSec ?? 0
+                      const end = sn.endTimeSec ?? 0
+                      const dur = Math.max(0, end - start)
+                      const clamped = dur > 0 ? Math.max(0, Math.min(dur, next)) : 0
+                      setScrubSec(clamped)
+                      try {
+                        a.currentTime = start + clamped
+                      } catch {
+                        // ignore
+                      }
                     }}
-                  >
-                    Play / Pause
-                  </button>
-                </div>
+                    label="Snippet seek"
+                  />
+                )}
               </div>
             </section>
           ))}
@@ -488,26 +491,6 @@ const BuildSwipeExperience: React.FC = () => {
               accent={activeRecording.coverArtSet?.accent}
               calm
             />
-            {inner.kind === 'FULL_RECORDING_ACTIVE' && (
-              <MiniScrubBar
-                currentSec={scrubSec}
-                durationSec={Math.max(0, activeRecording.durationSec ?? 0)}
-                onSeek={(next) => {
-                  const a = audioRef.current
-                  if (!a) return
-                  setAudioEnabled(true)
-                  const dur = Math.max(0, activeRecording.durationSec ?? 0)
-                  const clamped = dur > 0 ? Math.max(0, Math.min(dur, next)) : 0
-                  setScrubSec(clamped)
-                  try {
-                    a.currentTime = clamped
-                  } catch {
-                    // ignore
-                  }
-                }}
-                label="Full recording seek"
-              />
-            )}
             <div className="feed-full-card">
               <div className="feed-full-kicker">Full recording</div>
               <div className="feed-full-titleRow">
@@ -555,6 +538,29 @@ const BuildSwipeExperience: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {inner.kind === 'FULL_RECORDING_ACTIVE' && (
+              <div className="feed-footer feed-footer--full">
+                <MiniScrubBar
+                  currentSec={scrubSec}
+                  durationSec={Math.max(0, activeRecording.durationSec ?? 0)}
+                  onSeek={(next) => {
+                    const a = audioRef.current
+                    if (!a) return
+                    setAudioEnabled(true)
+                    const dur = Math.max(0, activeRecording.durationSec ?? 0)
+                    const clamped = dur > 0 ? Math.max(0, Math.min(dur, next)) : 0
+                    setScrubSec(clamped)
+                    try {
+                      a.currentTime = clamped
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                  label="Full recording seek"
+                />
+              </div>
+            )}
           </section>
         </div>
       </div>

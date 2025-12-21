@@ -159,17 +159,29 @@
   z-index: 2;
 }
 
-.feed-miniBar {
+.feed-footer {
   position: absolute;
   left: 18px;
   right: 18px;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
   z-index: 6;
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.feed-footer--full {
+  /* On full recording page, footer is just the scrub bar */
+  gap: 0;
+}
+
+.feed-miniBar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 10px;
-  opacity: 0.55; /* barely visible */
-  pointer-events: auto;
+  opacity: 0.42; /* faint & subtle */
 }
 
 .feed-miniBar-range {
@@ -182,7 +194,7 @@
 
 .feed-miniBar-range::-webkit-slider-runnable-track {
   height: 2px;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.14);
   border-radius: 999px;
 }
 
@@ -192,13 +204,13 @@
   height: 10px;
   margin-top: -4px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.70);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.22);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.18);
 }
 
 .feed-miniBar-range::-moz-range-track {
   height: 2px;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.14);
   border-radius: 999px;
 }
 
@@ -207,15 +219,16 @@
   height: 10px;
   border: none;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.70);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.22);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.18);
 }
 
-.feed-miniBar-time {
+.feed-miniBar-left,
+.feed-miniBar-right {
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  opacity: 0.75;
+  opacity: 0.72;
   white-space: nowrap;
 }
 
