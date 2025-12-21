@@ -616,6 +616,52 @@ const parseYearRange = (
     return { start: year, end: year, description: `year ${year}` };
   }
 
+  // Spelled-out years: "two thousand two", "nineteen ninety-three", etc.
+  const wordToNum: Record<string, number> = {
+    zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9,
+    ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16,
+    seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50,
+    sixty: 60, seventy: 70, eighty: 80, ninety: 90, hundred: 100, thousand: 1000,
+  };
+
+  // Try parsing "two thousand two", "two thousand and two", "two thousand twenty-four", etc.
+  const twoThousandMatch = q.match(/two\s+thousand\s+(?:and\s+)?(\w+)(?:\s*[-\s]?\s*(\w+))?/);
+  if (twoThousandMatch) {
+    const [, tens, ones] = twoThousandMatch;
+    let year = 2000;
+    if (wordToNum[tens] !== undefined) {
+      if (wordToNum[tens] <= 19) {
+        // "two thousand two" = 2002, "two thousand nineteen" = 2019
+        year += wordToNum[tens];
+      } else {
+        // "two thousand twenty" = 2020, "two thousand twenty four" = 2024
+        year += wordToNum[tens];
+        if (ones && wordToNum[ones] !== undefined && wordToNum[ones] <= 9) {
+          year += wordToNum[ones];
+        }
+      }
+      return { start: year, end: year, description: `year ${year}` };
+    }
+  }
+
+  // Try parsing "nineteen ninety-three", "nineteen eighty-five", etc.
+  const nineteenMatch = q.match(/nineteen\s+(\w+)(?:\s*[-\s]?\s*(\w+))?/);
+  if (nineteenMatch) {
+    const [, tens, ones] = nineteenMatch;
+    let year = 1900;
+    if (wordToNum[tens] !== undefined) {
+      if (wordToNum[tens] <= 19) {
+        year += wordToNum[tens];
+      } else {
+        year += wordToNum[tens];
+        if (ones && wordToNum[ones] !== undefined && wordToNum[ones] <= 9) {
+          year += wordToNum[ones];
+        }
+      }
+      return { start: year, end: year, description: `year ${year}` };
+    }
+  }
+
   // Decade with modifier: "early 90s", "late 2000s", "mid 80s"
   const decadeModMatch = q.match(/(early|mid|late)\s*(19|20)?(\d0)s?/);
   if (decadeModMatch) {
@@ -1074,7 +1120,38 @@ const Talk: React.FC = () => {
 
   // Click observation to select it for detailed actions
   const handleObservationClick = (index: number) => {
-    setSelectedObservationIndex(selectedObservationIndex === index ? null : index);
+    if (selectedObservationIndex === index) {
+      // Deselecting
+      setSelectedObservationIndex(null);
+    } else {
+      // Selecting
+      setSelectedObservationIndex(index);
+
+      // For topic/emotion searches, observations are formatted as "Entity Name: content"
+      // Extract the entity name and set it as selectedMemory
+      if (fetchedMemory && (fetchedMemory.source === 'topic' || fetchedMemory.source === 'emotion')) {
+        const obs = fetchedMemory.observations[index];
+        const colonIndex = obs.indexOf(':');
+        if (colonIndex > 0) {
+          const entityName = obs.substring(0, colonIndex).trim();
+          setSelectedMemoryName(entityName);
+          // Update fetchedMemory.entityName so action buttons use correct entity
+          setFetchedMemory({ ...fetchedMemory, entityName });
+          // Inject context
+          wsRef.current?.send(JSON.stringify({
+            type: 'session_settings',
+            context: {
+              text: `CURRENT_SELECTED_MEMORY: "${entityName}". When user shares new details or emotions, apply them to this memory using its exact name.`,
+              type: 'persistent',
+            },
+          }));
+          addToLog(`📌 Selected memory: ${entityName}`);
+        }
+      } else if (fetchedMemory?.entityName) {
+        // For single entity fetch, the entityName is already set
+        setSelectedMemoryName(fetchedMemory.entityName);
+      }
+    }
   };
 
   // Add More Details - explore the selected observation deeper
