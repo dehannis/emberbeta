@@ -8,7 +8,7 @@ import './feed.css'
 
 type InteractionSheetState =
   | { open: false }
-  | { open: true; mode: 'react' | 'respond' | 'followup'; target: { recordingId: string; snippetId?: string } }
+  | { open: true; mode: 'respond' | 'followup' | 'comment'; target: { recordingId: string; snippetId?: string } }
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
@@ -30,6 +30,7 @@ const BuildSwipeExperience: React.FC = () => {
   const [inner, setInner] = useState<RecordingInnerState>({ kind: 'SNIPPET_PAGE_ACTIVE', index: 0 })
   const [sheet, setSheet] = useState<InteractionSheetState>({ open: false })
   const [transcriptOpen, setTranscriptOpen] = useState(false)
+  const [reactMenuOpen, setReactMenuOpen] = useState(false)
 
   const [audioEnabled, setAudioEnabled] = useState(false) // flips true after any user gesture/click
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
@@ -266,7 +267,7 @@ const BuildSwipeExperience: React.FC = () => {
 
   const swipe = useSwipeRouter(swipeHandlers)
 
-  const openSheet = (mode: 'react' | 'respond' | 'followup') => {
+  const openSheet = (mode: 'respond' | 'followup' | 'comment') => {
     if (!activeRecording) return
     const target =
       inner.kind === 'SNIPPET_PAGE_ACTIVE'
@@ -362,6 +363,44 @@ const BuildSwipeExperience: React.FC = () => {
 
   return (
     <div className="feed-stage" {...swipe}>
+      {/* Top-right React */}
+      <div className="feed-reactTop">
+        <button
+          type="button"
+          className="feed-reactTop-btn"
+          onClick={() => {
+            setAudioEnabled(true)
+            setReactMenuOpen((v) => !v)
+          }}
+        >
+          React
+        </button>
+        {reactMenuOpen && (
+          <div className="feed-reactTop-menu" role="menu" aria-label="React menu">
+            <button type="button" className="feed-reactTop-option" onClick={() => setReactMenuOpen(false)} role="menuitem">
+              👍
+            </button>
+            <button type="button" className="feed-reactTop-option" onClick={() => setReactMenuOpen(false)} role="menuitem">
+              ♥
+            </button>
+            <button type="button" className="feed-reactTop-option" onClick={() => setReactMenuOpen(false)} role="menuitem">
+              😂
+            </button>
+            <button
+              type="button"
+              className="feed-reactTop-option"
+              onClick={() => {
+                setReactMenuOpen(false)
+                openSheet('comment')
+              }}
+              role="menuitem"
+            >
+              💬
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Transition card on recording change */}
       {transitionCard?.visible && (
         <div className="feed-transition-card" aria-hidden="true">
@@ -420,9 +459,6 @@ const BuildSwipeExperience: React.FC = () => {
                 )}
 
               <div className="feed-rail">
-                <button className="feed-rail-btn" type="button" onClick={() => openSheet('react')}>
-                  React
-                </button>
                 <button className="feed-rail-btn" type="button" onClick={() => openSheet('respond')}>
                   Respond
                 </button>
@@ -432,7 +468,8 @@ const BuildSwipeExperience: React.FC = () => {
               </div>
 
               <div className="feed-footer">
-                <div className="feed-transport">
+                <div className="feed-footer-inner">
+                  <div className="feed-transport">
                   <div className="feed-transport-left">
                     <div className="feed-transport-label">
                       {i + 1}/{activeRecording.snippets.length}
@@ -456,7 +493,7 @@ const BuildSwipeExperience: React.FC = () => {
                       Play / Pause
                     </button>
                   </div>
-                </div>
+                  </div>
 
                 {inner.kind === 'SNIPPET_PAGE_ACTIVE' && inner.index === i && (
                   <MiniScrubBar
@@ -480,6 +517,7 @@ const BuildSwipeExperience: React.FC = () => {
                     label="Snippet seek"
                   />
                 )}
+                </div>
               </div>
             </section>
           ))}
@@ -541,24 +579,26 @@ const BuildSwipeExperience: React.FC = () => {
 
             {inner.kind === 'FULL_RECORDING_ACTIVE' && (
               <div className="feed-footer feed-footer--full">
-                <MiniScrubBar
-                  currentSec={scrubSec}
-                  durationSec={Math.max(0, activeRecording.durationSec ?? 0)}
-                  onSeek={(next) => {
-                    const a = audioRef.current
-                    if (!a) return
-                    setAudioEnabled(true)
-                    const dur = Math.max(0, activeRecording.durationSec ?? 0)
-                    const clamped = dur > 0 ? Math.max(0, Math.min(dur, next)) : 0
-                    setScrubSec(clamped)
-                    try {
-                      a.currentTime = clamped
-                    } catch {
-                      // ignore
-                    }
-                  }}
-                  label="Full recording seek"
-                />
+                <div className="feed-footer-inner">
+                  <MiniScrubBar
+                    currentSec={scrubSec}
+                    durationSec={Math.max(0, activeRecording.durationSec ?? 0)}
+                    onSeek={(next) => {
+                      const a = audioRef.current
+                      if (!a) return
+                      setAudioEnabled(true)
+                      const dur = Math.max(0, activeRecording.durationSec ?? 0)
+                      const clamped = dur > 0 ? Math.max(0, Math.min(dur, next)) : 0
+                      setScrubSec(clamped)
+                      try {
+                        a.currentTime = clamped
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                    label="Full recording seek"
+                  />
+                </div>
               </div>
             )}
           </section>
@@ -579,21 +619,16 @@ const BuildSwipeExperience: React.FC = () => {
           <div className="feed-sheet">
             <div className="feed-sheet-handle" />
             <div className="feed-sheet-title">
-              {sheet.mode === 'react' ? 'React' : sheet.mode === 'respond' ? 'Respond' : 'Request follow-up'}
+              {sheet.mode === 'comment' ? 'Comment' : sheet.mode === 'respond' ? 'Respond' : 'Request follow-up'}
             </div>
             <div className="feed-sheet-body">
-              {sheet.mode === 'react' && (
-                <div className="feed-react-row">
-                  {['♥', '⚡', '☺', '✺'].map((x) => (
-                    <button key={x} className="feed-react" type="button" onClick={closeSheet}>
-                      {x}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {sheet.mode === 'respond' && (
+              {(sheet.mode === 'respond' || sheet.mode === 'comment') && (
                 <>
-                  <textarea className="feed-textarea" placeholder="Write a response…" rows={3} />
+                  <textarea
+                    className="feed-textarea"
+                    placeholder={sheet.mode === 'comment' ? 'Write a comment…' : 'Write a response…'}
+                    rows={3}
+                  />
                   <button className="feed-submit" type="button" onClick={closeSheet}>
                     Send
                   </button>

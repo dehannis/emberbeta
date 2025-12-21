@@ -161,14 +161,15 @@
 
 .feed-footer {
   position: absolute;
-  left: 18px;
-  right: 18px;
+  left: 12px;
+  right: 12px;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
   z-index: 6;
   display: flex;
   flex-direction: column;
   gap: 10px;
   pointer-events: auto;
+  align-items: center;
 }
 
 .feed-footer--full {
@@ -176,9 +177,13 @@
   gap: 0;
 }
 
+.feed-footer-inner {
+  width: min(760px, calc(100vw - 24px));
+}
+
 .feed-miniBar {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
   gap: 10px;
   opacity: 0.42; /* faint & subtle */
@@ -230,6 +235,59 @@
   text-transform: uppercase;
   opacity: 0.72;
   white-space: nowrap;
+}
+
+.feed-miniBar-right {
+  text-align: right;
+}
+
+.feed-miniBar-left {
+  text-align: left;
+}
+
+/* Top-right React button + menu */
+.feed-reactTop {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  z-index: 40;
+}
+
+.feed-reactTop-btn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.30);
+  color: rgba(255, 255, 255, 0.80);
+  padding: 10px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+}
+
+.feed-reactTop-menu {
+  margin-top: 10px;
+  padding: 10px 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 10, 12, 0.82);
+  backdrop-filter: blur(14px);
+  display: grid;
+  grid-template-columns: repeat(4, 44px);
+  gap: 10px;
+  justify-content: end;
+}
+
+.feed-reactTop-option {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  font-size: 18px;
 }
 
 .feed-headline {
