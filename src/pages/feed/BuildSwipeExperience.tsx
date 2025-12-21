@@ -33,9 +33,10 @@ const BuildSwipeExperience: React.FC = () => {
   const [reactMenuOpen, setReactMenuOpen] = useState(false)
 
   const [audioEnabled, setAudioEnabled] = useState(false) // flips true after any user gesture/click
-  const [autoplayBlocked, setAutoplayBlocked] = useState(false)
+  const [, setAutoplayBlocked] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [scrubSec, setScrubSec] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
 
   // Entry/transition UI helpers
   const [transitionCard, setTransitionCard] = useState<{ visible: boolean; label: string; sub: string } | null>(null)
@@ -178,6 +179,23 @@ const BuildSwipeExperience: React.FC = () => {
     }
   }, [topState])
 
+  // Track playing state for the play/pause icon.
+  useEffect(() => {
+    const a = audioRef.current
+    if (!a) return
+    const onPlay = () => setIsPlaying(true)
+    const onPause = () => setIsPlaying(false)
+    const onEnded = () => setIsPlaying(false)
+    a.addEventListener('play', onPlay)
+    a.addEventListener('pause', onPause)
+    a.addEventListener('ended', onEnded)
+    return () => {
+      a.removeEventListener('play', onPlay)
+      a.removeEventListener('pause', onPause)
+      a.removeEventListener('ended', onEnded)
+    }
+  }, [recordingIdx, inner.kind, topState])
+
   const sessions = useMemo(() => {
     // Chronological (MVP): use current ordering in the queue.
     return recordings.map((r) => {
@@ -224,7 +242,7 @@ const BuildSwipeExperience: React.FC = () => {
   const goNextRecording = () => {
     const nextIdx = recordingIdx + 1
     if (nextIdx >= recordings.length) {
-      setTopState('END_OF_FEED_REST')
+      setTopState('END_OF_FEED_REQUESTS')
       return
     }
 
@@ -249,16 +267,24 @@ const BuildSwipeExperience: React.FC = () => {
     () => ({
       onSwipeLeft: () => {
         setAudioEnabled(true)
-        goPrevWithinStack()
+        if (topState === 'RECORDING_STACK_ACTIVE') goPrevWithinStack()
       },
       onSwipeRight: () => {
         setAudioEnabled(true)
-        goNextWithinStack()
+        if (topState === 'RECORDING_STACK_ACTIVE') goNextWithinStack()
       },
       onSwipeDown: () => {
         setAudioEnabled(true)
         if (topState === 'RECORDING_STACK_ACTIVE') {
           goNextRecording()
+          return
+        }
+        if (topState === 'END_OF_FEED_REQUESTS') {
+          setTopState('END_OF_FEED_TOPICS')
+          return
+        }
+        if (topState === 'END_OF_FEED_TOPICS') {
+          setTopState('END_OF_FEED_REST')
           return
         }
         if (topState === 'END_OF_FEED_REST') {
@@ -288,12 +314,116 @@ const BuildSwipeExperience: React.FC = () => {
 
   const closeSheet = () => setSheet({ open: false })
 
+  const togglePlayForSnippet = (sn: { audioUrl: string; startTimeSec?: number }) => {
+    setAudioEnabled(true)
+    if (!audioRef.current) audioRef.current = new Audio()
+    const a = audioRef.current
+    if (a.src !== sn.audioUrl) a.src = sn.audioUrl
+    try {
+      a.currentTime = Math.max(0, (sn.startTimeSec ?? 0) + scrubSec)
+    } catch {
+      // ignore
+    }
+    if (a.paused) a.play().catch(() => setAutoplayBlocked(true))
+    else a.pause()
+  }
+
+  const togglePlayForFull = (rec: Recording) => {
+    setAudioEnabled(true)
+    if (!audioRef.current) audioRef.current = new Audio()
+    const a = audioRef.current
+    if (a.src !== rec.fullAudioUrl) a.src = rec.fullAudioUrl
+    try {
+      a.currentTime = Math.max(0, scrubSec)
+    } catch {
+      // ignore
+    }
+    if (a.paused) a.play().catch(() => setAutoplayBlocked(true))
+    else a.pause()
+  }
+
   if (topState === 'LOADING_FEED') {
     return (
       <div className="feed-stage feed-loading">
         <div className="feed-loading-poster">
           <div className="feed-loading-title">Loading feed</div>
           <div className="feed-loading-sub">Pulling highlights…</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (topState === 'END_OF_FEED_REQUESTS') {
+    return (
+      <div className="feed-stage feed-actions" {...swipe}>
+        <CollageBackground variantKey="requests" calm />
+        <div className="feed-actions-wrap">
+          <div className="feed-actions-title">Requests</div>
+          <div className="feed-actions-sub">What others asked you to share</div>
+          <div className="feed-sessions">
+            {[
+              { from: 'Dad', text: 'Share the story of how you got your first internship.' },
+              { from: 'Mom', text: 'Tell me about the first apartment you lived in.' },
+              { from: 'Hank', text: 'What’s a lesson you learned the hard way at work?' },
+            ].map((r, idx) => (
+              <div key={idx} className="feed-sessionCard">
+                <div className="feed-sessionTop">
+                  <div className="feed-sessionName">{r.from}</div>
+                  <div className="feed-sessionDate">Request</div>
+                </div>
+                <div style={{ marginTop: 10, opacity: 0.9, lineHeight: 1.45 }}>{r.text}</div>
+              </div>
+            ))}
+          </div>
+          <div className="feed-rest-gestures">
+            <div className="feed-rest-gesture">Swipe down for Topics</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (topState === 'END_OF_FEED_TOPICS') {
+    return (
+      <div className="feed-stage feed-actions" {...swipe}>
+        <CollageBackground variantKey="topics" calm />
+        <div className="feed-actions-wrap">
+          <div className="feed-actions-title">Topics</div>
+          <div className="feed-actions-sub">Upcoming calls & question previews</div>
+          <div className="feed-sessions">
+            {[
+              {
+                topic: 'Work & identity',
+                when: 'Tue 6:00 PM',
+                qs: ['What did you want to be when you were 20?', 'When did your work start to feel like “you”?'],
+              },
+              {
+                topic: 'Love & relationships',
+                when: 'Thu 6:00 PM',
+                qs: ['Who shaped how you love?', 'What did you learn from a heartbreak?'],
+              },
+              {
+                topic: 'Hobbies',
+                when: 'Sat 11:00 AM',
+                qs: ['What did you make with your hands?', 'When did play become serious?'],
+              },
+            ].map((t) => (
+              <div key={t.topic} className="feed-sessionCard">
+                <div className="feed-sessionTop">
+                  <div className="feed-sessionName">{t.topic}</div>
+                  <div className="feed-sessionDate">{t.when}</div>
+                </div>
+                <div style={{ marginTop: 10, opacity: 0.86, lineHeight: 1.5 }}>
+                  {t.qs.map((q) => (
+                    <div key={q}>• {q}</div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="feed-rest-gestures">
+            <div className="feed-rest-gesture">Swipe down for End</div>
+          </div>
         </div>
       </div>
     )
@@ -559,23 +689,9 @@ const BuildSwipeExperience: React.FC = () => {
                       {i + 1}/{activeRecording.snippets.length}
                     </div>
                     <div className="feed-transport-sub">Highlight</div>
-                    {autoplayBlocked && inner.kind === 'SNIPPET_PAGE_ACTIVE' && inner.index === i && (
-                      <div className="feed-transport-note">Audio locked until you swipe</div>
-                    )}
                   </div>
                   <div className="feed-transport-right">
-                    <button
-                      className="feed-play"
-                      type="button"
-                      onClick={() => {
-                        setAudioEnabled(true)
-                        if (!audioRef.current) return
-                        if (audioRef.current.paused) audioRef.current.play().catch(() => setAutoplayBlocked(true))
-                        else audioRef.current.pause()
-                      }}
-                    >
-                      Play / Pause
-                    </button>
+                    {/* play/pause moved to the scrub bar */}
                   </div>
                   </div>
 
@@ -598,6 +714,8 @@ const BuildSwipeExperience: React.FC = () => {
                         // ignore
                       }
                     }}
+                    isPlaying={isPlaying}
+                    onTogglePlay={() => togglePlayForSnippet(sn)}
                     label="Snippet seek"
                   />
                 )}
@@ -622,20 +740,6 @@ const BuildSwipeExperience: React.FC = () => {
               <div className="feed-full-sub">The long thread: context, pauses, what didn’t fit in highlights.</div>
 
               <div className="feed-full-actions">
-                <button
-                  className="feed-full-play"
-                  type="button"
-                  onClick={() => {
-                    setAudioEnabled(true)
-                    if (!audioRef.current) audioRef.current = new Audio()
-                    const a = audioRef.current
-                    a.src = activeRecording.fullAudioUrl
-                    a.currentTime = 0
-                    a.play().catch(() => setAutoplayBlocked(true))
-                  }}
-                >
-                  Play full recording
-                </button>
                 <button className="feed-full-secondary" type="button" onClick={() => openSheet('followup')}>
                   Request follow-up
                 </button>
@@ -680,6 +784,8 @@ const BuildSwipeExperience: React.FC = () => {
                         // ignore
                       }
                     }}
+                    isPlaying={isPlaying}
+                    onTogglePlay={() => togglePlayForFull(activeRecording)}
                     label="Full recording seek"
                   />
                 </div>

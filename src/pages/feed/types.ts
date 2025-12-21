@@ -28,6 +28,8 @@ export interface Recording {
 export type FeedTopState =
   | 'LOADING_FEED'
   | 'RECORDING_STACK_ACTIVE'
+  | 'END_OF_FEED_REQUESTS'
+  | 'END_OF_FEED_TOPICS'
   | 'END_OF_FEED_REST'
   | 'END_OF_FEED_ACTIONS'
   | 'REQUEST_STORY'
