@@ -11,10 +11,12 @@ export default function MiniScrubBar(props: {
   currentSec: number
   durationSec: number
   onSeek: (nextSec: number) => void
+  isPlaying?: boolean
+  onTogglePlay?: () => void
   label?: string
   isDisabled?: boolean
 }) {
-  const { currentSec, durationSec, onSeek, label, isDisabled } = props
+  const { currentSec, durationSec, onSeek, isPlaying, onTogglePlay, label, isDisabled } = props
 
   const safeDuration = useMemo(() => (Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 0), [durationSec])
   const safeCurrent = useMemo(
@@ -27,6 +29,15 @@ export default function MiniScrubBar(props: {
       <div className="feed-miniBar-left" aria-hidden="true">
         {formatTime(safeCurrent)}
       </div>
+      <button
+        type="button"
+        className="feed-miniBar-play"
+        aria-label={isPlaying ? 'Pause' : 'Play'}
+        onClick={onTogglePlay}
+        disabled={!onTogglePlay || isDisabled || safeDuration <= 0}
+      >
+        <span className={isPlaying ? 'feed-miniBar-iconPause' : 'feed-miniBar-iconPlay'} aria-hidden="true" />
+      </button>
       <input
         className="feed-miniBar-range"
         type="range"
