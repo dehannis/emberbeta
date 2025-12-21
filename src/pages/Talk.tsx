@@ -70,6 +70,7 @@ const Talk: React.FC = () => {
   }
   
   const [colorIndex, setColorIndex] = useState(getInitialColorIndex)
+
   const isInitialMount = useRef(true)
 
   const currentColor = colorSchemes[colorIndex]
@@ -93,7 +94,6 @@ const Talk: React.FC = () => {
     }
     localStorage.setItem('emberTalkOrbColor', colorIndex.toString())
   }, [colorIndex])
-
   // Entrance animation
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -101,7 +101,6 @@ const Talk: React.FC = () => {
     }, 100)
     return () => clearTimeout(timer)
   }, [])
-
   const handleMuteToggle = () => {
     setIsMuted(!isMuted)
   }

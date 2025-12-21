@@ -527,7 +527,7 @@ const Share: React.FC = () => {
   }
 
   return (
-    <div className="container">
+    <div className="container share-page">
       <Header />
       <main className="main-content share-content">
         <div className="share-form-container">

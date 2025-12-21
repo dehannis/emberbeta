@@ -1628,7 +1628,7 @@ const Build: React.FC = () => {
               ? meName || 'You'
               : listPeople.find((p) => p.id === listFilterPersonId)?.displayName ?? (meName || 'You')}
           </span>
-          <span className="person-selector-caret" aria-hidden="true">
+          <span className="person-selector-caret-btn" aria-hidden="true">
             ▾
           </span>
         </button>

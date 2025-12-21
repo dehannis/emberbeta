@@ -2,6 +2,69 @@
     padding-top: 8vh;
 }
 
+/* Share — holographic glass gradient background (fresh) */
+.share-page {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(1100px 760px at 14% 18%, rgba(40, 210, 255, 0.12), rgba(0, 0, 0, 0) 62%),
+        radial-gradient(980px 720px at 86% 22%, rgba(255, 120, 80, 0.08), rgba(0, 0, 0, 0) 64%),
+        radial-gradient(920px 700px at 72% 86%, rgba(255, 80, 210, 0.09), rgba(0, 0, 0, 0) 62%),
+        radial-gradient(860px 660px at 28% 88%, rgba(120, 255, 160, 0.06), rgba(0, 0, 0, 0) 64%),
+        radial-gradient(760px 520px at 52% 52%, rgba(255, 255, 255, 0.018), rgba(0, 0, 0, 0) 60%),
+        #01030a;
+}
+
+.share-page::before {
+    content: '';
+    position: absolute;
+    inset: -18%;
+    pointer-events: none;
+    background:
+        conic-gradient(from 220deg at 50% 40%,
+            rgba(80, 230, 255, 0.09),
+            rgba(255, 120, 90, 0.06),
+            rgba(255, 90, 220, 0.08),
+            rgba(120, 255, 170, 0.05),
+            rgba(80, 230, 255, 0.09)
+        ),
+        linear-gradient(135deg,
+            rgba(255, 255, 255, 0.055),
+            rgba(255, 255, 255, 0.00) 44%,
+            rgba(255, 255, 255, 0.02) 82%,
+            rgba(255, 255, 255, 0.00)
+        );
+    opacity: 0.55;
+    filter: blur(22px);
+    mix-blend-mode: screen;
+    transform: translateZ(0);
+}
+
+.share-page::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    /* subtle bokeh + glass grain */
+    background:
+        radial-gradient(220px 220px at 18% 26%, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0) 70%),
+        radial-gradient(260px 260px at 82% 22%, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0) 72%),
+        radial-gradient(240px 240px at 76% 78%, rgba(255, 255, 255, 0.028), rgba(0, 0, 0, 0) 72%),
+        radial-gradient(260px 260px at 26% 84%, rgba(255, 255, 255, 0.022), rgba(0, 0, 0, 0) 74%),
+        radial-gradient(1px 1px at 22% 18%, rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0) 60%),
+        radial-gradient(1px 1px at 68% 28%, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0) 60%),
+        radial-gradient(1px 1px at 84% 62%, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0) 60%),
+        radial-gradient(1px 1px at 34% 72%, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0) 60%);
+    opacity: 0.14;
+    mix-blend-mode: overlay;
+}
+
+.share-page > * {
+    position: relative;
+    z-index: 1;
+}
+
+
 .share-form-container {
     width: 100%;
     transition: opacity 0.3s ease;
@@ -1158,6 +1221,7 @@ input[type="number"].sharing-control {
     font-weight: 300;
     letter-spacing: -0.02em;
     color: var(--white);
+    padding-left: 0.35rem;
     animation: fadeIn 1s ease-out;
 }
 
@@ -1350,7 +1414,7 @@ input[type="number"].sharing-control {
 
 @media (max-width: 480px) {
     .share-content {
-        padding-top: 8vh;
+        padding-top: 4vh;
     }
 
     .share-title {
@@ -1405,3 +1469,24 @@ input[type="number"].sharing-control {
     }
 }
 
+@media (pointer: coarse) {
+    .share-content {
+        padding-top: 4vh;
+    }
+}
+
+
+/* Mobile web: match Build audio player horizontal inset (0.75rem per side at <= 768px) */
+@media (max-width: 768px) {
+  .container {
+    padding-left: calc(0.75rem + env(safe-area-inset-left));
+    padding-right: calc(0.75rem + env(safe-area-inset-right));
+  }
+}
+
+
+@media (max-width: 1024px) {
+    .share-content {
+        padding-top: 4vh;
+    }
+}

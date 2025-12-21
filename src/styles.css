@@ -243,7 +243,7 @@ body {
 /* Mobile optimizations */
 @media (max-width: 768px) {
     .container {
-        padding: 1.5rem;
+        padding: 1.5rem 0.75rem 0 0.75rem;
     }
 
     .main-content {
@@ -265,7 +265,7 @@ body {
 
 @media (max-width: 480px) {
     .container {
-        padding: 1rem;
+        padding: 1rem 0.75rem 0 0.75rem;
     }
 
     .main-content {
@@ -290,3 +290,89 @@ body {
     }
 }
 
+/* Touch devices (including "Request Desktop Site"): match Build audio player side inset (1.25rem per side). */
+@media (pointer: coarse) {
+    .container {
+        padding-left: calc(1.25rem + env(safe-area-inset-left));
+        padding-right: calc(1.25rem + env(safe-area-inset-right));
+    }
+
+    .main-content {
+        max-width: 760px;
+    }
+}
+
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .container {
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+
+    .main-content {
+        max-width: 980px;
+    }
+
+
+}
+
+
+/* Home (Landing) — futuristic glass gradient background */
+.landing-container {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(1100px 760px at 18% 18%, rgba(110, 170, 255, 0.10), rgba(0, 0, 0, 0) 58%),
+        radial-gradient(980px 680px at 84% 26%, rgba(185, 130, 255, 0.08), rgba(0, 0, 0, 0) 62%),
+        radial-gradient(860px 640px at 62% 88%, rgba(80, 240, 215, 0.06), rgba(0, 0, 0, 0) 60%),
+        radial-gradient(720px 520px at 42% 58%, rgba(255, 255, 255, 0.025), rgba(0, 0, 0, 0) 62%),
+        #03050a;
+}
+
+.landing-container::before {
+    content: '';
+    position: absolute;
+    inset: -18%;
+    pointer-events: none;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.00) 46%, rgba(255, 255, 255, 0.02) 82%, rgba(255, 255, 255, 0.00)),
+        radial-gradient(880px 520px at 18% 14%, rgba(150, 205, 255, 0.07), rgba(0, 0, 0, 0) 64%),
+        radial-gradient(820px 520px at 86% 34%, rgba(205, 165, 255, 0.06), rgba(0, 0, 0, 0) 62%);
+    opacity: 0.9;
+    mix-blend-mode: screen;
+    transform: translateZ(0);
+}
+
+.landing-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    /* subtle texture, not obvious scanlines */
+    background:
+        radial-gradient(1px 1px at 22% 18%, rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0) 60%),
+        radial-gradient(1px 1px at 68% 28%, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0) 60%),
+        radial-gradient(1px 1px at 84% 62%, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0) 60%),
+        radial-gradient(1px 1px at 34% 72%, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0) 60%);
+    opacity: 0.18;
+    mix-blend-mode: overlay;
+}
+
+.landing-container > * {
+    position: relative;
+    z-index: 1;
+}
+
+
+/* Home (Landing) — mobile web desktop: add left breathing room for Talk/Build/Share tiles */
+@media (pointer: coarse) and (min-width: 769px) {
+    .landing-main .option {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    /* Preserve the existing hover nudge, but from the new padded baseline */
+    .landing-main .option:hover {
+        padding-left: 1.75rem;
+    }
+}
