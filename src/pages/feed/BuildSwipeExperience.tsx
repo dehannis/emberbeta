@@ -3,6 +3,7 @@ import type { FeedTopState, Recording, RecordingInnerState } from './types'
 import { SAMPLE_RECORDINGS } from './sampleFeed'
 import { useSwipeRouter } from './useSwipeRouter'
 import CollageBackground from './CollageBackground'
+import MiniScrubBar from './MiniScrubBar'
 import './feed.css'
 
 type InteractionSheetState =
@@ -33,6 +34,7 @@ const BuildSwipeExperience: React.FC = () => {
   const [audioEnabled, setAudioEnabled] = useState(false) // flips true after any user gesture/click
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [scrubSec, setScrubSec] = useState(0)
 
   // Entry/transition UI helpers
   const [transitionCard, setTransitionCard] = useState<{ visible: boolean; label: string; sub: string } | null>(null)
@@ -50,6 +52,23 @@ const BuildSwipeExperience: React.FC = () => {
     if (inner.kind === 'FULL_RECORDING_ACTIVE') return activeRecording.snippets.length
     return clamp(inner.index, 0, activeRecording.snippets.length - 1)
   }, [activeRecording, inner])
+
+  const activeSeekRange = useMemo(() => {
+    if (!activeRecording) return { start: 0, end: 0, kind: 'none' as const }
+    if (inner.kind === 'SNIPPET_PAGE_ACTIVE') {
+      const sn = activeRecording.snippets[inner.index]
+      if (!sn) return { start: 0, end: 0, kind: 'none' as const }
+      return { start: sn.startTimeSec ?? 0, end: sn.endTimeSec ?? 0, kind: 'snippet' as const }
+    }
+    return { start: 0, end: activeRecording.durationSec ?? 0, kind: 'full' as const }
+  }, [activeRecording, inner])
+
+  const activeClipDuration = useMemo(() => {
+    const d = Math.max(0, (activeSeekRange.end ?? 0) - (activeSeekRange.start ?? 0))
+    // If we only have recording.durationSec but no clip range, keep it.
+    if (activeSeekRange.kind === 'full') return Math.max(0, activeSeekRange.end ?? 0)
+    return d
+  }, [activeSeekRange])
 
   // --- Top-level state machine bootstrap ---
   useEffect(() => {
@@ -84,7 +103,6 @@ const BuildSwipeExperience: React.FC = () => {
     }
     const a = audioRef.current
     a.src = snippet.audioUrl
-    a.currentTime = 0
 
     if (!audioEnabled) {
       // User has not interacted yet → browsers may block autoplay.
@@ -93,6 +111,17 @@ const BuildSwipeExperience: React.FC = () => {
     }
 
     setAutoplayBlocked(false)
+    // Try to seek into the snippet window (best-effort).
+    const seekTo = () => {
+      try {
+        a.currentTime = Math.max(0, snippet.startTimeSec ?? 0)
+      } catch {
+        // ignore
+      }
+    }
+    if (a.readyState >= 1) seekTo()
+    else a.addEventListener('loadedmetadata', seekTo, { once: true })
+
     const playPromise = a.play()
     if (playPromise && typeof (playPromise as any).catch === 'function') {
       ;(playPromise as Promise<void>).catch(() => {
@@ -101,9 +130,45 @@ const BuildSwipeExperience: React.FC = () => {
     }
   }, [activeRecording, audioEnabled, inner, sheet.open, topState])
 
+  // Keep scrub bar in sync with playback, and clamp within the active range.
+  useEffect(() => {
+    const a = audioRef.current
+    if (!a) return
+
+    const tick = () => {
+      const start = activeSeekRange.start ?? 0
+      const end = activeSeekRange.end ?? 0
+      const dur = activeClipDuration
+      if (dur <= 0) {
+        setScrubSec(0)
+        return
+      }
+      const rel = Math.max(0, Math.min(dur, (a.currentTime ?? 0) - start))
+      setScrubSec(rel)
+
+      // If we're on a snippet, stop at end (keeps snippet feeling like a clip).
+      if (activeSeekRange.kind === 'snippet' && end > start && a.currentTime >= end) {
+        try {
+          a.pause()
+          a.currentTime = end
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    a.addEventListener('timeupdate', tick)
+    a.addEventListener('loadedmetadata', tick)
+    return () => {
+      a.removeEventListener('timeupdate', tick)
+      a.removeEventListener('loadedmetadata', tick)
+    }
+  }, [activeClipDuration, activeSeekRange])
+
   // Close transcript when page changes.
   useEffect(() => {
     setTranscriptOpen(false)
+    setScrubSec(0)
   }, [recordingIdx, inner.kind, inner.kind === 'SNIPPET_PAGE_ACTIVE' ? inner.index : -1])
 
   // Stop audio when leaving feed states.
@@ -328,6 +393,28 @@ const BuildSwipeExperience: React.FC = () => {
                 variantKey={`${activeRecording.recordingId}:${sn.snippetId}`}
                 accent={activeRecording.coverArtSet?.accent}
               />
+              {inner.kind === 'SNIPPET_PAGE_ACTIVE' && inner.index === i && (
+                <MiniScrubBar
+                  currentSec={scrubSec}
+                  durationSec={Math.max(0, (sn.endTimeSec ?? 0) - (sn.startTimeSec ?? 0))}
+                  onSeek={(next) => {
+                    const a = audioRef.current
+                    if (!a) return
+                    setAudioEnabled(true)
+                    const start = sn.startTimeSec ?? 0
+                    const end = sn.endTimeSec ?? 0
+                    const dur = Math.max(0, end - start)
+                    const clamped = dur > 0 ? Math.max(0, Math.min(dur, next)) : 0
+                    setScrubSec(clamped)
+                    try {
+                      a.currentTime = start + clamped
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                  label="Snippet seek"
+                />
+              )}
               <button
                 type="button"
                 className="feed-headline feed-headline-btn"
@@ -401,6 +488,26 @@ const BuildSwipeExperience: React.FC = () => {
               accent={activeRecording.coverArtSet?.accent}
               calm
             />
+            {inner.kind === 'FULL_RECORDING_ACTIVE' && (
+              <MiniScrubBar
+                currentSec={scrubSec}
+                durationSec={Math.max(0, activeRecording.durationSec ?? 0)}
+                onSeek={(next) => {
+                  const a = audioRef.current
+                  if (!a) return
+                  setAudioEnabled(true)
+                  const dur = Math.max(0, activeRecording.durationSec ?? 0)
+                  const clamped = dur > 0 ? Math.max(0, Math.min(dur, next)) : 0
+                  setScrubSec(clamped)
+                  try {
+                    a.currentTime = clamped
+                  } catch {
+                    // ignore
+                  }
+                }}
+                label="Full recording seek"
+              />
+            )}
             <div className="feed-full-card">
               <div className="feed-full-kicker">Full recording</div>
               <div className="feed-full-titleRow">
