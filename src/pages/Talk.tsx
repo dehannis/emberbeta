@@ -1021,15 +1021,50 @@ const Talk: React.FC = () => {
       source: 'entity',
       entityName: entity.name,
     });
-    // Set selectedMemory and inject context
+    // Set selectedMemory and inject rich context with all entity details
     setSelectedMemoryName(entity.name);
+
+    // Build rich context with ALL entity details so agent doesn't need to fetch again
+    const obsText = observations.length > 0
+      ? observations.map((o) => `- ${o.content}`).join('\n')
+      : 'No details recorded yet.';
+    const relText = relations.length > 0
+      ? relations.map((r) => `- ${r.relation.relationType}: ${r.otherEntity.name}`).join('\n')
+      : 'No connections yet.';
+    const emotionText = entity.emotionTags?.length
+      ? entity.emotionTags.join(', ')
+      : 'None tagged yet';
+
+    const richContext = `CURRENT_SELECTED_MEMORY: "${entity.name}"
+TYPE: ${entity.entityType}
+YEAR: ${entity.approximateYear || 'unknown'}
+EMOTION TAGS: ${emotionText}
+
+OBSERVATIONS (already loaded - DO NOT call fetch_entity again):
+${obsText}
+
+RELATIONS:
+${relText}
+
+The user just selected this memory from the sidebar. Acknowledge their selection and ask what they'd like to do:
+- Add more details?
+- Connect it to another memory?
+- Tag how it makes them feel?
+
+CRITICAL: All entity details are above. DO NOT call fetch_entity - you already have everything.`;
+
     wsRef.current?.send(JSON.stringify({
       type: 'session_settings',
-      context: {
-        text: `CURRENT_SELECTED_MEMORY: "${entity.name}". When user shares new details or emotions, apply them to this memory using its exact name.`,
-        type: 'persistent',
-      },
+      context: { text: richContext, type: 'persistent' },
     }));
+
+    // Trigger agent to acknowledge selection (fixes no-response issue)
+    wsRef.current?.send(JSON.stringify({
+      type: 'user_input',
+      text: `I selected the memory "${entity.name}" from the sidebar.`,
+    }));
+
+    addToLog(`📌 Selected from sidebar: ${entity.name} (${observations.length} obs, ${relations.length} rels)`);
   };
 
   const getProxyUrl = (resumeChatGroupId?: string) => {
@@ -1135,17 +1170,73 @@ const Talk: React.FC = () => {
         if (colonIndex > 0) {
           const entityName = obs.substring(0, colonIndex).trim();
           setSelectedMemoryName(entityName);
-          // Update fetchedMemory.entityName so action buttons use correct entity
-          setFetchedMemory({ ...fetchedMemory, entityName });
-          // Inject context
-          wsRef.current?.send(JSON.stringify({
-            type: 'session_settings',
-            context: {
-              text: `CURRENT_SELECTED_MEMORY: "${entityName}". When user shares new details or emotions, apply them to this memory using its exact name.`,
-              type: 'persistent',
-            },
-          }));
-          addToLog(`📌 Selected memory: ${entityName}`);
+
+          // Look up full entity details from store - PREVENTS redundant fetch_entity calls
+          const store = initializeMemoryStore();
+          const entities = findEntitiesByQuery(store, entityName);
+          if (entities.length > 0) {
+            const entity = entities[0];
+            const observations = getObservationsForEntity(store, entity.id);
+            const relations = getRelationsForEntity(store, entity.id);
+
+            // Update fetchedMemory with full entity details
+            setFetchedMemory({
+              name: entity.name,
+              type: entity.entityType,
+              observations: observations.map((o) => o.content),
+              relations: relations.map((r) => ({ type: r.relation.relationType, with: r.otherEntity.name })),
+              emotionTags: entity.emotionTags,
+              source: 'entity',
+              entityName: entity.name,
+            });
+
+            // Build rich context with ALL entity details so agent doesn't need to fetch again
+            const obsText = observations.length > 0
+              ? observations.map((o) => `- ${o.content}`).join('\n')
+              : 'No details recorded yet.';
+            const relText = relations.length > 0
+              ? relations.map((r) => `- ${r.relation.relationType}: ${r.otherEntity.name}`).join('\n')
+              : 'No connections yet.';
+            const emotionText = entity.emotionTags?.length
+              ? entity.emotionTags.join(', ')
+              : 'None tagged yet';
+
+            const richContext = `CURRENT_SELECTED_MEMORY: "${entity.name}"
+TYPE: ${entity.entityType}
+YEAR: ${entity.approximateYear || 'unknown'}
+EMOTION TAGS: ${emotionText}
+
+OBSERVATIONS (already loaded - DO NOT call fetch_entity again):
+${obsText}
+
+RELATIONS:
+${relText}
+
+The user just selected this memory from a list. Acknowledge their selection and ask what they'd like to do:
+- Add more details?
+- Connect it to another memory?
+- Tag how it makes them feel?
+
+CRITICAL: All entity details are above. DO NOT call fetch_entity - you already have everything.`;
+
+            // Inject context
+            wsRef.current?.send(JSON.stringify({
+              type: 'session_settings',
+              context: { text: richContext, type: 'persistent' },
+            }));
+
+            // Trigger agent to acknowledge selection (fixes no-response issue)
+            wsRef.current?.send(JSON.stringify({
+              type: 'user_input',
+              text: `I selected the memory "${entity.name}" from the list.`,
+            }));
+
+            addToLog(`📌 Selected memory: ${entityName} (with ${observations.length} obs, ${relations.length} rels)`);
+          } else {
+            // Fallback if entity not found in store
+            setFetchedMemory({ ...fetchedMemory, entityName });
+            addToLog(`📌 Selected memory: ${entityName}`);
+          }
         }
       } else if (fetchedMemory?.entityName) {
         // For single entity fetch, the entityName is already set

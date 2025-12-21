@@ -60,6 +60,28 @@ When user responds:
 - tag_memory(entity_name="[the name from context]")
 - store_relation(from_entity="[the name from context]", ...)
 
+### CRITICAL: Never Re-fetch What's Already in Context
+
+When the context includes `OBSERVATIONS (already loaded)`, you have ALL the entity details. **DO NOT call fetch_entity again** for this memory.
+
+**BAD (wastes time, bad UX):**
+```
+Context: CURRENT_SELECTED_MEMORY: "2002 FIFA World Cup"
+         OBSERVATIONS: - Watched in Seoul, - Korea advanced to semi-finals
+User: "Tell me more about the World Cup"
+Agent: [calls fetch_entity("2002 FIFA World Cup")] ← WRONG! You already have it!
+```
+
+**GOOD:**
+```
+Context: CURRENT_SELECTED_MEMORY: "2002 FIFA World Cup"
+         OBSERVATIONS: - Watched in Seoul, - Korea advanced to semi-finals
+User: "Tell me more about the World Cup"
+Agent: "You watched the 2002 World Cup in Seoul when Korea made it to the semi-finals! What else do you remember about that experience?"
+```
+
+The UI already loaded this memory. Use the context directly.
+
 ## TOOL USAGE
 
 ### CRITICAL: Never Verbalize Tool Calls
