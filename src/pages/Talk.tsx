@@ -109,6 +109,41 @@ const SEED_MEMORY_STORE: MemoryStore = {
       createdAt: '2024-12-16T10:00:00Z',
       updatedAt: '2024-12-20T10:00:00Z',
     },
+    // =========================================================================
+    // ADDITIONAL LOCATIONS (for relation testing)
+    // =========================================================================
+    {
+      id: 'entity-houston',
+      name: 'Houston, Texas',
+      entityType: 'place',
+      aliases: ['Houston', 'Texas', 'home in Houston'],
+      createdAt: '2024-12-20T10:00:00Z',
+      updatedAt: '2024-12-20T10:00:00Z',
+    },
+    {
+      id: 'entity-seoul',
+      name: 'Seoul, South Korea',
+      entityType: 'place',
+      aliases: ['Seoul', 'Korea', 'South Korea'],
+      createdAt: '2024-12-20T10:00:00Z',
+      updatedAt: '2024-12-20T10:00:00Z',
+    },
+    {
+      id: 'entity-exeter',
+      name: 'Phillips Exeter Academy',
+      entityType: 'place',
+      aliases: ['Exeter', 'prep school', 'boarding school'],
+      createdAt: '2024-12-20T10:00:00Z',
+      updatedAt: '2024-12-20T10:00:00Z',
+    },
+    {
+      id: 'entity-dartmouth',
+      name: 'Dartmouth College',
+      entityType: 'place',
+      aliases: ['Dartmouth', 'Hanover', 'college'],
+      createdAt: '2024-12-20T10:00:00Z',
+      updatedAt: '2024-12-20T10:00:00Z',
+    },
     {
       id: 'entity-hwatoo',
       name: 'Hwatoo card games with Grandma',
@@ -420,6 +455,36 @@ const SEED_MEMORY_STORE: MemoryStore = {
     { id: 'rel-dad-chess', fromEntityId: 'entity-dad-suchan', toEntityId: 'entity-chess-2016', relationType: 'associated_with', strength: 0.9, createdAt: '2024-12-20T10:00:00Z' },
     // Chess games happened in Jeonju
     { id: 'rel-chess-jeonju', fromEntityId: 'entity-chess-2016', toEntityId: 'entity-jeonju-eoeungol', relationType: 'happened_at', strength: 0.8, createdAt: '2024-12-20T10:00:00Z' },
+    // =========================================================================
+    // YEAR -> LOCATION RELATIONS (Coming Out Journey locations)
+    // =========================================================================
+    // Houston years: 1993-2004
+    { id: 'rel-1993-houston', fromEntityId: 'entity-1993', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-1994-houston', fromEntityId: 'entity-1994', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-1995-houston', fromEntityId: 'entity-1995', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-1996-houston', fromEntityId: 'entity-1996', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-1997-houston', fromEntityId: 'entity-1997', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-1998-houston', fromEntityId: 'entity-1998', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-1999-houston', fromEntityId: 'entity-1999', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2000-houston', fromEntityId: 'entity-2000', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2001-houston', fromEntityId: 'entity-2001', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2002-houston', fromEntityId: 'entity-2002-houston', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2003-houston', fromEntityId: 'entity-2003', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2004-houston', fromEntityId: 'entity-2004', toEntityId: 'entity-houston', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    // Seoul years: 2005-2006
+    { id: 'rel-2005-seoul', fromEntityId: 'entity-2005', toEntityId: 'entity-seoul', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2006-seoul', fromEntityId: 'entity-2006', toEntityId: 'entity-seoul', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    // Exeter years: 2007-2011
+    { id: 'rel-2007-exeter', fromEntityId: 'entity-2007', toEntityId: 'entity-exeter', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2008-exeter', fromEntityId: 'entity-2008', toEntityId: 'entity-exeter', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2009-exeter', fromEntityId: 'entity-2009', toEntityId: 'entity-exeter', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2010-exeter', fromEntityId: 'entity-2010-exeter', toEntityId: 'entity-exeter', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2011-exeter', fromEntityId: 'entity-2011', toEntityId: 'entity-exeter', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    // Dartmouth years: 2012-2015 (including coming out)
+    { id: 'rel-2012-dartmouth', fromEntityId: 'entity-2012', toEntityId: 'entity-dartmouth', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2013-dartmouth', fromEntityId: 'entity-2013', toEntityId: 'entity-dartmouth', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2014-dartmouth', fromEntityId: 'entity-2014', toEntityId: 'entity-dartmouth', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
+    { id: 'rel-2015-dartmouth', fromEntityId: 'entity-2015-coming-out', toEntityId: 'entity-dartmouth', relationType: 'happened_at', strength: 1.0, createdAt: '2024-12-20T10:00:00Z' },
   ],
 };
 
@@ -757,6 +822,7 @@ const Talk: React.FC = () => {
     entityName?: string; // Original entity name for actions
   } | null>(null);
   const [selectedObservationIndex, setSelectedObservationIndex] = useState<number | null>(null);
+  const [selectedMemoryName, setSelectedMemoryName] = useState<string | null>(null);
 
   // Derive mode from state
   const currentMode: 'idle' | 'searching' | 'viewing' = isFetchingMemory
@@ -909,6 +975,15 @@ const Talk: React.FC = () => {
       source: 'entity',
       entityName: entity.name,
     });
+    // Set selectedMemory and inject context
+    setSelectedMemoryName(entity.name);
+    wsRef.current?.send(JSON.stringify({
+      type: 'session_settings',
+      context: {
+        text: `CURRENT_SELECTED_MEMORY: "${entity.name}". When user shares new details or emotions, apply them to this memory using its exact name.`,
+        type: 'persistent',
+      },
+    }));
   };
 
   const getProxyUrl = (resumeChatGroupId?: string) => {
@@ -1007,17 +1082,21 @@ const Talk: React.FC = () => {
     if (!fetchedMemory?.entityName || selectedObservationIndex === null) return;
 
     const selectedObs = fetchedMemory.observations[selectedObservationIndex];
-    const prompt = `The user selected this specific memory detail about ${fetchedMemory.entityName}: "${selectedObs}".
+    const memoryName = fetchedMemory.entityName;
 
-Using warm autobiographer techniques, help them explore this memory deeper. Guide with questions like:
+    const prompt = `ACTIVE_MEMORY: "${memoryName}"
+SELECTED_DETAIL: "${selectedObs}"
+
+The user clicked "Add More Details" on this specific memory detail.
+Help them explore this memory deeper with warm autobiographer questions:
 - "Can you picture that moment? What do you see around you?"
 - "Who else was there with you?"
 - "What sounds or smells come to mind?"
 - "How old were you then?"
 - "What happened just before or after?"
 
-Be an empathetic listener. Let them lead, follow their emotional cues.
-After they share new details, use store_observation to save them to ${fetchedMemory.entityName}.
+After they share new details, call store_observation with entity_name="${memoryName}".
+CRITICAL: Use the exact entity name shown above.
 IMPORTANT: Only save facts they actually share. Never invent details.`;
 
     wsRef.current?.send(JSON.stringify({
@@ -1025,6 +1104,7 @@ IMPORTANT: Only save facts they actually share. Never invent details.`;
       context: { text: prompt, type: 'temporary' },
     }));
     addToLog(`💬 Exploring: "${selectedObs.slice(0, 30)}..."`);
+    // Keep selectedMemoryName set (don't clear it - user is still working on this memory)
     setFetchedMemory(null);
     setSelectedObservationIndex(null);
   };
@@ -1034,11 +1114,14 @@ IMPORTANT: Only save facts they actually share. Never invent details.`;
     if (!fetchedMemory?.entityName || selectedObservationIndex === null) return;
 
     const selectedObs = fetchedMemory.observations[selectedObservationIndex];
+    const memoryName = fetchedMemory.entityName;
     const existingRelations = fetchedMemory.relations?.map(r => r.with).join(', ') || 'none yet';
 
-    const prompt = `The user selected this memory detail about ${fetchedMemory.entityName}: "${selectedObs}"
-Current connections: ${existingRelations}.
+    const prompt = `ACTIVE_MEMORY: "${memoryName}"
+SELECTED_DETAIL: "${selectedObs}"
+Current connections: ${existingRelations}
 
+The user clicked "Add Related" to connect this memory to other people, places, or events.
 Help them discover what this memory connects to by asking:
 - "Does this remind you of anyone else in your life?"
 - "Were there other important moments around that same time?"
@@ -1048,9 +1131,9 @@ Help them discover what this memory connects to by asking:
 When they mention a connection:
 1. Check if that entity exists with fetch_entity
 2. If not, create it with store_entity
-3. Use store_relation to link them (e.g., "reminded_of", "happened_at", "led_to", "associated_with")
+3. Use store_relation with from_entity="${memoryName}" to link them
 
-Build the web of their memories naturally.
+CRITICAL: Use the exact entity name shown above for the from_entity.
 IMPORTANT: Only create connections they explicitly mention. Never invent relationships.`;
 
     wsRef.current?.send(JSON.stringify({
@@ -1058,6 +1141,7 @@ IMPORTANT: Only create connections they explicitly mention. Never invent relatio
       context: { text: prompt, type: 'temporary' },
     }));
     addToLog(`💬 Finding connections for: "${selectedObs.slice(0, 30)}..."`);
+    // Keep selectedMemoryName set (don't clear it - user is still working on this memory)
     setFetchedMemory(null);
     setSelectedObservationIndex(null);
   };
@@ -1067,16 +1151,20 @@ IMPORTANT: Only create connections they explicitly mention. Never invent relatio
     if (!fetchedMemory?.entityName || selectedObservationIndex === null) return;
 
     const selectedObs = fetchedMemory.observations[selectedObservationIndex];
+    const memoryName = fetchedMemory.entityName;
     const existingEmotions = fetchedMemory.emotionTags?.join(', ') || 'none yet';
 
-    const prompt = `The user selected this memory detail about ${fetchedMemory.entityName}: "${selectedObs}"
-Current emotion tags on ${fetchedMemory.entityName}: ${existingEmotions}.
+    const prompt = `ACTIVE_MEMORY: "${memoryName}"
+SELECTED_DETAIL: "${selectedObs}"
+Current emotion tags: ${existingEmotions}
 
+The user clicked "Add Emotion" to tag how this memory makes them feel.
 Ask gently: "When you think about that moment, what feelings come up? It's okay if there are mixed feelings."
 
-Available emotions: proud, happy, nostalgic, bittersweet, funny, inspiring, meaningful, sad, embarrassing, regretful, upsetting, stressful, traumatic.
+Available emotions: proud, happy, nostalgic, bittersweet, funny, inspiring, meaningful, sad, embarrassing, regretful, upsetting, stressful, traumatic, nervous, anxious, grateful.
 
-After they share, use tag_memory to add the emotion(s) to ${fetchedMemory.entityName}.
+After they share, call tag_memory with entity_name="${memoryName}".
+CRITICAL: Use the exact entity name shown above.
 Multiple emotions are welcome - memories are often complex.
 IMPORTANT: Only tag emotions they explicitly express. Never assume feelings.`;
 
@@ -1085,14 +1173,22 @@ IMPORTANT: Only tag emotions they explicitly express. Never assume feelings.`;
       context: { text: prompt, type: 'temporary' },
     }));
     addToLog(`💬 Tagging emotion for: "${selectedObs.slice(0, 30)}..."`);
+    // Keep selectedMemoryName set (don't clear it - user is still working on this memory)
     setFetchedMemory(null);
     setSelectedObservationIndex(null);
   };
 
   const handleDismissMemory = () => {
+    const wasSelected = selectedMemoryName;
     setFetchedMemory(null);
     setSelectedObservationIndex(null);
-    addToLog('👋 Dismissed memory card');
+    setSelectedMemoryName(null);
+    // Clear the context
+    wsRef.current?.send(JSON.stringify({
+      type: 'session_settings',
+      context: { text: '', type: 'persistent' },
+    }));
+    addToLog(`👋 Dismissed memory card${wasSelected ? ` (was: ${wasSelected})` : ''}`);
   };
 
   const handleToolCall = (parsed: any) => {
@@ -1112,10 +1208,12 @@ IMPORTANT: Only tag emotions they explicitly express. Never assume feelings.`;
         const entities = findEntitiesByQuery(store, query);
 
         if (entities.length === 0) {
+          // NO MATCHES
           content = JSON.stringify({ found: false, message: `No memories found for "${query}"` });
           addToLog(`🔍 No entity found: ${query}`);
           setTimeout(() => setIsFetchingMemory(false), 1000);
-        } else {
+        } else if (entities.length === 1) {
+          // SINGLE MATCH - return full details
           const entity = entities[0];
           const observations = getObservationsForEntity(store, entity.id);
           const relations = getRelationsForEntity(store, entity.id);
@@ -1138,7 +1236,7 @@ IMPORTANT: Only tag emotions they explicitly express. Never assume feelings.`;
           };
           content = JSON.stringify(entityResult);
 
-          // Show fetched memory in UI
+          // Show fetched memory in UI and set selectedMemory context
           setTimeout(() => {
             setIsFetchingMemory(false);
             setFetchedMemory({
@@ -1150,11 +1248,43 @@ IMPORTANT: Only tag emotions they explicitly express. Never assume feelings.`;
               source: 'entity',
               entityName: entity.name, // For action buttons
             });
+            // Set selectedMemory and inject context
+            setSelectedMemoryName(entity.name);
+            wsRef.current?.send(JSON.stringify({
+              type: 'session_settings',
+              context: {
+                text: `CURRENT_SELECTED_MEMORY: "${entity.name}". When user shares new details or emotions, apply them to this memory using its exact name.`,
+                type: 'persistent',
+              },
+            }));
             // No auto-hide for entity - user can interact with buttons or dismiss
           }, 800);
 
           addToLog(`🧠 Found: ${entity.name} (${observations.length} obs, ${relations.length} rels)`);
           addToLedger('fetch', entity.name, `Fetched with ${observations.length} observations`);
+        } else {
+          // MULTIPLE MATCHES - return list for disambiguation
+          const matches = entities.slice(0, 5).map((e) => {
+            const obs = getObservationsForEntity(store, e.id);
+            return {
+              name: e.name,
+              type: e.entityType,
+              year: e.approximateYear || null,
+              emotionTags: e.emotionTags || [],
+              hint: obs[0]?.content || 'No details yet',
+            };
+          });
+
+          content = JSON.stringify({
+            found: true,
+            multiple_matches: true,
+            count: entities.length,
+            matches,
+            _instruction: `Found ${entities.length} matches for "${query}". Ask user which one they mean, using the hints to help differentiate. Once they clarify, call fetch_entity again with the specific name.`,
+          });
+
+          addToLog(`🔍 Multiple matches (${entities.length}) for: ${query}`);
+          setTimeout(() => setIsFetchingMemory(false), 1000);
         }
         break;
       }
