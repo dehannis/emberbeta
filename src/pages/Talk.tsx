@@ -1386,21 +1386,27 @@ IMPORTANT: Only tag emotions they explicitly express. Never assume feelings.`;
           const observations = getObservationsForEntity(store, entity.id);
           const relations = getRelationsForEntity(store, entity.id);
 
+          // Build explicit fact list to prevent hallucination
+          const factList = observations.length > 0
+            ? observations.map((o, i) => `${i + 1}. ${o.content}`).join('\n')
+            : 'No facts recorded yet.';
+
           const entityResult = {
             found: true,
-            _instruction: "IMPORTANT: Only mention the facts listed below. Do NOT add, embellish, or invent any details not in this response.",
+            _CRITICAL: `EXACT MEMORY NAME: "${entity.name}" - Use this exact name, do not paraphrase or rename it.`,
             entity: {
               name: entity.name,
               type: entity.entityType,
               year: entity.approximateYear,
               emotionTags: entity.emotionTags || [],
             },
+            known_facts_list: factList,
             known_facts: observations.map((o) => o.content),
             known_connections: relations.map((r) => ({
               type: r.relation.relationType,
               with: r.otherEntity.name,
             })),
-            _reminder: `You know ${observations.length} facts about ${entity.name}. If asked about something not listed above, say "I don't have that detail yet - would you like to tell me about it?"`,
+            _FINAL_WARNING: `Only share facts from known_facts_list above. Do NOT invent details. The memory is called "${entity.name}" - say this exact name.`,
           };
           content = JSON.stringify(entityResult);
 
@@ -1462,10 +1468,14 @@ IMPORTANT: Only tag emotions they explicitly express. Never assume feelings.`;
         setIsFetchingMemory(true);
         const results = searchByTopic(store, topic, entity_type, 5);
 
+        // Build a numbered list of EXACT entity names to prevent hallucination
+        const memoryList = results.map((r, i) => `${i + 1}. "${r.entity.name}"`).join('\n');
+
         content = JSON.stringify({
-          _instruction: "IMPORTANT: Only mention the facts listed below. Do NOT invent details, locations, or events not in this data.",
+          _CRITICAL: `READ CAREFULLY: You found ${results.length} memories for "${topic}". The EXACT names are listed below. Do NOT rename, paraphrase, or invent memory names.`,
           found: results.length > 0,
           count: results.length,
+          exact_memory_names: memoryList,
           memories: results.map((r) => ({
             name: r.entity.name,
             type: r.entity.entityType,
@@ -1474,7 +1484,7 @@ IMPORTANT: Only tag emotions they explicitly express. Never assume feelings.`;
             emotionTags: r.entity.emotionTags || [],
             known_facts: r.observations.map((o) => o.content),
           })),
-          _reminder: "Share only what's in 'known_facts'. For anything else, ask the user to tell you about it.",
+          _FINAL_WARNING: `When listing these memories, use the EXACT names from exact_memory_names. Say "${results[0]?.entity.name || 'Entity Name'}" not a paraphrase.`,
         });
 
         // Show first result in UI
@@ -1506,17 +1516,21 @@ IMPORTANT: Only tag emotions they explicitly express. Never assume feelings.`;
         setIsFetchingMemory(true);
         const results = searchByEmotion(store, emotion as EmotionTag);
 
+        // Build a numbered list of EXACT entity names to prevent hallucination
+        const memoryList = results.map((r, i) => `${i + 1}. "${r.entity.name}"`).join('\n');
+
         content = JSON.stringify({
-          _instruction: "IMPORTANT: Only mention the facts listed below. Do NOT invent or embellish details.",
+          _CRITICAL: `READ CAREFULLY: You found ${results.length} memories. The EXACT names are listed below. Do NOT rename, paraphrase, or invent memory names.`,
           found: results.length > 0,
           count: results.length,
           emotion,
+          exact_memory_names: memoryList,
           memories: results.map((r) => ({
             name: r.entity.name,
             type: r.entity.entityType,
             known_facts: r.observations.map((o) => o.content),
           })),
-          _reminder: "These memories are tagged as " + emotion + ". Share only the known_facts. Do not make up sensory details or events.",
+          _FINAL_WARNING: `When listing these memories, use the EXACT names from exact_memory_names above. For example, say "${results[0]?.entity.name || 'Entity Name'}" not a paraphrase of it.`,
         });
 
         // Show results in UI
