@@ -188,6 +188,8 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: visible;
 }
 
 .container {
@@ -291,6 +293,8 @@ body {
     margin: 0 auto;
     width: 100%;
     background: transparent; /* Allow gradient/video to show through */
+    padding-left: var(--spacing-xl); /* Add horizontal padding back */
+    padding-right: var(--spacing-xl); /* Add horizontal padding back */
 }
 
 .options {
@@ -518,25 +522,38 @@ body {
 /* Home (Landing) — futuristic glass gradient background with video */
 .landing-container {
     position: relative;
-    overflow: hidden;
+    overflow: visible; /* Allow video to extend beyond container */
     background: transparent; /* Video provides the background */
     min-height: 100vh; /* Ensure container fills viewport for video coverage */
 }
 
+/* Override container padding for landing page to allow full-screen video */
+.container.landing-container {
+    padding: 0 !important; /* Remove padding so video can cover full viewport */
+    margin: 0 !important;
+    position: relative;
+}
+
 /* Video background layer */
 .landing-video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    min-width: 100%;
-    min-height: 100%;
-    object-fit: cover;
-    object-position: center;
-    z-index: 0;
-    opacity: 1;
-    pointer-events: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    min-width: 100vw !important;
+    min-height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    z-index: 0 !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .landing-container::before {
