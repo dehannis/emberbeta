@@ -204,6 +204,7 @@ body {
     animation: fadeIn 1s ease-out;
     position: relative;
     z-index: var(--z-header);
+    background: transparent; /* Allow gradient/video to show through */
 }
 
 .header-right {
@@ -287,6 +288,7 @@ body {
     max-width: 600px;
     margin: 0 auto;
     width: 100%;
+    background: transparent; /* Allow gradient/video to show through */
 }
 
 .options {
@@ -313,6 +315,7 @@ body {
     cursor: pointer;
     transition: padding-left var(--transition-normal);
     position: relative;
+    background: transparent; /* Allow gradient/video to show through */
 }
 
 .option:nth-child(2),
@@ -509,7 +512,7 @@ body {
 }
 
 
-/* Home (Landing) — futuristic glass gradient background */
+/* Home (Landing) — futuristic glass gradient background with video */
 .landing-container {
     position: relative;
     overflow: hidden;
@@ -519,6 +522,19 @@ body {
         radial-gradient(860px 640px at 62% 88%, rgba(80, 240, 215, 0.06), rgba(0, 0, 0, 0) 60%),
         radial-gradient(720px 520px at 42% 58%, rgba(255, 255, 255, 0.025), rgba(0, 0, 0, 0) 62%),
         #03050a;
+}
+
+/* Video background layer */
+.landing-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    opacity: 1;
+    pointer-events: none;
 }
 
 .landing-container::before {
@@ -533,6 +549,7 @@ body {
     opacity: 0.9;
     mix-blend-mode: screen;
     transform: translateZ(0);
+    z-index: 0.5; /* Above video, below content */
 }
 
 .landing-container::after {
@@ -548,6 +565,7 @@ body {
         radial-gradient(1px 1px at 34% 72%, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0) 60%);
     opacity: 0.18;
     mix-blend-mode: overlay;
+    z-index: 0.5; /* Above video, below content */
 }
 
 .landing-container > * {

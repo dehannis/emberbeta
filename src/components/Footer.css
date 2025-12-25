@@ -6,6 +6,7 @@
     padding-bottom: 1rem;
     width: 100%;
     margin-top: 8rem;
+    background: transparent; /* Allow gradient/video to show through */
 }
 
 .footer-copyright {

@@ -9,10 +9,6 @@
 - State extraction for all routes
 - Comprehensive documentation created
 
-⚠️ **Blocked**:
-- Direct Figma updates via TalkToFigma MCP (API timeouts)
-- Figma Desktop MCP (read-only, cannot write)
-
 ## Deliverables Created
 
 ### 1. DESIGN_SYSTEM_EXTRACTION.md

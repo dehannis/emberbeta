@@ -6,6 +6,14 @@ import Footer from '../components/Footer'
 const Landing: React.FC = () => {
   return (
     <div className="container landing-container">
+      <video
+        className="landing-video"
+        autoPlay
+        loop
+        muted
+        playsInline
+        src="/landing-video.mp4"
+      />
       <Header />
       <main className="main-content landing-main">
         <Options />
