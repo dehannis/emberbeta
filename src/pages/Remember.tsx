@@ -356,14 +356,11 @@ const Remember: React.FC = () => {
 
   return (
     <>
-      <video
-        ref={videoRef}
-        className="remember-video"
-        autoPlay
-        loop
-        muted
-        playsInline
-        src="/ember_purple_animated.mp4"
+      <img
+        className="remember-background"
+        src="/stock/ember_purple.png"
+        alt=""
+        aria-hidden="true"
       />
       <div className="remember-page">
         <Header />
