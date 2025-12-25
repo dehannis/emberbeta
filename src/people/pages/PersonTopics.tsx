@@ -30,7 +30,7 @@ export default function PersonTopics() {
             Back
           </button>
           <button className="peopleSort" type="button" onClick={() => nav('/feed')}>
-            Send request → Build
+            Send request → Remember
           </button>
         </div>
       </header>

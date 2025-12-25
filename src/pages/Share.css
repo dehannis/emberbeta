@@ -1476,7 +1476,7 @@ input[type="number"].sharing-control {
 }
 
 
-/* Mobile web: match Build audio player horizontal inset (0.75rem per side at <= 768px) */
+/* Mobile web: match Remember audio player horizontal inset (0.75rem per side at <= 768px) */
 @media (max-width: 768px) {
   .container {
     padding-left: calc(0.75rem + env(safe-area-inset-left));

@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
-import './Build.css'
+import './Remember.css'
 
 interface Memory {
   id: string
@@ -200,10 +200,10 @@ function normalizeMemories(value: unknown): Memory[] | null {
   return result
 }
 
-const Build: React.FC = () => {
+const Remember: React.FC = () => {
   const navigate = useNavigate()
   const spiralRef = useRef<HTMLDivElement | null>(null)
-  // MVP: list-only Build page (visual view removed from UI).
+  // MVP: list-only Remember page (visual view removed from UI).
   // Keep `buildView` as state (without exposing a UI toggle) so the legacy visual code can remain without TS narrowing errors.
   const [buildView] = useState<'visual' | 'list'>('list')
   const playerRef = useRef<HTMLDivElement | null>(null)
@@ -1606,11 +1606,11 @@ const Build: React.FC = () => {
 
   return (
     <div
-      className="build-page list-view"
+      className="remember-page list-view"
       style={
         {
-          '--build-player-bottom-px': `${playerMetrics.bottomPx}px`,
-          '--build-player-height-px': `${playerMetrics.heightPx}px`,
+          '--remember-player-bottom-px': `${playerMetrics.bottomPx}px`,
+          '--remember-player-height-px': `${playerMetrics.heightPx}px`,
         } as React.CSSProperties
       }
     >
@@ -1660,7 +1660,7 @@ const Build: React.FC = () => {
 
       {buildView === 'list' ? (
         <>
-          <div className="build-list-window ember-scroll">
+          <div className="remember-list-window ember-scroll">
           {(() => {
             if (!listPerson) return null
             const p = listPerson
@@ -1680,13 +1680,13 @@ const Build: React.FC = () => {
             // (Legacy) expandedCalls retained for future "show more" UI if needed.
 
             return (
-              <div className="build-list-grid">
-                                <section className="build-list-card build-list-card--stories">
-                  <div className="build-list-label">STORIES</div>
-                  <div className="build-story-list ember-scroll">
+              <div className="remember-list-grid">
+                                <section className="remember-list-card remember-list-card--stories">
+                  <div className="remember-list-label">STORIES</div>
+                  <div className="remember-story-list ember-scroll">
                     {p.id === 'me' && (
                       <div
-                        className="build-story-alert"
+                        className="remember-story-alert"
                         role="button"
                         tabIndex={0}
                         onClick={() => navigate('/talk')}
@@ -1698,14 +1698,14 @@ const Build: React.FC = () => {
                         }}
                         aria-label="Go to Talk to respond to a story request"
                       >
-                        <span className="build-story-alert-text">Hank has requested a story from you.</span>
+                        <span className="remember-story-alert-text">Hank has requested a story from you.</span>
                       </div>
                     )}
-                    {stories.length === 0 ? <div className="build-list-empty">No stories yet.</div> : null}
+                    {stories.length === 0 ? <div className="remember-list-empty">No stories yet.</div> : null}
                     {stories.map((m) => (
                       <div
                         key={m.id}
-                        className={`build-story-row ${activeMemoryId === m.id ? 'active' : ''} ${
+                        className={`remember-story-row ${activeMemoryId === m.id ? 'active' : ''} ${
                           m.personId === 'me' && (m.visibility ?? 'shared') === 'private' ? 'is-private' : ''
                         }`}
                         onClick={() => selectMemoryFromList(m)}
@@ -1719,7 +1719,7 @@ const Build: React.FC = () => {
                         }}
                       >
                         <div
-                          className={`player-dot build-story-orb ${m.personId === 'me' && (m.visibility ?? 'shared') === 'private' ? 'glass-clear private-orb' : 'glass-solid'}`}
+                          className={`player-dot remember-story-orb ${m.personId === 'me' && (m.visibility ?? 'shared') === 'private' ? 'glass-clear private-orb' : 'glass-solid'}`}
                           style={
                             {
                               '--player-color':
@@ -1729,13 +1729,13 @@ const Build: React.FC = () => {
                             } as React.CSSProperties
                           }
                         />
-                        <div className="build-story-meta">
-                          <div className="build-story-title">{m.title}</div>
-                          <div className="build-story-sub">
+                        <div className="remember-story-meta">
+                          <div className="remember-story-title">{m.title}</div>
+                          <div className="remember-story-sub">
                             <span>RECORDED ON {formatDateNumeric(m.recordedOn)}</span>
                             {typeof m.durationSec === 'number' && isFinite(m.durationSec) ? (
                               <>
-                                <span className="build-story-dot">·</span>
+                                <span className="remember-story-dot">·</span>
                                 <span>{formatTime(m.durationSec)}</span>
                               </>
                             ) : null}
@@ -1743,7 +1743,7 @@ const Build: React.FC = () => {
                         </div>
                         <button
                           type="button"
-                          className="build-story-delete"
+                          className="remember-story-delete"
                           aria-label="Delete story"
                           onClick={(e) => {
                             e.stopPropagation()
@@ -1756,7 +1756,7 @@ const Build: React.FC = () => {
                     ))}
                     {p.id !== 'me' && (
                       <div
-                        className="build-story-row build-story-row--request"
+                        className="remember-story-row remember-story-row--request"
                         onClick={() => openRequestStory(p.id, p.displayName)}
                         role="button"
                         tabIndex={0}
@@ -1769,11 +1769,11 @@ const Build: React.FC = () => {
                         aria-label="Request a story"
                       >
                         <div
-                          className="player-dot build-story-orb build-story-request-orb glass-clear private-orb"
+                          className="player-dot remember-story-orb remember-story-request-orb glass-clear private-orb"
                           style={{ '--player-color': '#2a2a2a' } as React.CSSProperties}
                         />
-                        <div className="build-story-meta">
-                          <div className="build-story-sub build-story-request-text">REQUEST A STORY</div>
+                        <div className="remember-story-meta">
+                          <div className="remember-story-sub remember-story-request-text">REQUEST A STORY</div>
                         </div>
                         <div aria-hidden="true" />
                       </div>
@@ -1781,23 +1781,23 @@ const Build: React.FC = () => {
                   </div>
                 </section>
 
-                <section className={`build-list-card ${activeMemory ? 'build-list-card--summary' : 'build-list-card--nextcall'}`}>
-                  <div className="build-list-label">{activeMemory ? 'SUMMARY' : 'NEXT CALL'}</div>
+                <section className={`remember-list-card ${activeMemory ? 'remember-list-card--summary' : 'remember-list-card--nextcall'}`}>
+                  <div className="remember-list-label">{activeMemory ? 'SUMMARY' : 'NEXT CALL'}</div>
                   {activeMemory ? (
                     (() => {
                       const s = buildDummyCallSummaryAndTags(activeMemory)
                       return (
-                        <div className="build-summary-scroll ember-scroll">
-                          <div className="build-call-list">
-                            <div className="build-call-row">
-                              <div className="build-call-topic">
-                                <span className="build-call-note">{s.summary}</span>
+                        <div className="remember-summary-scroll ember-scroll">
+                          <div className="remember-call-list">
+                            <div className="remember-call-row">
+                              <div className="remember-call-topic">
+                                <span className="remember-call-note">{s.summary}</span>
                               </div>
-                              <div className="build-call-when">Tagged themes, people, places:</div>
-                              <div className="build-call-topic">
-                                <span className="build-call-note">Themes: {s.themes.join(', ') || '—'}</span>
-                                <span className="build-call-note">People: {s.people.join(', ') || '—'}</span>
-                                <span className="build-call-note">Places: {s.places.join(', ') || '—'}</span>
+                              <div className="remember-call-when">Tagged themes, people, places:</div>
+                              <div className="remember-call-topic">
+                                <span className="remember-call-note">Themes: {s.themes.join(', ') || '—'}</span>
+                                <span className="remember-call-note">People: {s.people.join(', ') || '—'}</span>
+                                <span className="remember-call-note">Places: {s.places.join(', ') || '—'}</span>
                               </div>
                             </div>
                           </div>
@@ -1805,7 +1805,7 @@ const Build: React.FC = () => {
                       )
                     })()
                   ) : !nextCallSource ? (
-                    <div className="build-list-empty">No schedule yet.</div>
+                    <div className="remember-list-empty">No schedule yet.</div>
                   ) : (
                     <>
                       {(() => {
@@ -1819,11 +1819,11 @@ const Build: React.FC = () => {
                           return typeof nextCallSource.nextCallPrompt === 'string' ? nextCallSource.nextCallPrompt.trim() : ''
                         })()
                         return (
-                          <div className="build-call-list">
-                            <div className="build-call-row">
-                              <div className="build-call-when">Scheduled: {next ? next.when : '—'}</div>
-                              <div className="build-call-topic">
-                                <span className="build-call-note">{topicText || '—'}</span>
+                          <div className="remember-call-list">
+                            <div className="remember-call-row">
+                              <div className="remember-call-when">Scheduled: {next ? next.when : '—'}</div>
+                              <div className="remember-call-topic">
+                                <span className="remember-call-note">{topicText || '—'}</span>
                               </div>
                             </div>
                           </div>
@@ -1839,18 +1839,18 @@ const Build: React.FC = () => {
 
           {deleteTarget && (
             <div
-              className="build-confirm-overlay"
+              className="remember-confirm-overlay"
               onClick={() => setDeleteTarget(null)}
               role="dialog"
               aria-modal="true"
             >
-              <div className="build-confirm-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="build-confirm-text">Are you sure you want to delete this story?</div>
-                <div className="build-confirm-actions">
-                  <button type="button" className="build-confirm-btn" onClick={() => setDeleteTarget(null)}>
+              <div className="remember-confirm-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="remember-confirm-text">Are you sure you want to delete this story?</div>
+                <div className="remember-confirm-actions">
+                  <button type="button" className="remember-confirm-btn" onClick={() => setDeleteTarget(null)}>
                     Cancel
                   </button>
-                  <button type="button" className="build-confirm-btn danger" onClick={confirmDeleteStory}>
+                  <button type="button" className="remember-confirm-btn danger" onClick={confirmDeleteStory}>
                     Delete
                   </button>
                 </div>
@@ -1861,7 +1861,7 @@ const Build: React.FC = () => {
 
           {requestStoryFor && (
             <div
-              className="build-confirm-overlay"
+              className="remember-confirm-overlay"
               onClick={() => {
                 setRequestStoryFor(null)
                 setRequestStoryPrompt('')
@@ -1870,13 +1870,13 @@ const Build: React.FC = () => {
               role="dialog"
               aria-modal="true"
             >
-              <div className="build-confirm-modal build-request-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="build-request-heading">Request a Story</div>
-                <div className="build-request-subheading">
+              <div className="remember-confirm-modal remember-request-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="remember-request-heading">Request a Story</div>
+                <div className="remember-request-subheading">
                   What topic do you want to hear about from {requestStoryFor.personName.trim().split(/\s+/)[0] || "them"}?
                 </div>
                 <textarea
-                  className="build-request-input ember-scroll"
+                  className="remember-request-input ember-scroll"
                   value={requestStoryPrompt}
                   onChange={(e) => {
                     setRequestStoryPrompt(e.target.value)
@@ -1886,14 +1886,14 @@ const Build: React.FC = () => {
                   rows={4}
                 />
                 {requestStoryError ? (
-                  <div className="build-request-error" role="alert">
+                  <div className="remember-request-error" role="alert">
                     {requestStoryError}
                   </div>
                 ) : null}
-                <div className="build-confirm-actions">
+                <div className="remember-confirm-actions">
                   <button
                     type="button"
-                    className="build-confirm-btn"
+                    className="remember-confirm-btn"
                     onClick={() => {
                       setRequestStoryFor(null)
                       setRequestStoryPrompt('')
@@ -1904,7 +1904,7 @@ const Build: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    className="build-confirm-btn primary"
+                    className="remember-confirm-btn primary"
                     onClick={sendRequestStory}
                     disabled={!requestStoryPrompt.trim()}
                   >
@@ -2409,7 +2409,7 @@ const Build: React.FC = () => {
         <>
           {/* Drawer above the player */}
           {panelMode && (
-            <div className="build-player-drawer" role="region" aria-label="Transcript">
+            <div className="remember-player-drawer" role="region" aria-label="Transcript">
               <div className="drawer-header">
                 <div className="drawer-title">
                   TRANSCRIPT
@@ -2435,7 +2435,7 @@ const Build: React.FC = () => {
             </div>
           )}
 
-          <div ref={playerRef} className="build-player" role="region" aria-label="Audio player">
+          <div ref={playerRef} className="remember-player" role="region" aria-label="Audio player">
             <button type="button" className="player-close-top" onClick={handleClosePlayer} aria-label="Close player">
               CLOSE
             </button>
@@ -2603,7 +2603,7 @@ const Build: React.FC = () => {
           </div>
         </>
       ) : (
-        <div ref={playerRef} className="build-player idle" role="region" aria-label="Audio player">
+        <div ref={playerRef} className="remember-player idle" role="region" aria-label="Audio player">
           <div className="player-left">
             <div className="player-meta">
               <div className="player-idle-label">Select a story to play</div>
@@ -2820,4 +2820,4 @@ const Build: React.FC = () => {
   )
 }
 
-export default Build
+export default Remember

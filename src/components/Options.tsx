@@ -22,7 +22,7 @@ const optionsData: OptionData[] = [
     id: 'remember',
     number: '02',
     title: 'Remember',
-    description: 'Transport back in time to revisit & discover memories you once knew',
+    description: 'Transport back in time to revisit & discover your favorite memories',
     path: '/remember',
   },
   {

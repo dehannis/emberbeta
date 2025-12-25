@@ -23,7 +23,7 @@
        ============================================ */
     --bg-landing: #03050a;
     --bg-account: #01020a;
-    --bg-build: #01020a;
+    --bg-remember: #01020a;
     --bg-share: #01030a;
     --bg-people: #07070b;
     
@@ -510,7 +510,7 @@ body:has(.landing-container) {
     }
 }
 
-/* Touch devices (including "Request Desktop Site"): match Build audio player side inset (1.25rem per side). */
+/* Touch devices (including "Request Desktop Site"): match Remember audio player side inset (1.25rem per side). */
 @media (pointer: coarse) {
     .container {
         padding-left: calc(1.25rem + env(safe-area-inset-left));
@@ -613,7 +613,7 @@ body:has(.landing-container) {
 }
 
 
-/* Home (Landing) — mobile web desktop: add left breathing room for Talk/Build/Share tiles */
+/* Home (Landing) — mobile web desktop: add left breathing room for Talk/Remember/Share tiles */
 @media (pointer: coarse) and (min-width: 769px) {
     .landing-main .option {
         padding-left: 0.75rem;

@@ -1,6 +1,6 @@
-/* Build Page - Unified Spiral Timeline */
+/* Remember Page - Unified Spiral Timeline */
 
-.build-page {
+.remember-page {
   min-height: 100vh;
   height: 100vh;
   background:
@@ -19,12 +19,12 @@
 }
 
 
-/* Build — nebula glass gradient background (fresh) */
-.build-page {
+/* Remember — nebula glass gradient background (fresh) */
+.remember-page {
   isolation: isolate; /* keep blend effects contained */
 }
 
-.build-page::before {
+.remember-page::before {
   content: '';
   position: absolute;
   inset: -18%;
@@ -50,7 +50,7 @@
   z-index: 0;
 }
 
-.build-page::after {
+.remember-page::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -69,12 +69,12 @@
   z-index: 0;
 }
 
-.build-page > * {
+.remember-page > * {
   position: relative;
   z-index: 1;
 }
 
-.build-page.list-view {
+.remember-page.list-view {
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -83,12 +83,12 @@
 }
 
 /* Scroll happens inside the list window to avoid page-level scrolling/overlap with player */
-.build-list-window {
+.remember-list-window {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
   top: 3.0rem; /* tighter: less empty padding above */
-  bottom: calc(var(--build-player-bottom-px, 24px) + var(--build-player-height-px, 96px) + 24px); /* extra breathing room so the list frame is fully visible above the player */
+  bottom: calc(var(--remember-player-bottom-px, 24px) + var(--remember-player-height-px, 96px) + 24px); /* extra breathing room so the list frame is fully visible above the player */
   width: min(980px, calc(100vw - 2.5rem));
   overflow: auto;
   -webkit-overflow-scrolling: touch;
@@ -143,11 +143,11 @@
 }
 
 /* ============ LIST VIEW ============ */
-.build-list {
+.remember-list {
   display: contents;
 }
 
-.build-list-card {
+.remember-list-card {
   padding: 0.95rem 0.95rem 0.95rem;
   background: rgba(18, 18, 18, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -156,7 +156,7 @@
   backdrop-filter: blur(10px);
 }
 
-.build-list-card-header {
+.remember-list-card-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -182,14 +182,14 @@
   color: rgba(255, 255, 255, 0.92);
 }
 
-.build-list-person-name {
+.remember-list-person-name {
   font-size: 1rem;
   font-weight: 300;
   color: rgba(255, 255, 255, 0.92);
   letter-spacing: -0.01em;
 }
 
-.build-list-person-sub {
+.remember-list-person-sub {
   margin-top: 0.2rem;
   font-size: 0.6875rem;
   font-weight: 300;
@@ -198,13 +198,13 @@
   color: rgba(255, 255, 255, 0.35);
 }
 
-.build-list-grid {
+.remember-list-grid {
   display: grid;
   grid-template-columns: 1.25fr 0.95fr;
   gap: 0.85rem;
 }
 
-.build-list-panel {
+.remember-list-panel {
   /* Remove the extra inner frame; keep the outer list card as the only frame. */
   background: transparent;
   border: none;
@@ -213,7 +213,7 @@
   min-width: 0;
 }
 
-.build-list-label {
+.remember-list-label {
   font-size: 0.625rem;
   font-weight: 300;
   letter-spacing: 0.14em;
@@ -222,20 +222,20 @@
   margin-bottom: 0.55rem;
 }
 
-.build-list-empty {
+.remember-list-empty {
   font-size: 0.75rem;
   font-weight: 300;
   color: rgba(255, 255, 255, 0.35);
 }
 
-.build-story-list {
+.remember-story-list {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
 
 
-.build-story-alert {
+.remember-story-alert {
   width: 100%;
   padding: 0.65rem 0.75rem;
   border-radius: 12px;
@@ -248,12 +248,12 @@
   text-align: center;
 }
 
-.build-story-alert:hover {
+.remember-story-alert:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.14);
 }
 
-.build-story-alert-text {
+.remember-story-alert-text {
   /* Glowing text */
   font-size: 0.75rem;
   font-weight: 300;
@@ -264,7 +264,7 @@
     0 0 34px rgba(120, 200, 255, 0.10);
 }
 
-.build-story-row {
+.remember-story-row {
   width: 100%;
   display: grid;
   grid-template-columns: 10px 1fr 18px;
@@ -278,14 +278,14 @@
   text-align: left;
   transition: border-color 180ms ease, background 180ms ease;
 }
-.build-story-orb {
+.remember-story-orb {
   width: 10px;
   height: 10px;
   align-self: center;
   margin-top: 0;
 }
 
-.build-story-delete {
+.remember-story-delete {
   width: 18px;
   height: 18px;
   border-radius: 0;
@@ -302,34 +302,34 @@
   transition: color 160ms ease;
 }
 
-.build-story-delete:hover {
+.remember-story-delete:hover {
   color: rgba(255, 255, 255, 0.85);
 }
 
 
 
-.build-story-row:hover {
+.remember-story-row:hover {
   border-color: transparent;
   background: rgba(255, 255, 255, 0.04);
 }
 
-.build-story-row.active {
+.remember-story-row.active {
   border-color: rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.05);
 }
 
 
-.build-story-row--request {
+.remember-story-row--request {
   border-color: rgba(255, 255, 255, 0.04);
   background: rgba(0, 0, 0, 0.22);
 }
 
-.build-story-row--request:hover {
+.remember-story-row--request:hover {
   border-color: rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
 }
 
-.build-story-request-orb {
+.remember-story-request-orb {
   opacity: 0.55;
   filter: saturate(0.15) brightness(0.85);
   background:
@@ -339,30 +339,30 @@
     0 0 14px rgba(255, 255, 255, 0.02);
 }
 
-.build-story-request-title {
+.remember-story-request-title {
   color: rgba(255, 255, 255, 0.58);
 }
 
-.build-story-request-sub {
+.remember-story-request-sub {
   color: rgba(255, 255, 255, 0.32);
 }
 
 
-.build-story-row--request .build-story-sub {
+.remember-story-row--request .remember-story-sub {
   margin-top: 0;
 }
 
-.build-story-request-text {
+.remember-story-request-text {
   /* Match RECORDED ON typography + color */
   margin-top: 0;
 }
-.build-story-meta {
+.remember-story-meta {
   display: flex;
   flex-direction: column;
   gap: 0.08rem; /* tight title/subtitle spacing */
   min-width: 0;
 }
-.build-story-title {
+.remember-story-title {
   font-size: 0.8125rem;
   font-weight: 300;
   color: rgba(255, 255, 255, 0.82);
@@ -373,15 +373,15 @@
   line-height: 1.15;
 }
 
-.build-story-row.is-private .build-story-title {
+.remember-story-row.is-private .remember-story-title {
   color: rgba(255, 255, 255, 0.62);
 }
 
-.build-story-row.is-private .build-story-sub {
+.remember-story-row.is-private .remember-story-sub {
   color: rgba(255, 255, 255, 0.40);
 }
 
-.build-story-sub {
+.remember-story-sub {
   margin-top: 0.2rem;
   font-size: 0.625rem;
   font-weight: 300;
@@ -393,26 +393,26 @@
   white-space: nowrap;
 }
 
-.build-story-dot {
+.remember-story-dot {
   color: rgba(255, 255, 255, 0.20);
 }
 
 /* removed per request (PRIVATE/SHARED label now implied by the left orb) */
 
-.build-call-list {
+.remember-call-list {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
 }
 
-.build-call-row {
+.remember-call-row {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
   padding: 0.4rem 0.2rem;
 }
 
-.build-call-when {
+.remember-call-when {
   font-size: 0.625rem;
   font-weight: 300;
   letter-spacing: 0.10em;
@@ -420,7 +420,7 @@
   color: rgba(255, 255, 255, 0.45);
 }
 
-.build-call-topic {
+.remember-call-topic {
   font-size: 0.75rem;
   font-weight: 300;
   color: rgba(255, 255, 255, 0.70);
@@ -430,7 +430,7 @@
   gap: 0.25rem;
 }
 
-.build-call-topic-label {
+.remember-call-topic-label {
   font-size: 0.625rem;
   font-weight: 300;
   letter-spacing: 0.10em;
@@ -438,12 +438,12 @@
   color: rgba(255, 255, 255, 0.42);
 }
 
-.build-call-note {
+.remember-call-note {
   color: rgba(255, 255, 255, 0.82);
   white-space: pre-line;
 }
 
-.build-call-more {
+.remember-call-more {
   margin-top: 0.25rem;
   background: transparent;
   border: none;
@@ -457,7 +457,7 @@
   transition: color 160ms ease;
 }
 
-.build-call-more:hover {
+.remember-call-more:hover {
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -1869,7 +1869,7 @@
 /* ===========================
    Bottom audio player
    =========================== */
-.build-player {
+.remember-player {
   position: fixed;
   position: fixed;
   left: 50%;
@@ -1888,23 +1888,23 @@
   z-index: 500;
 }
 
-.build-player.idle .player-action {
+.remember-player.idle .player-action {
   border-style: dashed;
 }
 
-.build-player.idle .player-sub-value {
+.remember-player.idle .player-sub-value {
   color: rgba(255, 255, 255, 0.35);
 }
 
-.build-player.idle .player-btn {
+.remember-player.idle .player-btn {
   opacity: 0.35;
 }
 
 /* Drawer that expands upward from the player */
-.build-player-drawer {
+.remember-player-drawer {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--build-player-bottom-px, 24px) + var(--build-player-height-px, 96px) + 12px);
+  bottom: calc(var(--remember-player-bottom-px, 24px) + var(--remember-player-height-px, 96px) + 12px);
   transform: translateX(-50%);
   width: min(980px, calc(100vw - 2.5rem));
   max-height: 320px;
@@ -2111,7 +2111,7 @@
 }
 
 /* Reveal whenever the mouse is in the playback bar. */
-.build-player:hover .player-edit {
+.remember-player:hover .player-edit {
   opacity: 1;
   color: rgba(255, 255, 255, 0.55);
 }
@@ -2465,7 +2465,7 @@
 .prompt-player {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--build-player-bottom-px, 24px) + var(--build-player-height-px, 96px) + 12px);
+  bottom: calc(var(--remember-player-bottom-px, 24px) + var(--remember-player-height-px, 96px) + 12px);
   transform: translateX(-50%);
   width: min(1240px, calc(100vw - 3.5rem));
   padding: 0.875rem 1rem;
@@ -2884,7 +2884,7 @@
 
 
 @media (min-width: 769px) and (max-width: 1024px) {
-  .build-list-window {
+  .remember-list-window {
     left: 0;
     transform: none;
     width: 100vw;
@@ -2896,7 +2896,7 @@
 
 
 @media (max-width: 768px) {
-  .build-page {
+  .remember-page {
     padding: 1.5rem;
   }
 
@@ -2906,7 +2906,7 @@
     transform: translateX(-50%);
   }
 
-  .build-list-window {
+  .remember-list-window {
     top: 2.9rem;
 
     /* Cards should align with the audio player edges.
@@ -2918,7 +2918,7 @@
     width: 100vw;
 
     /* Reserve space so BOTH frames (Stories + Next Call) are fully visible above the player. */
-    bottom: calc(var(--build-player-bottom-px, 12px) + var(--build-player-height-px, 140px) + 8px);
+    bottom: calc(var(--remember-player-bottom-px, 12px) + var(--remember-player-height-px, 140px) + 8px);
 
     /* On mobile, do NOT scroll the whole window; only Stories scrolls. */
     overflow: hidden;
@@ -2930,7 +2930,7 @@
     box-sizing: border-box;
   }
 
-  .build-list-grid {
+  .remember-list-grid {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
@@ -2938,19 +2938,19 @@
     min-height: 0;
   }
 
-  .build-list-card {
+  .remember-list-card {
     min-height: 0;
   }
 
   /* Stories: fixed max height via flex, scrolls internally */
-  .build-list-card--stories {
+  .remember-list-card--stories {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
 
-  .build-list-card--stories .build-story-list {
+  .remember-list-card--stories .remember-story-list {
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
@@ -2959,19 +2959,19 @@
   }
 
   /* Next Call: always fully visible */
-  .build-list-card--nextcall {
+  .remember-list-card--nextcall {
     flex: 0 0 auto;
   }
 
   /* Summary: same behavior as Next Call (card stays visible), but content can scroll if long */
-  .build-list-card--summary {
+  .remember-list-card--summary {
     flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
 
-  .build-list-card--summary .build-summary-scroll {
+  .remember-list-card--summary .remember-summary-scroll {
     flex: 1 1 auto;
     min-height: 0;
     max-height: 42vh;
@@ -2981,17 +2981,17 @@
   }
 
   /* Summary spacing tweaks */
-  .build-list-card--summary .build-list-label {
+  .remember-list-card--summary .remember-list-label {
     margin-bottom: 0.4rem;
   }
 
-  .build-list-card--summary .build-call-row {
+  .remember-list-card--summary .remember-call-row {
     gap: 0.4rem;
     padding-top: 0.2rem;
     padding-bottom: 0.2rem;
   }
 
-  .build-list-card--summary .build-call-topic {
+  .remember-list-card--summary .remember-call-topic {
     gap: 0.18rem;
   }
 
@@ -3092,7 +3092,7 @@
     height: calc(28px * var(--orb-scale, 1));
   }
 
-  .build-player {
+  .remember-player {
     left: 50%;
     transform: translateX(-50%);
     width: calc(100vw - 1.5rem);
@@ -3144,7 +3144,7 @@
     width: 100%;
   }
 
-  .build-player-drawer {
+  .remember-player-drawer {
     width: calc(100vw - 1.5rem);
     bottom: calc(1.5rem + 140px + 0.75rem);
     max-height: 42vh;
@@ -3156,7 +3156,7 @@
 }
 
 @media (max-width: 480px) {
-  .build-page {
+  .remember-page {
     padding: 1rem;
   }
 
@@ -3166,7 +3166,7 @@
     transform: translateX(-50%);
   }
 
-  .build-list-window {
+  .remember-list-window {
     top: 2.75rem;
     width: 100vw;
     left: 0;
@@ -3219,24 +3219,24 @@
 
 
 
-.build-confirm-btn.primary {
+.remember-confirm-btn.primary {
   color: rgba(255, 255, 255, 0.85);
 }
 
-.build-confirm-btn.primary:hover:not(:disabled) {
+.remember-confirm-btn.primary:hover:not(:disabled) {
   color: rgba(255, 255, 255, 1);
 }
 
-.build-confirm-btn.primary:disabled {
+.remember-confirm-btn.primary:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
 
-.build-request-modal {
+.remember-request-modal {
   width: min(520px, 92vw);
 }
 
-.build-request-heading {
+.remember-request-heading {
   font-size: 0.625rem;
   font-weight: 300;
   letter-spacing: 0.14em;
@@ -3244,7 +3244,7 @@
   color: rgba(255, 255, 255, 0.55);
 }
 
-.build-request-subheading {
+.remember-request-subheading {
   margin-top: 0.5rem;
   font-size: 0.8125rem;
   font-weight: 300;
@@ -3252,7 +3252,7 @@
   color: rgba(255, 255, 255, 0.78);
 }
 
-.build-request-input {
+.remember-request-input {
   margin-top: 0.75rem;
   width: 100%;
   box-sizing: border-box;
@@ -3269,15 +3269,15 @@
   outline: none;
 }
 
-.build-request-input::placeholder {
+.remember-request-input::placeholder {
   color: rgba(255, 255, 255, 0.28);
 }
 
-.build-request-input:focus {
+.remember-request-input:focus {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-.build-request-error {
+.remember-request-error {
   margin-top: 0.6rem;
   font-size: 0.75rem;
   font-weight: 300;
@@ -3285,7 +3285,7 @@
 }
 
 /* Confirm modal (used for deleting stories) */
-.build-confirm-overlay {
+.remember-confirm-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.72);
@@ -3297,7 +3297,7 @@
   z-index: 1200;
 }
 
-.build-confirm-modal {
+.remember-confirm-modal {
   width: min(420px, 92vw);
   background: rgba(18, 18, 18, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.10);
@@ -3306,21 +3306,21 @@
   padding: 1rem 1rem;
 }
 
-.build-confirm-text {
+.remember-confirm-text {
   font-size: 0.8125rem;
   font-weight: 300;
   line-height: 1.55;
   color: rgba(255, 255, 255, 0.85);
 }
 
-.build-confirm-actions {
+.remember-confirm-actions {
   margin-top: 0.9rem;
   display: flex;
   justify-content: flex-end;
   gap: 0.9rem;
 }
 
-.build-confirm-btn {
+.remember-confirm-btn {
   background: transparent;
   border: none;
   padding: 0;
@@ -3333,14 +3333,14 @@
   transition: color 160ms ease;
 }
 
-.build-confirm-btn:hover {
+.remember-confirm-btn:hover {
   color: rgba(255, 255, 255, 0.95);
 }
 
-.build-confirm-btn.danger:hover {
+.remember-confirm-btn.danger:hover {
   color: rgba(255, 140, 140, 0.95);
 }
 
-.build-player.idle .player-left {
+.remember-player.idle .player-left {
   gap: 0;
 }
