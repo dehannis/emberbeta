@@ -11,8 +11,9 @@
 .footer-copyright {
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-light);
-    letter-spacing: var(--letter-spacing-none);
+    letter-spacing: var(--letter-spacing-caption); /* 0.22px / 0.02em - matches Figma Small/Caption */
     color: var(--text-footer);
+    line-height: var(--line-height-caption); /* 16.5px - matches Figma Small/Caption */
 }
 
 .footer-links {
@@ -23,10 +24,11 @@
 .footer-link {
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-light);
-    letter-spacing: var(--letter-spacing-none);
+    letter-spacing: var(--letter-spacing-caption); /* 0.22px / 0.02em - matches Figma Small/Caption */
     color: var(--text-footer);
     text-decoration: none;
     transition: color var(--transition-fast);
+    line-height: var(--line-height-caption); /* 16.5px - matches Figma Small/Caption */
 }
 
 .footer-link:hover {
