@@ -138,6 +138,11 @@
 
 html, body {
     height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
     background-color: var(--black);
     color: var(--white);
     font-weight: 300;
@@ -190,6 +195,19 @@ body {
     flex-direction: column;
     position: relative;
     overflow: visible;
+}
+
+/* Prevent scrolling on landing page - target root when landing container is present */
+#root:has(.landing-container) {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+}
+
+/* Prevent scrolling on landing page */
+body:has(.landing-container) {
+    overflow: hidden;
+    height: 100vh;
 }
 
 .container {
@@ -522,9 +540,12 @@ body {
 /* Home (Landing) — futuristic glass gradient background with video */
 .landing-container {
     position: relative;
-    overflow: visible; /* Allow video to extend beyond container */
+    overflow: hidden; /* Prevent scrolling within container */
     background: transparent; /* Video provides the background */
-    min-height: 100vh; /* Ensure container fills viewport for video coverage */
+    height: 100vh; /* Exactly viewport height, no more */
+    max-height: 100vh; /* Prevent exceeding viewport */
+    display: flex;
+    flex-direction: column;
 }
 
 /* Restore container padding for landing page since video is now outside container */
