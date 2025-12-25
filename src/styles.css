@@ -195,6 +195,7 @@ body {
     display: flex;
     flex-direction: column;
     padding: 2rem 2rem 0 2rem;
+    background: transparent; /* Allow gradient/video to show through */
 }
 
 .header {
@@ -211,11 +212,12 @@ body {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    background: transparent; /* Allow gradient/video to show through */
 }
 
 .feed-beta-btn {
     border: none;
-    background: var(--bg-button-default);
+    background: transparent; /* Allow gradient/video to show through */
     color: var(--text-secondary);
     padding: 0;
     height: 26px;
@@ -234,7 +236,7 @@ body {
 
 .feed-beta-btn:hover {
     color: var(--text-primary);
-    background: var(--bg-button-hover);
+    background: transparent; /* Keep transparent on hover */
 }
 
 .phone-number {
@@ -296,6 +298,7 @@ body {
     flex-direction: column;
     gap: 0;
     position: relative;
+    background: transparent; /* Allow gradient/video to show through */
 }
 
 .option + .option::before {
@@ -516,31 +519,29 @@ body {
 .landing-container {
     position: relative;
     overflow: hidden;
-    background:
-        radial-gradient(1100px 760px at 18% 18%, rgba(110, 170, 255, 0.10), rgba(0, 0, 0, 0) 58%),
-        radial-gradient(980px 680px at 84% 26%, rgba(185, 130, 255, 0.08), rgba(0, 0, 0, 0) 62%),
-        radial-gradient(860px 640px at 62% 88%, rgba(80, 240, 215, 0.06), rgba(0, 0, 0, 0) 60%),
-        radial-gradient(720px 520px at 42% 58%, rgba(255, 255, 255, 0.025), rgba(0, 0, 0, 0) 62%),
-        #03050a;
+    background: transparent; /* Video provides the background */
 }
 
 /* Video background layer */
 .landing-video {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     object-fit: cover;
-    z-index: 0;
+    z-index: -1;
     opacity: 1;
     pointer-events: none;
 }
 
 .landing-container::before {
     content: '';
-    position: absolute;
-    inset: -18%;
+    position: fixed;
+    top: -18%;
+    left: -18%;
+    width: calc(100vw + 36%);
+    height: calc(100vh + 36%);
     pointer-events: none;
     background:
         linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.00) 46%, rgba(255, 255, 255, 0.02) 82%, rgba(255, 255, 255, 0.00)),
@@ -549,13 +550,16 @@ body {
     opacity: 0.9;
     mix-blend-mode: screen;
     transform: translateZ(0);
-    z-index: 1; /* Above video, below content */
+    z-index: 0; /* Above video, below content */
 }
 
 .landing-container::after {
     content: '';
-    position: absolute;
-    inset: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
     pointer-events: none;
     /* subtle texture, not obvious scanlines */
     background:
@@ -565,7 +569,7 @@ body {
         radial-gradient(1px 1px at 34% 72%, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0) 60%);
     opacity: 0.18;
     mix-blend-mode: overlay;
-    z-index: 1; /* Above video, below content */
+    z-index: 0; /* Above video, below content */
 }
 
 .landing-container > * {

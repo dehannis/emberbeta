@@ -12,7 +12,7 @@ const Landing: React.FC = () => {
         loop
         muted
         playsInline
-        src="/landing-video.mp4"
+        src="/ember_orange_blue_animated.mp4"
       />
       <Header />
       <main className="main-content landing-main">
