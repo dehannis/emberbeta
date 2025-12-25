@@ -98,7 +98,7 @@
 }
 
 /* ============ BUILD VIEW TOGGLE (Top Center) ============ */
-.build-view-toggle {
+.remember-view-toggle {
   position: absolute;
   top: 2rem;
   left: 50%;
@@ -115,11 +115,11 @@
   backdrop-filter: blur(18px);
 }
 
-.build-view-toggle.visible {
+.remember-view-toggle.visible {
   opacity: 1;
 }
 
-.build-view-btn {
+.remember-view-btn {
   border: none;
   background: transparent;
   padding: 0.45rem 0.7rem;
@@ -133,11 +133,11 @@
   transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
 }
 
-.build-view-btn:hover {
+.remember-view-btn:hover {
   color: rgba(255, 255, 255, 0.85);
 }
 
-.build-view-btn.active {
+.remember-view-btn.active {
   background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.92);
 }
@@ -164,7 +164,7 @@
   margin-bottom: 0.75rem;
 }
 
-.build-new-story {
+.remember-new-story {
   background: transparent;
   border: none;
   padding: 0;
@@ -178,7 +178,7 @@
   white-space: nowrap;
 }
 
-.build-new-story:hover {
+.remember-new-story:hover {
   color: rgba(255, 255, 255, 0.92);
 }
 
@@ -2900,7 +2900,7 @@
     padding: 1.5rem;
   }
 
-  .build-view-toggle {
+  .remember-view-toggle {
     top: 1.5rem;
     left: 50%;
     transform: translateX(-50%);
@@ -3160,7 +3160,7 @@
     padding: 1rem;
   }
 
-  .build-view-toggle {
+  .remember-view-toggle {
     top: 1rem;
     left: 50%;
     transform: translateX(-50%);
