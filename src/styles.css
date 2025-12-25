@@ -549,7 +549,7 @@ body {
     opacity: 0.9;
     mix-blend-mode: screen;
     transform: translateZ(0);
-    z-index: 0.5; /* Above video, below content */
+    z-index: 1; /* Above video, below content */
 }
 
 .landing-container::after {
@@ -565,12 +565,12 @@ body {
         radial-gradient(1px 1px at 34% 72%, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0) 60%);
     opacity: 0.18;
     mix-blend-mode: overlay;
-    z-index: 0.5; /* Above video, below content */
+    z-index: 1; /* Above video, below content */
 }
 
 .landing-container > * {
     position: relative;
-    z-index: 1;
+    z-index: 2; /* Above video and gradient overlays */
 }
 
 
