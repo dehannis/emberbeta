@@ -218,10 +218,11 @@ body {
     color: var(--text-secondary);
     padding: 0;
     height: 26px;
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-light);
-    letter-spacing: var(--letter-spacing-none);
+    border-radius: var(--radius-full); /* Pill shape - matches Figma Button / Text component */
+    font-size: var(--font-size-lg); /* 13px - matches Figma Button / Text component */
+    font-weight: var(--font-weight-regular); /* 400 - matches Figma */
+    letter-spacing: var(--letter-spacing-body); /* 0.13px / 0.01em - matches Figma */
+    line-height: var(--line-height-body); /* 21px / 1.615 - matches Figma */
     cursor: pointer;
     transition: color var(--transition-fast), background var(--transition-fast);
     display: flex;
@@ -236,10 +237,11 @@ body {
 }
 
 .phone-number {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-light);
-    letter-spacing: var(--letter-spacing-none);
-    color: var(--text-tertiary);
+    font-size: var(--font-size-lg); /* 13px - matches Figma Header - Phone Number */
+    font-weight: var(--font-weight-regular); /* 400 - matches Figma */
+    letter-spacing: var(--letter-spacing-body); /* 0.13px / 0.01em - matches Figma */
+    line-height: var(--line-height-body); /* 21px / 1.615 - matches Figma */
+    color: var(--text-secondary); /* #a0a0a0 - matches Figma */
     transition: color var(--transition-fast);
 }
 
@@ -248,12 +250,12 @@ body {
 }
 
 .home-icon {
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-light);
-    letter-spacing: var(--letter-spacing-none);
-    color: var(--text-tertiary);
+    font-size: 1.5rem; /* 24px - matches Figma Button / Home */
+    font-weight: var(--font-weight-regular); /* 400 - matches Figma */
+    letter-spacing: var(--letter-spacing-none); /* 0 - matches Figma */
+    line-height: 1.21; /* 29.045px / 24px ≈ 1.21 - matches Figma */
+    color: var(--text-secondary); /* #a0a0a0 - matches Figma */
     transition: color var(--transition-fast);
-    line-height: var(--line-height-tight);
     position: relative;
     z-index: var(--z-home-icon);
     pointer-events: auto;
@@ -328,10 +330,12 @@ body {
 }
 
 .option-number {
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-light);
-    letter-spacing: var(--letter-spacing-none);
-    color: var(--text-quaternary);
+    font-size: 1.5rem; /* 24px - matches Figma Option - Number */
+    font-family: var(--font-serif); /* Source Serif Pro - matches Figma */
+    font-weight: var(--font-weight-regular); /* 400 - matches Figma */
+    letter-spacing: var(--letter-spacing-h3); /* -0.48px / -0.02em - matches Figma */
+    line-height: 1.292; /* 31px / 24px ≈ 1.292 - matches Figma */
+    color: var(--text-secondary); /* #a0a0a0 - matches Figma (not rgba(255,255,255,0.5)) */
     margin-bottom: var(--spacing-xs);
     text-transform: none;
 }
@@ -351,8 +355,10 @@ body {
 }
 
 .option-description {
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-light);
+    font-size: var(--font-size-lg); /* 13px - matches Figma Option - Description */
+    font-weight: var(--font-weight-regular); /* 400 - matches Figma */
+    letter-spacing: var(--letter-spacing-body); /* 0.13px / 0.01em - matches Figma */
+    line-height: var(--line-height-body); /* 21px / 1.615 - matches Figma */
     color: var(--text-secondary);
     max-width: 400px;
     transition: padding-left var(--transition-normal);
