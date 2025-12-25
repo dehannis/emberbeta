@@ -388,7 +388,7 @@ body:has(.landing-container) {
     letter-spacing: var(--letter-spacing-body); /* 0.13px / 0.01em - matches Figma */
     line-height: var(--line-height-body); /* 21px / 1.615 - matches Figma */
     color: var(--text-secondary);
-    max-width: 400px;
+    max-width: 550px; /* Increased from 400px to allow longer descriptions on desktop */
     transition: padding-left var(--transition-normal);
 }
 
