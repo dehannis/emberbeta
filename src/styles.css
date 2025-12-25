@@ -584,6 +584,8 @@ body:has(.remember-page) {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
     /* Make video 10% larger to crop bottom-right watermark */
     width: 110vw !important;
     height: 110vh !important;
@@ -593,11 +595,12 @@ body:has(.remember-page) {
     max-height: none !important;
     object-fit: cover !important;
     object-position: top left !important;
-    z-index: 0 !important;
+    z-index: -1 !important;
     opacity: 1 !important;
     pointer-events: none !important;
     margin: 0 !important;
     padding: 0 !important;
+    display: block !important;
 }
 
 .landing-container::before {

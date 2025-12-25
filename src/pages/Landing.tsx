@@ -11,7 +11,7 @@ const Landing: React.FC = () => {
     if (video) {
       // Set playback rate after video metadata loads
       const setPlaybackRate = () => {
-        video.playbackRate = 0.5
+        video.playbackRate = 0.8
       }
       
       if (video.readyState >= 2) {

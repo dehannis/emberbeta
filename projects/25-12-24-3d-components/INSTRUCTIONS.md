@@ -12,20 +12,15 @@ we need to design/create the frames, layers, components, animations, and interac
 - 3b. Lo-fi UX: switching to a different creator's timeline: <https://www.figma.com/board/elBFplPOzBmaJnbcFJ5DxG/Remember-View?node-id=4-3001&p=f&t=rqEzuLOOjXKqAAjK-11>
 - 3c. Lo-fi UX: clicking the shuffle button to jump to a random memory on active creator's timeline: <https://www.figma.com/board/elBFplPOzBmaJnbcFJ5DxG/Remember-View?node-id=4-3002&p=f&t=rqEzuLOOjXKqAAjK-11>
 - 4. Mid-fi Mockup: <https://www.figma.com/board/elBFplPOzBmaJnbcFJ5DxG/Remember-View?node-id=4-3003&p=f&t=rqEzuLOOjXKqAAjK-11>
+- 5. Hi-fi mockup for desktop: <https://www.figma.com/design/P9ZetOmtLwAhTriE1h8L8P/EMBER-PROJECT-gco?node-id=1-4199&t=C9fYzSL3Xec0aDH3-11>
+- 1. Hi-fi mockup for mobile: <https://www.figma.com/design/P9ZetOmtLwAhTriE1h8L8P/EMBER-PROJECT-gco?node-id=1-4199&t=C9fYzSL3Xec0aDH3-11>
 
 these are meant to be read in sequential order. 
 
-for now, assume that it's designed for mobile web mode - desktop mode keeps the viewport width effectively the same (there's just more empty space on either side beyond the width of the mobile viewport)
 
 ## YOUR TO-DOS
 - First, review the specs (for this project, we're focusing just on the layers/frames/components/animations/effects created in figma -> frontend codeability. we're not focused on backend.) and if you have any clarifying questions ask me them.
-- Then, given the relative complexity (maybe? not sure how complex this is) of the components (depth perception of components in the grid) and transition animations, advise me on whether this is possible to set up in figma or whether we need more advanced 3d modeling software to mock this up.
-- Once i've reviewed feasibility, if it's feasible, we'll begin implementing in figma
-
-## A few some specific questions i have:
-1. I'm familiar with frames/layers in figma for more flat designs (a birds eye down view of a dashboard is flat, for example). For something like this where we want depth perception and animations, will figma be able to handle/define these? open to using plugins etc if needed - but ideally can do this purely with core figma and well structured layers, frames, and animations
-2. what parts of implementing the hi-fi in figma will be most challenging?
-3. what parts of implementing the hi-fis completed in figma in code will be most challenging?
+- it's CRITICAL that the horizontal scroll/swipe swipe and revolver physics is flawless.
 
 ## ROADMAP AFTER initial TO-D0s scoped for this plan completed
 1. code the design in frontend

@@ -275,13 +275,13 @@ const Remember: React.FC = () => {
   const touchStartRef = useRef({ x: 0, y: 0 })
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  // Set video playback speed to 0.5x
+  // Set video playback speed to 0.8x
   useEffect(() => {
     const video = videoRef.current
     if (video) {
       // Set playback rate after video metadata loads
       const setPlaybackRate = () => {
-        video.playbackRate = 0.5
+        video.playbackRate = 0.8
       }
       
       if (video.readyState >= 2) {
