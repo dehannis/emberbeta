@@ -547,7 +547,7 @@ body {
     max-height: none !important;
     object-fit: cover !important;
     object-position: center center !important;
-    z-index: -1 !important;
+    z-index: 0 !important;
     opacity: 1 !important;
     pointer-events: none !important;
     margin: 0 !important;
