@@ -14,16 +14,33 @@ const Landing: React.FC = () => {
         video.playbackRate = 0.8
       }
       
+      // Ensure video plays
+      const ensurePlay = async () => {
+        try {
+          await video.play()
+        } catch (error) {
+          console.warn('Video autoplay failed:', error)
+        }
+      }
+      
       if (video.readyState >= 2) {
         // Video metadata already loaded
         setPlaybackRate()
+        ensurePlay()
       } else {
         // Wait for metadata to load
-        video.addEventListener('loadedmetadata', setPlaybackRate, { once: true })
+        video.addEventListener('loadedmetadata', () => {
+          setPlaybackRate()
+          ensurePlay()
+        }, { once: true })
       }
+      
+      // Also try to play on canplay event
+      video.addEventListener('canplay', ensurePlay, { once: true })
       
       return () => {
         video.removeEventListener('loadedmetadata', setPlaybackRate)
+        video.removeEventListener('canplay', ensurePlay)
       }
     }
   }, [])
