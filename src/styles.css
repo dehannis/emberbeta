@@ -520,6 +520,7 @@ body {
     position: relative;
     overflow: hidden;
     background: transparent; /* Video provides the background */
+    min-height: 100vh; /* Ensure container fills viewport for video coverage */
 }
 
 /* Video background layer */
