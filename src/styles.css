@@ -212,12 +212,12 @@ body:has(.landing-container) {
 
 /* Make body transparent when video background is present */
 body:has(.landing-video),
-body:has(.remember-video) {
+body:has(.remember-background) {
     background-color: transparent !important;
 }
 
 html:has(.landing-video),
-html:has(.remember-video) {
+html:has(.remember-background) {
     background-color: transparent !important;
 }
 
