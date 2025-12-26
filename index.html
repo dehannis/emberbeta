@@ -5,6 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Ember - A minimalistic memory app" />
+    <style>
+      /* Prevent white flash on page load and navigation */
+      html, body {
+        background-color: #0a0a0a !important;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #root {
+        background-color: #0a0a0a !important;
+        width: 100%;
+        min-height: 100vh;
+      }
+      /* Prevent flash during React Router navigation */
+      body > * {
+        background-color: #0a0a0a !important;
+      }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:wght@300&display=block" as="style" onload="this.onload=null;this.rel='stylesheet'">

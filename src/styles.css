@@ -148,6 +148,17 @@ html, body {
     font-weight: 300;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Prevent white flash on navigation */
+    transition: background-color 0s;
+}
+
+/* Ensure dark background is set immediately to prevent white flash */
+html {
+    background-color: var(--black) !important;
+}
+
+body {
+    background-color: var(--black) !important;
 }
 
 body {
@@ -195,6 +206,18 @@ body {
     flex-direction: column;
     position: relative;
     overflow: visible;
+    background-color: var(--black) !important; /* Always dark background to prevent white flash */
+    width: 100%;
+}
+
+/* Router wrapper should be transparent to allow video/background images to show */
+#root > div {
+    background-color: transparent !important;
+    background: transparent !important;
+    min-height: 100vh;
+    width: 100%;
+    position: relative;
+    z-index: 0; /* Ensure it's above the video (z-index: -1) but doesn't block it */
 }
 
 /* Prevent scrolling on landing page - target root when landing container is present */
@@ -210,15 +233,34 @@ body:has(.landing-container) {
     height: 100vh;
 }
 
-/* Make body transparent when video background is present */
+/* Make body transparent when video background is present, but keep root dark */
 body:has(.landing-video),
-body:has(.remember-background) {
+body:has(.remember-background),
+body:has(.listen-background) {
     background-color: transparent !important;
 }
 
 html:has(.landing-video),
-html:has(.remember-background) {
+html:has(.remember-background),
+html:has(.listen-background) {
     background-color: transparent !important;
+}
+
+/* Root stays dark for remember/listen backgrounds, but transparent for landing video */
+#root:has(.remember-background),
+#root:has(.listen-background) {
+    background-color: var(--black) !important; /* Keep root dark to prevent flash */
+}
+
+/* Landing video should be visible - make root transparent when video is present */
+/* JavaScript in Landing.tsx will make it transparent after video loads to prevent white flash */
+#root:has(.landing-video) {
+    background-color: transparent !important;
+}
+
+/* During navigation transitions, keep root dark to prevent white flash */
+#root {
+    transition: background-color 0.2s ease-in;
 }
 
 /* Prevent scrolling on remember page */
@@ -239,6 +281,7 @@ body:has(.remember-page) {
     flex-direction: column;
     padding: 2rem 2rem 0 2rem;
     background: transparent; /* Allow gradient/video to show through */
+    background-color: var(--black); /* Dark fallback to prevent white flash during navigation */
 }
 
 .header {
