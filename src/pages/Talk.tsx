@@ -3,14 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import './Talk.css'
 
 const colorSchemes = [
-  { name: 'blue', primary: '140, 200, 255', secondary: '100, 180, 255' }, // Light blue (default)
-  { name: 'orange', primary: '255, 180, 120', secondary: '255, 150, 100' }, // Warm orange
-  { name: 'green', primary: '150, 220, 150', secondary: '120, 200, 120' }, // Warm green
-  { name: 'red', primary: '255, 140, 140', secondary: '255, 120, 120' }, // Warm red
-  { name: 'yellow', primary: '255, 220, 140', secondary: '255, 200, 120' }, // Warm yellow
-  { name: 'purple', primary: '220, 180, 255', secondary: '200, 160, 255' }, // Warm purple
-  { name: 'white', primary: '255, 255, 255', secondary: '240, 240, 240' }, // White
   { name: 'klein', primary: '0, 47, 167', secondary: '0, 35, 150' }, // Yves Klein Blue
+  { name: 'white', primary: '255, 255, 255', secondary: '240, 240, 240' }, // White
 ]
 
 const Talk: React.FC = () => {
@@ -57,19 +51,8 @@ const Talk: React.FC = () => {
     return `${proto}://${host}:8788/evi`
   }, [])
   
-  // Initialize color index from localStorage or default to 0
-  const getInitialColorIndex = () => {
-    const savedColorIndex = localStorage.getItem('emberTalkOrbColor')
-    if (savedColorIndex !== null) {
-      const index = parseInt(savedColorIndex, 10)
-      if (index >= 0 && index < colorSchemes.length) {
-        return index
-      }
-    }
-    return 0
-  }
-  
-  const [colorIndex, setColorIndex] = useState(getInitialColorIndex)
+  // Always start with Yves Klein first on page load (then toggle to white on click).
+  const [colorIndex, setColorIndex] = useState(0)
 
   const isInitialMount = useRef(true)
 
@@ -81,8 +64,9 @@ const Talk: React.FC = () => {
     const fromVerification = sessionStorage.getItem('emberFromVerification')
     if (fromVerification === 'true') {
       sessionStorage.removeItem('emberFromVerification')
-      setColorIndex(0) // Light blue
-      localStorage.setItem('emberTalkOrbColor', '0') // Also save it
+      // Default color (Yves Klein)
+      setColorIndex(0)
+      localStorage.setItem('emberTalkOrbColor', '0')
     }
   }, [])
 

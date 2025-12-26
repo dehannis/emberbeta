@@ -10,8 +10,7 @@ interface AccountData {
   voice: string
 }
 
-type TopicMode = 'biography' | 'custom'
-type TopicVisibility = 'private' | 'shared'
+type TopicMode = 'house' | 'meal' | 'custom'
 
 interface NextCallSettings {
   everyDays: number
@@ -19,7 +18,6 @@ interface NextCallSettings {
   timeZone: string
   topicMode: TopicMode
   prompt: string
-  topicVisibility: TopicVisibility
 }
 
 const Account: React.FC = () => {
@@ -48,17 +46,38 @@ const Account: React.FC = () => {
 
   const tzShort = (tz: string) => TIME_ZONES.find((t) => t.value === tz)?.short ?? tz
 
-  const defaultBiographyNotes = () => {
-    return `In your last conversation, you shared a meaningful story. For this next conversation, we’ll continue by exploring what happened next and how it shaped your life.`
+  const defaultTopicNotes = (mode: TopicMode) => {
+    if (mode === 'meal') {
+      return (
+        `Topic: My Favorite Home Cooked Meal\n` +
+        `This is a powerful topic because food is memory—smell, texture, and ritual can bring an entire chapter of life back instantly.\n\n` +
+        `Ember will ask:\n` +
+        `- What is the meal, and who made it most often?\n` +
+        `- Where were you when you ate it—what did the room look and sound like?\n` +
+        `- What did it mean in your family (comfort, celebration, survival, love)?\n` +
+        `- Tell a specific moment: one day you remember vividly, and why.\n` +
+        `- If someone you love tasted it today, what would you want them to understand about you?`
+      )
+    }
+    // Default to house
+    return (
+      `Topic: The House Where I Grew Up\n` +
+      `This is a powerful topic because places hold the blueprint of who we became—our first routines, relationships, fears, and joys.\n\n` +
+      `Ember will ask:\n` +
+      `- Describe arriving home—what you saw first, and what you felt.\n` +
+      `- Walk room by room: what happened in the kitchen, living room, and your bedroom?\n` +
+      `- Who lived there with you, and what were they like in that season?\n` +
+      `- What was a small detail you can still picture (a sound, a smell, a corner)?\n` +
+      `- Share one story from that house that shaped you—and what you carry forward today.`
+    )
   }
 
   const defaultNextCall: NextCallSettings = {
     everyDays: 1,
     time: '18:00',
     timeZone: 'America/Los_Angeles',
-    topicMode: 'biography',
-    prompt: defaultBiographyNotes(),
-    topicVisibility: 'shared',
+    topicMode: 'house',
+    prompt: defaultTopicNotes('house'),
   }
 
   const [nextCall, setNextCall] = useState<NextCallSettings>(defaultNextCall)
@@ -110,9 +129,18 @@ const Account: React.FC = () => {
         everyDays: Number.isFinite(parsed?.everyDays) ? Math.max(0, Math.min(99, Math.floor(parsed.everyDays))) : 1,
         time: typeof parsed?.time === 'string' ? parsed.time : '18:00',
         timeZone: typeof parsed?.timeZone === 'string' ? parsed.timeZone : 'America/Los_Angeles',
-        topicMode: parsed?.topicMode === 'custom' ? 'custom' : 'biography',
-        prompt: typeof parsed?.prompt === 'string' ? parsed.prompt : defaultBiographyNotes(),
-        topicVisibility: parsed?.topicVisibility === 'private' ? 'private' : 'shared',
+        topicMode:
+          parsed?.topicMode === 'custom'
+            ? 'custom'
+            : parsed?.topicMode === 'meal'
+              ? 'meal'
+              : 'house', // migrate old "biography" -> "house"
+        prompt:
+          typeof parsed?.prompt === 'string' && parsed.prompt.trim()
+            ? parsed.prompt
+            : defaultTopicNotes(
+                parsed?.topicMode === 'meal' ? 'meal' : parsed?.topicMode === 'custom' ? 'custom' : 'house',
+              ),
       }
 
       setNextCall(cleaned)
@@ -123,11 +151,11 @@ const Account: React.FC = () => {
     }
   }, [])
 
-  // Ensure biography prompt stays in sync with the name (unless user is customizing).
+  // Keep preset prompts stable (unless user is customizing).
   useEffect(() => {
-    if (nextCall.topicMode !== 'biography') return
-    setNextCall((prev) => ({ ...prev, prompt: defaultBiographyNotes() }))
-  }, [formData.name, nextCall.topicMode])
+    if (nextCall.topicMode === 'custom') return
+    setNextCall((prev) => ({ ...prev, prompt: defaultTopicNotes(nextCall.topicMode) }))
+  }, [nextCall.topicMode])
 
   useLayoutEffect(() => {
     document
@@ -352,22 +380,6 @@ const Account: React.FC = () => {
                 <div className="account-nextcall-topic">
                   <div className="account-nextcall-topic-header">
                     <div className="form-label">TOPIC OF NEXT CALL</div>
-                    <div className="account-nextcall-privacy" role="group" aria-label="Topic visibility">
-                      <button
-                        type="button"
-                        className={`account-nextcall-privacy-btn ${nextCall.topicVisibility === 'shared' ? 'active' : ''}`}
-                        onClick={() => setNextCall((p) => ({ ...p, topicVisibility: 'shared' }))}
-                      >
-                        Shared
-                      </button>
-                      <button
-                        type="button"
-                        className={`account-nextcall-privacy-btn ${nextCall.topicVisibility === 'private' ? 'active' : ''}`}
-                        onClick={() => setNextCall((p) => ({ ...p, topicVisibility: 'private' }))}
-                      >
-                        Private
-                      </button>
-                    </div>
                   </div>
                   <div className="select-wrapper">
                     <select
@@ -375,18 +387,19 @@ const Account: React.FC = () => {
                       value={nextCall.topicMode}
                       onChange={(e) => {
                         const mode = e.target.value as TopicMode
-                        if (mode === 'biography') {
+                        if (mode === 'house' || mode === 'meal') {
                           setNextCall((p) => ({
                             ...p,
-                            topicMode: 'biography',
-                            prompt: defaultBiographyNotes(),
+                            topicMode: mode,
+                            prompt: defaultTopicNotes(mode),
                           }))
                         } else {
                           setNextCall((p) => ({ ...p, topicMode: 'custom' }))
                         }
                       }}
                     >
-                      <option value="biography">Biography (Default)</option>
+                      <option value="house">The House Where I Grew Up</option>
+                      <option value="meal">My Favorite Home Cooked Meal</option>
                       <option value="custom">Custom</option>
                     </select>
                   </div>
@@ -401,7 +414,7 @@ const Account: React.FC = () => {
                     placeholder={
                       nextCall.topicMode === 'custom'
                         ? 'Example: Tell me about the first country you traveled to'
-                        : 'Biography notes…'
+                        : 'Topic notes…'
                     }
                     rows={2}
                   />

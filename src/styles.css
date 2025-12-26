@@ -244,20 +244,19 @@ body:has(.landing-container) {
 
 /* Make body transparent when video background is present, but keep root dark */
 body:has(.landing-video),
-body:has(.listen-background),
-body:has(.remember-page) {
+body:has(.remember-page),
+body:has(.play-page) {
     background-color: transparent !important;
 }
 
 html:has(.landing-video),
-html:has(.listen-background),
-html:has(.remember-page) {
+html:has(.remember-page),
+html:has(.play-page) {
     background-color: transparent !important;
 }
 
 /* Root stays dark for remember/listen backgrounds, but transparent for landing video */
-#root:has(.remember-background),
-#root:has(.listen-background) {
+#root:has(.remember-background) {
     background-color: var(--black) !important; /* Keep root dark to prevent flash */
 }
 
@@ -273,7 +272,8 @@ html:has(.remember-page) {
 }
 
 /* Prevent scrolling on remember page */
-body:has(.remember-page) {
+body:has(.remember-page),
+body:has(.play-page) {
     overflow: hidden;
     height: 100vh;
     height: 100dvh;
@@ -282,20 +282,22 @@ body:has(.remember-page) {
     overscroll-behavior-y: none;
 }
 
-#root:has(.remember-page) {
+#root:has(.remember-page),
+#root:has(.play-page) {
     height: 100vh;
     height: 100dvh;
     max-height: 100vh;
     max-height: 100dvh;
     overflow: hidden;
-    /* Remember background image (Listen-style) */
+    /* Remember/Play background image */
     background-image: url('/stock/ember_purple.png') !important;
     background-size: cover !important;
     background-position: center center !important;
     background-repeat: no-repeat !important;
 }
 
-html:has(.remember-page) {
+html:has(.remember-page),
+html:has(.play-page) {
     background-color: var(--black) !important;
     overscroll-behavior-y: none;
 }

@@ -2,28 +2,13 @@ import React, { useState, useRef, useCallback, useMemo, useEffect, useLayoutEffe
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import type { Creator, Memory } from '../data/sampleMemories'
+import { creators, generateSampleMemories } from '../data/sampleMemories'
 import './Remember.css'
 
 // ============================================
 // Types
 // ============================================
-
-interface Memory {
-  id: string
-  imageUrl: string
-  creatorId: string
-  creatorName: string
-  date: Date
-  title: string
-  topic: string
-  durationSec: number
-  recordingId?: string
-}
-
-interface Creator {
-  id: string
-  name: string
-}
 
 // ============================================
 // Card Depth States (from Figma)
@@ -90,68 +75,11 @@ function getCardDepthState(depthIndex: number): CardDepthState | null {
 // Sample Data
 // ============================================
 
-const creators: Creator[] = [
-  { id: 'dad', name: 'Dad' },
-  { id: 'mom', name: 'Mom' },
-  { id: 'me', name: 'Me' },
-]
-
 // Position-based offsets (left, center, right)
 // Tighten the left/right columns so near-front blocks don't feel overly separated on mobile.
 // 25% tighter than the original ±340 => 340 * 0.75 = 255
 const MAX_COLUMN_X_OFFSET = 255
 const POSITION_OFFSETS = [-MAX_COLUMN_X_OFFSET, 0, MAX_COLUMN_X_OFFSET]
-
-function generateSampleMemories(): Memory[] {
-  const memories: Memory[] = []
-  const years = [2025, 2024, 2023, 2022, 2021, 2020]
-  // Topic = broader bucket/category. Title = specific memory within the topic.
-  const topics = [
-    'Home',
-    'Food',
-    'Family',
-    'School',
-    'Work',
-    'Places',
-    'Turning Points',
-  ]
-  const titles = [
-    'The House Where I Grew Up',
-    'My Favorite Recipe Growing Up',
-    'Sunday Mornings In The Kitchen',
-    'The Day We Moved',
-    'A Lesson I Learned Too Late',
-    'The Photo I Still Think About',
-    'The First Job That Changed Everything',
-    'A Person Who Shaped Me',
-    'The Place I Miss Most',
-  ]
-
-  creators.forEach(creator => {
-    years.forEach((year) => {
-      const count = 2 + Math.floor(Math.random() * 3)
-      for (let i = 0; i < count; i++) {
-        const month = Math.floor(Math.random() * 12)
-        const day = 1 + Math.floor(Math.random() * 28)
-        const topic = topics[(year + month + i) % topics.length]
-        const title = titles[(year + month + i * 3) % titles.length]
-        memories.push({
-          id: `${creator.id}-${year}-${i}`,
-          imageUrl: `/placeholder-memory.jpg`,
-          creatorId: creator.id,
-          creatorName: creator.name,
-          date: new Date(year, month, day),
-          title,
-          topic,
-          durationSec: 45 + Math.floor(Math.random() * 195), // 0:45–3:59
-          recordingId: `recording-${creator.id}-${year}-${i}`,
-        })
-      }
-    })
-  })
-
-  return memories
-}
 
 // ============================================
 // Date Formatting
@@ -334,6 +262,8 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
         transform: `translateX(${convergedXOffset - (finalSize * activeSizeBoost) / 2}px) translateY(${finalYOffset}px) translateZ(${depthState.z}px)`,
       }}
       onClick={handleClick}
+      data-memory-id={memory.id}
+      data-creator-id={memory.creatorId}
     >
       <div
         className={`memory-thread-node ${isActive && isFullyCenter ? 'memory-thread-node--active' : ''}`}
@@ -607,7 +537,6 @@ const Remember: React.FC = () => {
   const [activeCreatorIndex, setActiveCreatorIndex] = useState(2) // Start with Me
   const [scrollPosition, setScrollPosition] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [isNavigatingToListen, setIsNavigatingToListen] = useState(false)
   const [isVisible, setIsVisible] = useState(false) // Start hidden, fade in after delay
   // Animated positions: [Dad xOffset, Mom xOffset, Me xOffset]
   // Start: Mom=left, Me=center, Dad=right (per request)
@@ -628,6 +557,25 @@ const Remember: React.FC = () => {
   // Thread polylines: measured from per-card glow nodes (pixel perfect)
   const [threadSvgSize, setThreadSvgSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
   const [threadPaths, setThreadPaths] = useState<Record<string, string>>({})
+
+  // Transition into Play page (zoom into active memory, fade everything else).
+  const PLAY_QUOTES = useMemo(
+    () => [
+      'I didn’t realize it at the time, but that moment stayed with me.',
+      'Some memories don’t fade—they just change shape.',
+      'I can still hear the room, the pause, the breath before the story.',
+      'There are days that quietly become the foundation for everything else.',
+    ],
+    [],
+  )
+  const [playTransition, setPlayTransition] = useState<null | {
+    recordingId: string
+    creatorName: string
+    quote: string
+    rect: { top: number; left: number; width: number; height: number }
+  }>(null)
+  const [isPlayZooming, setIsPlayZooming] = useState(false)
+  const playNavTimerRef = useRef<number | null>(null)
 
   // Entrance animation: wait 0.5s, then fade in over 2s
   useEffect(() => {
@@ -818,6 +766,7 @@ const Remember: React.FC = () => {
 
   // Handle scroll (macOS natural scrolling - content follows finger)
   const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (playTransition) return
     e.preventDefault()
 
     // Horizontal scroll → switch creators
@@ -839,19 +788,21 @@ const Remember: React.FC = () => {
     // Natural: swipe up (deltaY < 0) → content moves up → older memories (scrollPosition increases)
     // Inverted from traditional: subtract instead of add
     setScrollPosition(prev => Math.max(0, prev - e.deltaY * 0.5))
-  }, [activeCreatorIndex, switchToCreator])
+  }, [activeCreatorIndex, playTransition, switchToCreator])
 
   // Touch gesture handling
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (playTransition) return
     touchStartRef.current = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
       time: Date.now(),
     }
     gestureRef.current.isVertical = null
-  }, [])
+  }, [playTransition])
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (playTransition) return
     const currentX = e.touches[0].clientX
     const currentY = e.touches[0].clientY
     const deltaX = Math.abs(currentX - touchStartRef.current.x)
@@ -867,9 +818,10 @@ const Remember: React.FC = () => {
       setScrollPosition(prev => Math.max(0, prev + scrollDelta * 0.5))
       touchStartRef.current.y = currentY
     }
-  }, [])
+  }, [playTransition])
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (playTransition) return
     const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x
     const deltaTime = Date.now() - touchStartRef.current.time
 
@@ -891,7 +843,7 @@ const Remember: React.FC = () => {
     }
 
     gestureRef.current.isVertical = null
-  }, [activeCreatorIndex, switchToCreator])
+  }, [activeCreatorIndex, playTransition, switchToCreator])
 
   // Handle shuffle
   const handleShuffle = useCallback(() => {
@@ -902,14 +854,56 @@ const Remember: React.FC = () => {
     setScrollPosition(randomIndex * 100)
   }, [allMemories, activeCreatorIndex])
 
-  // Navigation with fade transition
-  const handleNavigateToListen = useCallback((recordingId: string) => {
-    setIsNavigatingToListen(true)
-    // Wait 0.5s delay, then fade out, then navigate
-    setTimeout(() => {
-      navigate(`/listen/${recordingId}`, { state: { fromRemember: true } })
-    }, 500)
-  }, [navigate])
+  const startPlayTransition = useCallback((recordingId: string) => {
+    if (!recordingId) return
+    if (playNavTimerRef.current) {
+      window.clearTimeout(playNavTimerRef.current)
+      playNavTimerRef.current = null
+    }
+
+    const memoryForRecording =
+      allMemories.find(m => m.recordingId === recordingId) ?? currentMemory
+    const creatorName =
+      creators.find(c => c.id === memoryForRecording.creatorId)?.name ?? 'Me'
+    const quote = PLAY_QUOTES[Math.floor(Math.random() * PLAY_QUOTES.length)]
+    const playMeta = {
+      title: memoryForRecording.title,
+      topic: memoryForRecording.topic,
+      dateISO: memoryForRecording.date.toISOString(),
+    }
+
+    const viewportEl = timelineViewportRef.current
+    const sel = `[data-memory-id="${memoryForRecording.id}"][data-creator-id="${memoryForRecording.creatorId}"]`
+    const cardEl = (viewportEl?.querySelector(sel) ?? document.querySelector(sel)) as HTMLElement | null
+    const r = cardEl?.getBoundingClientRect()
+
+    if (!r || r.width <= 0 || r.height <= 0) {
+      // Fallback: no measured rect → navigate immediately.
+      navigate(`/play/${recordingId}`, { state: { fromRemember: true, quote, creatorName, playMeta } })
+      return
+    }
+
+    setPlayTransition({
+      recordingId,
+      creatorName,
+      quote,
+      rect: { top: r.top, left: r.left, width: r.width, height: r.height },
+    })
+    setIsPlayZooming(false)
+    requestAnimationFrame(() => setIsPlayZooming(true))
+
+    // 700ms zoom per spec; navigate right after.
+    playNavTimerRef.current = window.setTimeout(() => {
+      navigate(`/play/${recordingId}`, { state: { fromRemember: true, quote, creatorName, playMeta } })
+    }, 700)
+  }, [PLAY_QUOTES, allMemories, creators, currentMemory, navigate])
+
+  // Clean up timers if unmounting mid-transition.
+  useEffect(() => {
+    return () => {
+      if (playNavTimerRef.current) window.clearTimeout(playNavTimerRef.current)
+    }
+  }, [])
 
   // Ensure root has dark background immediately when Remember page loads
   // This prevents white flash when navigating from landing page
@@ -924,7 +918,31 @@ const Remember: React.FC = () => {
 
   return (
     <>
-      <div className={`remember-page ${isNavigatingToListen ? 'remember-page--fading-out' : ''}`}>
+      <div
+        className={[
+          'remember-page',
+          playTransition ? 'remember-page--playTransition' : '',
+          isPlayZooming ? 'remember-page--playZooming' : '',
+        ].join(' ')}
+      >
+        {playTransition && (
+          <>
+            <div
+              className={`remember-playOverlay ${isPlayZooming ? 'remember-playOverlay--zooming' : ''}`}
+              style={{
+                top: `${playTransition.rect.top}px`,
+                left: `${playTransition.rect.left}px`,
+                width: `${playTransition.rect.width}px`,
+                height: `${playTransition.rect.height}px`,
+              }}
+              aria-hidden="true"
+            >
+              <div className="memory-card__image" style={{ opacity: 1 }}>
+                <div className="memory-card__placeholder" />
+              </div>
+            </div>
+          </>
+        )}
         {isVisible && threadSvgSize.w > 0 && threadSvgSize.h > 0 && (
           <svg
             className="remember-threadOverlay remember-threadOverlay--visible"
@@ -942,10 +960,11 @@ const Remember: React.FC = () => {
                 y1={threadSvgSize.h}
                 y2="0"
               >
-                <stop offset="0%" stopColor="rgba(255,255,255,0.20)" />
-                <stop offset="40%" stopColor="rgba(255,255,255,0.10)" />
-                <stop offset="70%" stopColor="rgba(255,255,255,0.04)" />
-                <stop offset="100%" stopColor="rgba(255,255,255,0.00)" />
+                {/* Dark graphite thread, same fade curve */}
+                <stop offset="0%" stopColor="rgba(92,92,98,0.42)" />
+                <stop offset="40%" stopColor="rgba(92,92,98,0.22)" />
+                <stop offset="70%" stopColor="rgba(92,92,98,0.10)" />
+                <stop offset="100%" stopColor="rgba(92,92,98,0.00)" />
               </linearGradient>
             </defs>
             {Object.entries(threadPaths).map(([col, d]) => (
@@ -955,7 +974,7 @@ const Remember: React.FC = () => {
         )}
         <Header />
 
-        <div className={`remember-content ${isVisible ? 'remember-content--visible' : ''} ${isNavigatingToListen ? 'remember-content--fading-out' : ''}`}>
+        <div className={`remember-content ${isVisible ? 'remember-content--visible' : ''}`}>
           <CreatorHeader
             creators={creators}
             activeCreatorIndex={activeCreatorIndex}
@@ -988,7 +1007,7 @@ const Remember: React.FC = () => {
                   isCenter={isCenter}
                   centerBlend={centerBlends[index]}
                   onSelect={handleSelectMemory}
-                  onNavigate={handleNavigateToListen}
+                  onNavigate={startPlayTransition}
                 />
               )
             })}
@@ -1029,9 +1048,28 @@ const Remember: React.FC = () => {
                 </>
               )}
             </div>
-            <button className="remember-btn remember-btn--shuffle" onClick={handleShuffle} aria-label="Shuffle">
-              ⤭
-            </button>
+            <div className="remember-bottomBar-actions">
+              <button
+                className="remember-btn remember-btn--play"
+                type="button"
+                aria-label="Play"
+                disabled={!currentMemory?.recordingId}
+                onClick={() => {
+                  if (!currentMemory?.recordingId) return
+                  startPlayTransition(currentMemory.recordingId)
+                }}
+              >
+                ▶
+              </button>
+              <button
+                className="remember-btn remember-btn--shuffle"
+                type="button"
+                onClick={handleShuffle}
+                aria-label="Shuffle"
+              >
+                ⤭
+              </button>
+            </div>
           </div>
         </div>
 

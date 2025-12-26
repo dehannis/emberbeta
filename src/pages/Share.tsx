@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import Header from '../components/Header'
 import './Share.css'
 
-type TopicMode = 'biography' | 'custom'
+type TopicMode = 'house' | 'meal' | 'custom'
 type Relationship =
   | 'mother'
   | 'father'
@@ -33,7 +33,6 @@ interface SharingContact {
   nextCallVoice: string
   nextCallTopicMode: TopicMode
   nextCallPrompt: string
-  nextCallTopicVisibility?: 'private' | 'shared'
 }
 
 const CONTACTS_KEY = 'emberContactsV1'
@@ -55,24 +54,33 @@ const autoResizeTextarea = (el: HTMLTextAreaElement | null) => {
 }
 
 const Share: React.FC = () => {
-  const defaultBiographyNotes = (name: string) => {
+  const defaultTopicNotes = (name: string, mode: TopicMode) => {
     const n = name.trim() || 'They'
-    const key = n.toLowerCase()
-    if (key.includes('suchan')) {
+    const isHe = n.toLowerCase().includes('hank') || n.toLowerCase().includes('suchan')
+    const p = isHe ? 'he' : 'they'
+
+    if (mode === 'meal') {
       return (
-        `In his last conversation, Suchan spoke about his best friend growing up, and how they enjoyed riding a bike together.\n` +
-        `For this next conversation, we’ll explore his relationship with his best friend, how things evolved as they grew up, and the last time they connected.`
+        `Topic: My Favorite Home Cooked Meal\n` +
+        `This is a powerful topic because food is memory—smell, texture, and ritual can bring an entire chapter of life back instantly.\n\n` +
+        `Ember will ask ${n}:\n` +
+        `- What is the meal, and who made it most often?\n` +
+        `- Where were you when you ate it—what did the room look and sound like?\n` +
+        `- What did it mean in your family (comfort, celebration, survival, love)?\n` +
+        `- Tell a specific moment: one day you remember vividly, and why.\n` +
+        `- If someone you love tasted it today, what would you want them to understand about you?`
       )
     }
-    if (key.includes('hank')) {
-      return (
-        `In his last conversation, Hank talked about a job that shaped his twenties, and the mentor who pushed him to take bigger risks.\n` +
-        `For this next conversation, we’ll explore how that mentorship changed his confidence, what he learned the hard way, and the moment he realized he’d outgrown that chapter.`
-      )
-    }
+
     return (
-      `In their last conversation, ${n} shared a meaningful early memory and what it taught them.\n` +
-      `For this next conversation, we’ll continue that thread—what changed over time, who stayed close, and a moment that still feels vivid today.`
+      `Topic: The House Where I Grew Up\n` +
+      `This is a powerful topic because places hold the blueprint of who we became—our first routines, relationships, fears, and joys.\n\n` +
+      `Ember will ask ${n}:\n` +
+      `- Describe arriving home—what you saw first, and what you felt.\n` +
+      `- Walk room by room: what happened in the kitchen, living room, and your bedroom?\n` +
+      `- Who lived there with you, and what were they like in that season?\n` +
+      `- What was a small detail ${p} can still picture (a sound, a smell, a corner)?\n` +
+      `- Share one story from that house that shaped ${p}—and what ${p} carries forward today.`
     )
   }
 
@@ -91,9 +99,8 @@ const Share: React.FC = () => {
         nextCallTimeZone: 'America/Los_Angeles',
         nextCallLanguage: 'English',
         nextCallVoice: 'female',
-        nextCallTopicMode: 'biography',
-        nextCallTopicVisibility: 'shared',
-        nextCallPrompt: defaultBiographyNotes('Suchan Chae'),
+        nextCallTopicMode: 'house',
+        nextCallPrompt: defaultTopicNotes('Suchan Chae', 'house'),
       },
       {
         id: 'c-2',
@@ -108,9 +115,8 @@ const Share: React.FC = () => {
         nextCallTimeZone: 'America/Los_Angeles',
         nextCallLanguage: 'English',
         nextCallVoice: 'female',
-        nextCallTopicMode: 'biography',
-        nextCallTopicVisibility: 'private',
-        nextCallPrompt: defaultBiographyNotes('Hank Lee'),
+        nextCallTopicMode: 'meal',
+        nextCallPrompt: defaultTopicNotes('Hank Lee', 'meal'),
       },
     ],
     [],
@@ -222,9 +228,8 @@ const Share: React.FC = () => {
     nextCallTimeZone: 'America/Los_Angeles',
     nextCallLanguage: 'English',
     nextCallVoice: 'female',
-    nextCallTopicMode: 'biography',
+    nextCallTopicMode: 'house',
     nextCallPrompt: '',
-      nextCallTopicVisibility: 'shared',
   })
 
   useLayoutEffect(() => {
@@ -303,16 +308,13 @@ const Share: React.FC = () => {
               : 'America/Los_Angeles',
           nextCallLanguage: typeof c.nextCallLanguage === 'string' ? c.nextCallLanguage : 'English',
           nextCallVoice: typeof c.nextCallVoice === 'string' ? c.nextCallVoice : 'female',
-          nextCallTopicMode: (c.nextCallTopicMode === 'custom' ? 'custom' : 'biography') as TopicMode,
-          nextCallTopicVisibility: c.nextCallTopicVisibility === 'private'
-            ? 'private'
-            : (typeof c.name === 'string' && c.name.toLowerCase().includes('hank')
-              ? 'private'
-              : 'shared'),
+          nextCallTopicMode: (c.nextCallTopicMode === 'meal' ? 'meal' : c.nextCallTopicMode === 'custom' ? 'custom' : 'house') as TopicMode, // migrate old "biography" -> "house"
           nextCallPrompt:
             typeof c.nextCallPrompt === 'string' && c.nextCallPrompt.trim()
               ? c.nextCallPrompt
-              : ((c.nextCallTopicMode === 'custom' ? '' : defaultBiographyNotes(c.name)) as string),
+              : ((c.nextCallTopicMode === 'custom'
+                  ? ''
+                  : defaultTopicNotes(c.name, (c.nextCallTopicMode === 'meal' ? 'meal' : 'house') as TopicMode)) as string),
         }))
       // If we auto-filled defaults, persist them so the UI doesn't show as "dirty".
       persistContacts(cleaned)
@@ -444,7 +446,7 @@ const Share: React.FC = () => {
       nextCallEveryDays: 1,
       nextCallDate: '',
       nextCallTime: '18:00',
-      nextCallTopicMode: 'biography',
+      nextCallTopicMode: 'house',
       nextCallPrompt: '',
     }))
   }
@@ -514,7 +516,6 @@ const Share: React.FC = () => {
       nextCallVoice: x.nextCallVoice,
       nextCallTopicMode: x.nextCallTopicMode,
       nextCallPrompt: x.nextCallPrompt,
-      nextCallTopicVisibility: x.nextCallTopicVisibility === 'private' ? 'private' : 'shared',
     })
     return JSON.stringify(pick(saved)) !== JSON.stringify(pick(c))
   }
@@ -794,61 +795,51 @@ const Share: React.FC = () => {
 
                     <div className="sharing-topic-grid">
                       <div className="sharing-topic-label">Topic of Next Call</div>
-                      {c.nextCallTopicVisibility === 'private' ? (
-                        <div className="sharing-topic-privacy" aria-label="Topic visibility">
-                          PRIVATE
-                        </div>
-                      ) : (c.accountRole ?? 'regular') === 'admin' ? (
-                        <>
-                          <div className="sharing-select">
-                            <select
-                              className="sharing-control"
-                              value={c.nextCallTopicMode}
-                              onChange={(e) => {
-                                const mode = e.target.value as TopicMode
-                                if (mode === 'biography') {
-                                  updateContact(c.id, {
-                                    nextCallTopicMode: 'biography',
-                                    nextCallPrompt: defaultBiographyNotes(c.name),
-                                  })
-                                } else {
-                                  updateContact(c.id, { nextCallTopicMode: 'custom' })
-                                }
-                              }}
-                            >
-                              <option value="biography">Biography (Default)</option>
-                              <option value="custom">Custom</option>
-                            </select>
-                          </div>
-                          <textarea
-                            className="sharing-control sharing-control--notes ember-scroll"
-                            value={c.nextCallPrompt}
-                            onChange={(e) => {
-                              autoResizeTextarea(e.currentTarget)
-                              updateContact(c.id, { nextCallPrompt: e.target.value })
-                            }}
-                            readOnly={c.nextCallTopicMode !== 'custom'}
-                            placeholder={
-                              c.nextCallTopicMode === 'custom'
-                                ? 'Example: Tell me about the first country you traveled to'
-                                : 'Biography notes…'
+                      <div className="sharing-select">
+                        <select
+                          className="sharing-control"
+                          value={c.nextCallTopicMode}
+                          disabled={(c.accountRole ?? 'regular') !== 'admin'}
+                          onChange={(e) => {
+                            if ((c.accountRole ?? 'regular') !== 'admin') return
+                            const mode = e.target.value as TopicMode
+                            if (mode === 'house' || mode === 'meal') {
+                              updateContact(c.id, {
+                                nextCallTopicMode: mode,
+                                nextCallPrompt: defaultTopicNotes(c.name, mode),
+                              })
+                            } else {
+                              updateContact(c.id, { nextCallTopicMode: 'custom' })
                             }
-                            aria-required={c.nextCallTopicMode === 'custom'}
-                            aria-invalid={c.nextCallTopicMode === 'custom' && !c.nextCallPrompt.trim()}
-                            rows={2}
-                          />
-                        </>
-                      ) : (
-                        <textarea
-                          className="sharing-control sharing-control--notes ember-scroll"
-                          value={c.nextCallPrompt}
-                          readOnly
-                          rows={2}
-                        />
-                      )}
+                          }}
+                          aria-label="Topic of next call"
+                        >
+                          <option value="house">The House Where I Grew Up</option>
+                          <option value="meal">My Favorite Home Cooked Meal</option>
+                          <option value="custom">Custom</option>
+                        </select>
+                      </div>
+
+                      <textarea
+                        className="sharing-control sharing-control--notes ember-scroll"
+                        value={c.nextCallPrompt}
+                        onChange={(e) => {
+                          if ((c.accountRole ?? 'regular') !== 'admin') return
+                          autoResizeTextarea(e.currentTarget)
+                          updateContact(c.id, { nextCallPrompt: e.target.value })
+                        }}
+                        readOnly={(c.accountRole ?? 'regular') !== 'admin' || c.nextCallTopicMode !== 'custom'}
+                        placeholder={
+                          c.nextCallTopicMode === 'custom'
+                            ? 'Example: Tell me about the first country you traveled to'
+                            : 'Topic notes…'
+                        }
+                        aria-required={(c.accountRole ?? 'regular') === 'admin' && c.nextCallTopicMode === 'custom'}
+                        aria-invalid={(c.accountRole ?? 'regular') === 'admin' && c.nextCallTopicMode === 'custom' && !c.nextCallPrompt.trim()}
+                        rows={2}
+                      />
                     </div>
                     {(c.accountRole ?? 'regular') === 'admin' &&
-                      c.nextCallTopicVisibility !== 'private' &&
                       c.nextCallTopicMode === 'custom' &&
                       !c.nextCallPrompt.trim() && (
                         <div className="sharing-required-hint">Notes are required when using Custom.</div>

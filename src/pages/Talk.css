@@ -223,11 +223,8 @@
     width: 180px;
     height: 180px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, 
-        rgba(var(--color-primary, 140, 200, 255), 0.9) 0%,
-        rgba(var(--color-primary, 140, 200, 255), 0.8) 40%,
-        rgba(var(--color-secondary, 100, 180, 255), 0.7) 100%
-    );
+    /* Default fill: use the autumn image inside the orb on first load. */
+    background: url('/stock/autumn.png') center / cover no-repeat;
     box-shadow: 
         0 0 60px rgba(var(--color-primary, 140, 200, 255), 0.3),
         0 0 120px rgba(var(--color-secondary, 100, 180, 255), 0.15);
