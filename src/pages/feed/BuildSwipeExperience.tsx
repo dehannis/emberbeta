@@ -260,8 +260,27 @@ const BuildSwipeExperience: React.FC = () => {
   }
 
   const goPrevRecording = () => {
-    // Optional / disabled (per brief). Keep it simple for now.
+    const prevIdx = recordingIdx - 1
+    if (prevIdx < 0) return
+    const prev = recordings[prevIdx]
+    setTransitionCard({
+      visible: true,
+      label: prev.speakerName,
+      sub: `${prev.snippets.length} highlights · ${prev.dateLabel ?? 'Recorded'}`,
+    })
+    setRecordingIdx(prevIdx)
+    setInner({ kind: 'SNIPPET_PAGE_ACTIVE', index: 0 })
+
+    const reduced = prefersReducedMotion()
+    window.setTimeout(() => setTransitionCard(null), reduced ? 220 : 520)
   }
+
+  const recordedLabel = useMemo(() => {
+    const raw = (activeRecording?.dateLabel ?? '').trim()
+    if (!raw) return 'Recorded'
+    if (/^recorded\b/i.test(raw)) return raw.replace(/^recorded\b\s*/i, 'Recorded on ')
+    return `Recorded on ${raw}`
+  }, [activeRecording?.dateLabel])
 
   const swipeHandlers = useMemo(
     () => ({
@@ -275,6 +294,7 @@ const BuildSwipeExperience: React.FC = () => {
       },
       onSwipeDown: () => {
         setAudioEnabled(true)
+        // Vertical navigation: sessions, then end-of-feed pages.
         if (topState === 'RECORDING_STACK_ACTIVE') {
           goNextRecording()
           return
@@ -291,10 +311,46 @@ const BuildSwipeExperience: React.FC = () => {
           setTopState('END_OF_FEED_ACTIONS')
           return
         }
+        if (topState === 'END_OF_FEED_ACTIONS') {
+          // Wrap back to the first session.
+          setTopState('RECORDING_STACK_ACTIVE')
+          setRecordingIdx(0)
+          setInner({ kind: 'SNIPPET_PAGE_ACTIVE', index: 0 })
+          return
+        }
       },
       onSwipeUp: () => {
         setAudioEnabled(true)
-        goPrevRecording()
+        // Vertical navigation: sessions, then end-of-feed pages (reverse).
+        if (topState === 'RECORDING_STACK_ACTIVE') {
+          if (recordingIdx > 0) {
+            goPrevRecording()
+            return
+          }
+          // Wrap from first session into end-of-feed actions.
+          setTopState('END_OF_FEED_ACTIONS')
+          return
+        }
+        if (topState === 'END_OF_FEED_ACTIONS') {
+          setTopState('END_OF_FEED_REST')
+          return
+        }
+        if (topState === 'END_OF_FEED_REST') {
+          setTopState('END_OF_FEED_TOPICS')
+          return
+        }
+        if (topState === 'END_OF_FEED_TOPICS') {
+          setTopState('END_OF_FEED_REQUESTS')
+          return
+        }
+        if (topState === 'END_OF_FEED_REQUESTS') {
+          // Wrap back to the last session.
+          setTopState('RECORDING_STACK_ACTIVE')
+          const last = Math.max(0, recordings.length - 1)
+          setRecordingIdx(last)
+          setInner({ kind: 'SNIPPET_PAGE_ACTIVE', index: 0 })
+          return
+        }
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -623,14 +679,6 @@ const BuildSwipeExperience: React.FC = () => {
         </div>
       )}
 
-      {/* Top-left stamp */}
-      <div className="feed-speaker-stamp">
-        <div className="feed-speaker-name">{activeRecording.speakerName}</div>
-        <div className="feed-speaker-sub">
-          {activeRecording.snippets.length} highlights · {activeRecording.dateLabel ?? 'Recorded'}
-        </div>
-      </div>
-
       {/* Horizontal stack */}
       <div className="feed-horizontal">
         <div
@@ -683,16 +731,20 @@ const BuildSwipeExperience: React.FC = () => {
 
               <div className="feed-footer">
                 <div className="feed-footer-inner">
-                  <div className="feed-transport">
-                  <div className="feed-transport-left">
-                    <div className="feed-transport-label">
-                      {i + 1}/{activeRecording.snippets.length}
+                  <div className="feed-transport" aria-label="Session info">
+                    <div className="feed-transport-left">
+                      <div className="feed-session-name">{activeRecording.speakerName}</div>
+                      {activeRecording.topic && (
+                        <div className="feed-session-topic">
+                          <span className="feed-session-topic-label">Topic:</span>{' '}
+                          <span className="feed-session-topic-value">“{activeRecording.topic}”</span>
+                        </div>
+                      )}
+                      <div className="feed-session-meta">
+                        {i + 1}/{activeRecording.snippets.length} Highlights · {recordedLabel}
+                      </div>
                     </div>
-                    <div className="feed-transport-sub">Highlight</div>
-                  </div>
-                  <div className="feed-transport-right">
-                    {/* play/pause moved to the scrub bar */}
-                  </div>
+                    <div className="feed-transport-right" />
                   </div>
 
                 {inner.kind === 'SNIPPET_PAGE_ACTIVE' && inner.index === i && (

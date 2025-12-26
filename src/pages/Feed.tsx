@@ -1,15 +1,14 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import Header from '../components/Header'
 import BuildSwipeExperience from './feed/BuildSwipeExperience'
 import './Feed.css'
 
 const Feed: React.FC = () => {
-  const navigate = useNavigate()
   return (
     <div className="feed-shell">
-      <button className="feed-home-btn" type="button" onClick={() => navigate('/')}>
-        ○
-      </button>
+      <div className="feed-header-overlay">
+        <Header hidePhone />
+      </div>
       <BuildSwipeExperience />
     </div>
   )

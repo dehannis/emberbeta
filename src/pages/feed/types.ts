@@ -15,6 +15,7 @@ export interface Recording {
   speakerId: string
   speakerName: string
   relationship?: string
+  topic?: string
   dateLabel?: string
   durationSec: number
   coverArtSet?: {

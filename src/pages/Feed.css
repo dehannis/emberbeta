@@ -8,28 +8,18 @@
   color: rgba(255, 255, 255, 0.92);
 }
 
-.feed-home-btn {
+.feed-header-overlay {
   position: fixed;
-  top: 16px;
-  left: 16px;
-  z-index: 1000;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(0, 0, 0, 0.30);
-  color: rgba(255, 255, 255, 0.75);
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  /* Don't block swipe gestures except on the actual header content */
+  pointer-events: none;
 }
 
-.feed-home-btn:hover {
-  background: rgba(0, 0, 0, 0.46);
-  border-color: rgba(255, 255, 255, 0.28);
-  color: rgba(255, 255, 255, 0.92);
+.feed-header-overlay * {
+  pointer-events: auto;
 }
 
 

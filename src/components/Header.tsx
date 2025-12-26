@@ -28,11 +28,6 @@ const Header: React.FC<HeaderProps> = ({ hidePhone = false }) => {
     navigate('/feed')
   }
 
-  const handlePeopleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault()
-    navigate('/people')
-  }
-
   return (
     <header className="header">
       <span className="home-icon" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>
@@ -43,9 +38,6 @@ const Header: React.FC<HeaderProps> = ({ hidePhone = false }) => {
           <>
             <button className="feed-beta-btn" onClick={handleFeedClick} type="button">
               Listen (Beta)
-            </button>
-            <button className="feed-beta-btn" onClick={handlePeopleClick} type="button">
-              People (Beta)
             </button>
           </>
         )}
