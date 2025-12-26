@@ -1478,9 +1478,11 @@ input[type="number"].sharing-control {
 
 /* Mobile web: match Remember audio player horizontal inset (0.75rem per side at <= 768px) */
 @media (max-width: 768px) {
-  .container {
-    padding-left: calc(0.75rem + env(safe-area-inset-left));
-    padding-right: calc(0.75rem + env(safe-area-inset-right));
+  /* Global `.main-content` adds 2rem side padding; override it specifically for Sharing With.
+     IMPORTANT: do NOT change `.container` padding here, otherwise the Header home orb shifts. */
+  .container.share-page .main-content.share-content {
+    padding-left: 0.5rem !important;  /* 2rem - 1.5rem */
+    padding-right: 0.5rem !important; /* 2rem - 1.5rem */
   }
 }
 

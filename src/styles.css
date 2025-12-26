@@ -129,6 +129,12 @@
     --z-home-icon: 101;
 }
 
+html {
+    /* Prevent iOS Safari "text autosizing" that can look like an initial zoom. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -223,7 +229,9 @@ body {
 /* Prevent scrolling on landing page - target root when landing container is present */
 #root:has(.landing-container) {
     height: 100vh;
+    height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     overflow: hidden;
 }
 
@@ -231,18 +239,19 @@ body {
 body:has(.landing-container) {
     overflow: hidden;
     height: 100vh;
+    height: 100dvh;
 }
 
 /* Make body transparent when video background is present, but keep root dark */
 body:has(.landing-video),
-body:has(.remember-background),
-body:has(.listen-background) {
+body:has(.listen-background),
+body:has(.remember-page) {
     background-color: transparent !important;
 }
 
 html:has(.landing-video),
-html:has(.remember-background),
-html:has(.listen-background) {
+html:has(.listen-background),
+html:has(.remember-page) {
     background-color: transparent !important;
 }
 
@@ -267,12 +276,28 @@ html:has(.listen-background) {
 body:has(.remember-page) {
     overflow: hidden;
     height: 100vh;
+    height: 100dvh;
+    /* Prevent iOS rubber-band from revealing white behind the app */
+    background-color: var(--black) !important;
+    overscroll-behavior-y: none;
 }
 
 #root:has(.remember-page) {
     height: 100vh;
+    height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     overflow: hidden;
+    /* Remember background image (Listen-style) */
+    background-image: url('/stock/ember_purple.png') !important;
+    background-size: cover !important;
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
+}
+
+html:has(.remember-page) {
+    background-color: var(--black) !important;
+    overscroll-behavior-y: none;
 }
 
 .container {
@@ -500,6 +525,11 @@ body:has(.remember-page) {
         padding-top: 6vh;
     }
 
+    /* Landing (Home): shift the Talk/Remember/Share stack 2rem left on mobile */
+    .landing-main {
+        padding-left: 0;
+    }
+
     .option {
         padding: 1.5rem 0;
     }
@@ -608,8 +638,10 @@ body:has(.remember-page) {
     position: relative;
     overflow: hidden; /* Prevent scrolling within container */
     background: transparent; /* Video provides the background */
-    height: 100vh; /* Exactly viewport height, no more */
-    max-height: 100vh; /* Prevent exceeding viewport */
+    height: 100vh; /* fallback */
+    height: 100dvh; /* iOS Safari visual viewport */
+    max-height: 100vh; /* fallback */
+    max-height: 100dvh; /* iOS Safari visual viewport */
     display: flex;
     flex-direction: column;
 }
@@ -632,8 +664,10 @@ body:has(.remember-page) {
     /* Make video 10% larger to crop bottom-right watermark */
     width: 110vw !important;
     height: 110vh !important;
+    height: 110dvh !important;
     min-width: 110vw !important;
     min-height: 110vh !important;
+    min-height: 110dvh !important;
     max-width: none !important;
     max-height: none !important;
     object-fit: cover !important;

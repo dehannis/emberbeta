@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useMemo, useEffect, useLayoutEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
@@ -14,6 +14,9 @@ interface Memory {
   creatorId: string
   creatorName: string
   date: Date
+  title: string
+  topic: string
+  durationSec: number
   recordingId?: string
 }
 
@@ -39,13 +42,14 @@ interface CardDepthState {
 // Lookup table matching Figma's card sizes/positions
 // yOffset values tuned for steeper center stack angle
 const CARD_DEPTH_STATES: CardDepthState[] = [
-  { z: 0, size: 180, yOffset: 0, opacity: 1, titleSize: 24, dateSize: 13 },
-  { z: -120, size: 130, yOffset: -310, opacity: 0.9, titleSize: 17, dateSize: 6 },
-  { z: -220, size: 100, yOffset: -540, opacity: 0.8, titleSize: 13, dateSize: 5 },
-  { z: -300, size: 70, yOffset: -700, opacity: 0.7, titleSize: 9, dateSize: 3.5 },
-  { z: -360, size: 60, yOffset: -810, opacity: 0.6, titleSize: 7, dateSize: 3 },
-  { z: -410, size: 45, yOffset: -900, opacity: 0.5, titleSize: 5, dateSize: 2 },
-  { z: -450, size: 35, yOffset: -970, opacity: 0.4, titleSize: 4, dateSize: 1.5 },
+  // NOTE: sizes tuned for mobile-first readability at 100% zoom (avoid oversized serif + overlaps).
+  { z: 0, size: 180, yOffset: 0, opacity: 1, titleSize: 16, dateSize: 12 },
+  { z: -120, size: 130, yOffset: -310, opacity: 0.9, titleSize: 12, dateSize: 10 },
+  { z: -220, size: 100, yOffset: -540, opacity: 0.8, titleSize: 10, dateSize: 9 },
+  { z: -300, size: 70, yOffset: -700, opacity: 0.7, titleSize: 8, dateSize: 8 },
+  { z: -360, size: 60, yOffset: -810, opacity: 0.6, titleSize: 7, dateSize: 7 },
+  { z: -410, size: 45, yOffset: -900, opacity: 0.5, titleSize: 6, dateSize: 6 },
+  { z: -450, size: 35, yOffset: -970, opacity: 0.4, titleSize: 5, dateSize: 5 },
 ]
 
 // Interpolate between two depth states based on progress (0-1)
@@ -93,11 +97,35 @@ const creators: Creator[] = [
 ]
 
 // Position-based offsets (left, center, right)
-const POSITION_OFFSETS = [-340, 0, 340]
+// Tighten the left/right columns so near-front blocks don't feel overly separated on mobile.
+// 25% tighter than the original ±340 => 340 * 0.75 = 255
+const MAX_COLUMN_X_OFFSET = 255
+const POSITION_OFFSETS = [-MAX_COLUMN_X_OFFSET, 0, MAX_COLUMN_X_OFFSET]
 
 function generateSampleMemories(): Memory[] {
   const memories: Memory[] = []
   const years = [2025, 2024, 2023, 2022, 2021, 2020]
+  // Topic = broader bucket/category. Title = specific memory within the topic.
+  const topics = [
+    'Home',
+    'Food',
+    'Family',
+    'School',
+    'Work',
+    'Places',
+    'Turning Points',
+  ]
+  const titles = [
+    'The House Where I Grew Up',
+    'My Favorite Recipe Growing Up',
+    'Sunday Mornings In The Kitchen',
+    'The Day We Moved',
+    'A Lesson I Learned Too Late',
+    'The Photo I Still Think About',
+    'The First Job That Changed Everything',
+    'A Person Who Shaped Me',
+    'The Place I Miss Most',
+  ]
 
   creators.forEach(creator => {
     years.forEach((year) => {
@@ -105,12 +133,17 @@ function generateSampleMemories(): Memory[] {
       for (let i = 0; i < count; i++) {
         const month = Math.floor(Math.random() * 12)
         const day = 1 + Math.floor(Math.random() * 28)
+        const topic = topics[(year + month + i) % topics.length]
+        const title = titles[(year + month + i * 3) % titles.length]
         memories.push({
           id: `${creator.id}-${year}-${i}`,
           imageUrl: `/placeholder-memory.jpg`,
           creatorId: creator.id,
           creatorName: creator.name,
           date: new Date(year, month, day),
+          title,
+          topic,
+          durationSec: 45 + Math.floor(Math.random() * 195), // 0:45–3:59
           recordingId: `recording-${creator.id}-${year}-${i}`,
         })
       }
@@ -125,8 +158,8 @@ function generateSampleMemories(): Memory[] {
 // ============================================
 
 const monthNames = [
-  'january', 'february', 'march', 'april', 'may', 'june',
-  'july', 'august', 'september', 'october', 'november', 'december'
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
 ]
 
 function formatDate(date: Date): string {
@@ -146,6 +179,24 @@ function formatSeason(date: Date): string {
   return `winter ${year}`
 }
 
+function toTitleCase(input: string): string {
+  return input
+    .trim()
+    .split(/\s+/)
+    .map(word => {
+      const lower = word.toLowerCase()
+      return lower.length ? lower[0].toUpperCase() + lower.slice(1) : lower
+    })
+    .join(' ')
+}
+
+function formatDuration(durationSec: number): string {
+  const total = Math.max(0, Math.floor(durationSec))
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
 // ============================================
 // Memory Card Component
 // ============================================
@@ -156,6 +207,10 @@ interface MemoryCardProps {
   xOffset: number
   isActive: boolean
   centerBlend: number // 0 = side styling, 1 = center styling
+  columnId: string
+  depthIndex: number
+  sortedIndex: number
+  onSelect?: (args: { creatorId: string; sortedIndex: number }) => void
   onNavigate?: (recordingId: string) => void
 }
 
@@ -165,6 +220,10 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
   xOffset,
   isActive,
   centerBlend,
+  columnId,
+  depthIndex,
+  sortedIndex,
+  onSelect,
   onNavigate,
 }) => {
   // Traffic cone model: X offset + Z depth into screen + Y offset up
@@ -174,22 +233,43 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
   const convergedXOffset = xOffset * convergenceFactor
 
   // Derive center/side blend from X position for perfect sync
-  // xOffset: -340 (left) to 0 (center) to +340 (right)
+  // xOffset: -MAX_COLUMN_X_OFFSET (left) to 0 (center) to +MAX_COLUMN_X_OFFSET (right)
   // positionBlend: 0 (side) to 1 (center)
-  const positionBlend = 1 - Math.min(Math.abs(xOffset) / 340, 1)
+  const positionBlend = 1 - Math.min(Math.abs(xOffset) / MAX_COLUMN_X_OFFSET, 1)
 
   // Blend between side and center styling using positionBlend (derived from X position)
   // Side: 0.80 scale, center: 1.0 scale
   const sideScaleFactor = 0.80 + positionBlend * 0.20
   // Side: extra depth shrink, center: none
   const sideDepthScale = 1 - (1 - positionBlend) * depthRatio * 0.25
-  const finalSize = depthState.size * sideScaleFactor * sideDepthScale
+  // Global "zoom out" so more blocks are visible at once (mobile-first).
+  const globalScale = 0.78
+  const finalSize = depthState.size * sideScaleFactor * sideDepthScale * globalScale
 
   // Y offsets derived from X position - moves in perfect sync with horizontal slide
-  const centerYExtra = positionBlend * depthRatio * -100
-  const sideYBase = (1 - positionBlend) * 60
-  const sideYExtra = (1 - positionBlend) * depthRatio * 60
-  const finalYOffset = depthState.yOffset + centerYExtra + sideYBase + sideYExtra
+  // Perception tuning:
+  // - Center column should feel slightly "closer" than side columns.
+  // In this perspective setup, lower on screen reads closer, so we bias center down a bit
+  // and bias side columns up a bit (especially for the near-front blocks).
+  const centerYExtra = positionBlend * depthRatio * -85
+  const centerYBase = positionBlend * 18
+  const sideYBase = (1 - positionBlend) * -18
+  const sideYExtra = (1 - positionBlend) * depthRatio * -18
+
+  // Tighten vertical spacing between depth layers so the stack reads denser on mobile.
+  const ySpacingScale = 0.86
+  // Desktop-only lift: cards are absolutely positioned, so CSS spacing tokens won't move them.
+  // Lift the whole stack slightly on desktop so labels never collide with the bottom info bar.
+  // Mobile-only lift: add a bit more breathing room above the bottom info bar.
+  const isDesktop =
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 769px)').matches
+  const desktopLift = isDesktop ? -110 : 0
+  // Apply to all non-desktop widths (mobile web + small tablets) so it reliably triggers.
+  const mobileLift = !isDesktop ? -48 /* ~3rem */ : 0
+  const finalYOffset =
+    (depthState.yOffset + centerYExtra + centerYBase + sideYBase + sideYExtra) * ySpacingScale
+    + desktopLift
+    + mobileLift
 
   const cardStyle: React.CSSProperties = {
     width: finalSize,
@@ -202,35 +282,75 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
   // Scale title/date sizes based on blend
   const textScale = sideScaleFactor * sideDepthScale
   const titleStyle: React.CSSProperties = {
-    fontSize: `${depthState.titleSize * textScale}px`,
-  }
-
-  const dateStyle: React.CSSProperties = {
-    fontSize: `${depthState.dateSize * textScale}px`,
+    // Block labels should be quieter/smaller than the card itself.
+    fontSize: `${depthState.titleSize * textScale * 0.66}px`,
   }
 
   const handleClick = () => {
-    if (onNavigate && memory.recordingId) {
+    // Only navigate when this card is truly the centered/locked "main" memory.
+    if (isActive && isFullyCenter && onNavigate && memory.recordingId) {
       onNavigate(memory.recordingId)
+      return
     }
+
+    // Otherwise, select it (rotate/scroll to make it active).
+    onSelect?.({ creatorId: memory.creatorId, sortedIndex })
   }
 
   // Active state only applies when fully in center (centerBlend > 0.5)
   const isFullyCenter = centerBlend > 0.5
 
+  // Fade images earlier than text so the stack never visually collides with the creator header.
+  // As depth increases, imageOpacity falls off faster than overall card opacity.
+  const imageOpacity = Math.max(0, Math.min(1, 1 - Math.pow(depthRatio, 0.9) * 1.35))
+
+  // Make the main (centered/locked) memory slightly more prominent.
+  // IMPORTANT: avoid a sudden "hitch" by ramping the boost smoothly as the front-most card approaches.
+  // depthIndex moves from ~1 → 0 as it becomes the front-most card. We ramp in over [1..0],
+  // then keep full emphasis until it drops out of the render window (< -0.5).
+  const smoothstep = (t: number) => t * t * (3 - 2 * t)
+  const centerEmphasis = useMemo(() => {
+    if (!isFullyCenter) return 0
+    if (depthIndex <= 0) return 1
+    if (depthIndex >= 1) return 0
+    const t = 1 - depthIndex // 0 at 1, 1 at 0
+    return smoothstep(Math.max(0, Math.min(1, t)))
+  }, [depthIndex, isFullyCenter])
+  const activeSizeBoost = 1 + 0.10 * centerEmphasis
+  // Pass-through glow should fade aggressively with depth (far memories much fainter).
+  const depthGlow = Math.pow(depthState.opacity, 2)
+  const threadNodeOpacityBase = 0.02 + depthGlow * 0.24
+  const threadNodeOpacity = isActive
+    ? Math.min(1, threadNodeOpacityBase + (isFullyCenter ? 0.14 : 0.10))
+    : threadNodeOpacityBase
+
   return (
     <div
       className={`memory-card ${isActive && isFullyCenter ? 'memory-card--active' : ''}`}
-      style={cardStyle}
+      style={{
+        ...cardStyle,
+        width: cardStyle.width ? Number(cardStyle.width) * activeSizeBoost : cardStyle.width,
+        height: cardStyle.height ? Number(cardStyle.height) * activeSizeBoost : cardStyle.height,
+        transform: `translateX(${convergedXOffset - (finalSize * activeSizeBoost) / 2}px) translateY(${finalYOffset}px) translateZ(${depthState.z}px)`,
+      }}
       onClick={handleClick}
     >
-      <div className="memory-card__image">
+      <div
+        className={`memory-thread-node ${isActive && isFullyCenter ? 'memory-thread-node--active' : ''}`}
+        style={{ opacity: threadNodeOpacity }}
+        data-thread-node="1"
+        data-column-id={columnId}
+        data-depth-index={depthIndex}
+        aria-hidden="true"
+      />
+      <div className="memory-card__image" style={{ opacity: imageOpacity }}>
         <div className="memory-card__placeholder" />
       </div>
       {/* Show title/date on all cards, sized proportionally */}
       <div className="memory-card__meta" style={{ opacity: depthState.opacity }}>
-        <span className="memory-card__title" style={titleStyle}>almost</span>
-        <span className="memory-card__date" style={dateStyle}>{formatDate(memory.date)}</span>
+        <span className="memory-card__title" style={titleStyle}>
+          {toTitleCase(memory.title)}
+        </span>
       </div>
     </div>
   )
@@ -246,6 +366,7 @@ interface TimelineColumnProps {
   xOffset: number
   isCenter: boolean
   centerBlend: number // 0 = full side styling, 1 = full center styling (for smooth transitions)
+  onSelect?: (args: { creatorId: string; sortedIndex: number }) => void
   onNavigate?: (recordingId: string) => void
 }
 
@@ -253,8 +374,8 @@ const TimelineColumn: React.FC<TimelineColumnProps> = ({
   memories,
   scrollPosition,
   xOffset,
-  isCenter,
   centerBlend,
+  onSelect,
   onNavigate,
 }) => {
   // Sort memories by date (newest first)
@@ -277,8 +398,10 @@ const TimelineColumn: React.FC<TimelineColumnProps> = ({
         const depthState = getCardDepthState(depthIndex)
         if (!depthState) return null
 
-        // Front-most card in center column is active
-        const isActive = depthIndex >= 0 && depthIndex < 1
+        // Front-most card should stay "active" until it actually leaves the render window.
+        // Cards are only removed once depthIndex < -0.5 (see getCardDepthState), so keep the
+        // active styling through that threshold to avoid a jarring revert at the bottom.
+        const isActive = depthIndex > -0.5 && depthIndex < 1
 
         return (
           <MemoryCard
@@ -288,6 +411,10 @@ const TimelineColumn: React.FC<TimelineColumnProps> = ({
             xOffset={xOffset}
             isActive={isActive}
             centerBlend={centerBlend}
+            columnId={memory.creatorId}
+            depthIndex={depthIndex}
+            sortedIndex={index}
+            onSelect={onSelect}
             onNavigate={onNavigate}
           />
         )
@@ -308,18 +435,18 @@ interface CreatorHeaderProps {
 }
 
 // Position configs for the 3 slots: left, center, right
-// Y values create arc: sides are lower (y=46), center is higher (y=0)
+// Y values: sides sit slightly below center (~1rem) for a subtle hierarchy
 // This naturally creates a curved floating path when transitioning
 const HEADER_POSITIONS = {
-  left: { x: -120, y: 46, scale: 0.95, opacity: 0.85 },
+  left: { x: -120, y: 16, scale: 0.95, opacity: 0.85 },
   center: { x: 0, y: 0, scale: 1, opacity: 1 },
-  right: { x: 120, y: 46, scale: 0.95, opacity: 0.85 },
+  right: { x: 120, y: 16, scale: 0.95, opacity: 0.85 },
   // Fade out positions (same spot, just invisible)
-  fadeOutLeft: { x: -120, y: 46, scale: 0.95, opacity: 0 },
-  fadeOutRight: { x: 120, y: 46, scale: 0.95, opacity: 0 },
+  fadeOutLeft: { x: -120, y: 16, scale: 0.95, opacity: 0 },
+  fadeOutRight: { x: 120, y: 16, scale: 0.95, opacity: 0 },
   // Teleport positions (new spot, invisible, ready to fade in)
-  teleportLeft: { x: -120, y: 46, scale: 0.95, opacity: 0 },
-  teleportRight: { x: 120, y: 46, scale: 0.95, opacity: 0 },
+  teleportLeft: { x: -120, y: 16, scale: 0.95, opacity: 0 },
+  teleportRight: { x: 120, y: 16, scale: 0.95, opacity: 0 },
 }
 
 type PositionKey = keyof typeof HEADER_POSITIONS
@@ -340,8 +467,10 @@ const CreatorHeader: React.FC<CreatorHeaderProps> = ({
   const [animStates, setAnimStates] = useState<Map<string, CreatorAnimState>>(() => {
     const initial = new Map<string, CreatorAnimState>()
     creators.forEach((creator, index) => {
-      const relativePos = (index - 1 + 3) % 3 // Assuming Mom (index 1) starts as center
-      const position: PositionKey = relativePos === 0 ? 'center' : relativePos === 1 ? 'right' : 'left'
+      // Initialize positions based on the passed-in activeCreatorIndex (centered creator).
+      const relativePos = (index - activeCreatorIndex + creators.length) % creators.length
+      const position: PositionKey =
+        relativePos === 0 ? 'center' : relativePos === 1 ? 'right' : 'left'
       initial.set(creator.id, { position, isAnimating: false, isFadingOut: false, isTeleporting: false, animation: null })
     })
     return initial
@@ -349,95 +478,92 @@ const CreatorHeader: React.FC<CreatorHeaderProps> = ({
 
   const [isRotating, setIsRotating] = useState(false)
 
-  // Handle rotation animation
-  const handleRotation = useCallback((targetIndex: number) => {
-    if (isRotating || targetIndex === activeCreatorIndex) return
+  // Sync header rotation with external column swivel.
+  // When activeCreatorIndex changes (via swipe/wheel or click), animate names to match the columns.
+  const prevActiveIndexRef = useRef(activeCreatorIndex)
+  useEffect(() => {
+    const prev = prevActiveIndexRef.current
+    if (prev === activeCreatorIndex) return
 
-    // Determine current positions
-    const getPositionOfCreator = (idx: number): PositionKey => {
-      const rel = (idx - activeCreatorIndex + 3) % 3
-      return rel === 0 ? 'center' : rel === 1 ? 'right' : 'left'
+    // Determine whether the new active was previously on the right (rel=1) or left (rel=2).
+    const rel = (activeCreatorIndex - prev + creators.length) % creators.length
+    if (rel === 0) return
+
+    // Based on previous active, find who was left/center/right.
+    const getPositionOfCreatorFrom = (idx: number, activeIdx: number): PositionKey => {
+      const r = (idx - activeIdx + creators.length) % creators.length
+      return r === 0 ? 'center' : r === 1 ? 'right' : 'left'
     }
 
-    const clickedPosition = getPositionOfCreator(targetIndex)
-
-    // Clicking LEFT: everyone rotates clockwise (left→center, center→right, right→left via wrap)
-    // Clicking RIGHT: everyone rotates counter-clockwise (right→center, center→left, left→right via wrap)
-    const isClickingLeft = clickedPosition === 'left'
-
-    setIsRotating(true)
-
-    // Find who is in each position
     let leftCreatorIdx = -1, centerCreatorIdx = -1, rightCreatorIdx = -1
     creators.forEach((_, idx) => {
-      const pos = getPositionOfCreator(idx)
+      const pos = getPositionOfCreatorFrom(idx, prev)
       if (pos === 'left') leftCreatorIdx = idx
       else if (pos === 'center') centerCreatorIdx = idx
       else if (pos === 'right') rightCreatorIdx = idx
     })
 
-    const wrapFinalPosition: PositionKey = isClickingLeft ? 'left' : 'right'
+    // If new active was previously on the right (rel=1), we rotate counter-clockwise:
+    // right→center, center→left, left wraps to right (fadeOutLeft).
+    // If new active was previously on the left (rel=2), rotate clockwise:
+    // left→center, center→right, right wraps to left (fadeOutRight).
+    const isClockwise = rel === 2
 
-    // Step 1: After 500ms delay, start ALL animations simultaneously
-    setTimeout(() => {
-      setAnimStates(prev => {
-        const next = new Map(prev)
+    setIsRotating(true)
+    setAnimStates(prevMap => {
+      const next = new Map(prevMap)
+      if (isClockwise) {
+        next.set(creators[leftCreatorIdx].id, {
+          position: 'center', isAnimating: true, isFadingOut: false, isTeleporting: false,
+          animation: 'arcLeftToCenter',
+        })
+        next.set(creators[centerCreatorIdx].id, {
+          position: 'right', isAnimating: true, isFadingOut: false, isTeleporting: false,
+          animation: 'arcCenterToRight',
+        })
+        next.set(creators[rightCreatorIdx].id, {
+          position: 'left', isAnimating: true, isFadingOut: false, isTeleporting: false,
+          animation: 'fadeOutRight',
+        })
+      } else {
+        next.set(creators[rightCreatorIdx].id, {
+          position: 'center', isAnimating: true, isFadingOut: false, isTeleporting: false,
+          animation: 'arcRightToCenter',
+        })
+        next.set(creators[centerCreatorIdx].id, {
+          position: 'left', isAnimating: true, isFadingOut: false, isTeleporting: false,
+          animation: 'arcCenterToLeft',
+        })
+        next.set(creators[leftCreatorIdx].id, {
+          position: 'right', isAnimating: true, isFadingOut: false, isTeleporting: false,
+          animation: 'fadeOutLeft',
+        })
+      }
+      return next
+    })
 
-        if (isClickingLeft) {
-          // Clockwise: all 3 animate together
-          next.set(creators[leftCreatorIdx].id, {
-            position: 'center', isAnimating: true, isFadingOut: false, isTeleporting: false,
-            animation: 'arcLeftToCenter'
-          })
-          next.set(creators[centerCreatorIdx].id, {
-            position: 'right', isAnimating: true, isFadingOut: false, isTeleporting: false,
-            animation: 'arcCenterToRight'
-          })
-          next.set(creators[rightCreatorIdx].id, {
-            position: wrapFinalPosition, isAnimating: true, isFadingOut: false, isTeleporting: false,
-            animation: 'fadeOutRight' // Combined fade-out-teleport-fade-in
-          })
-        } else {
-          // Counter-clockwise: all 3 animate together
-          next.set(creators[rightCreatorIdx].id, {
-            position: 'center', isAnimating: true, isFadingOut: false, isTeleporting: false,
-            animation: 'arcRightToCenter'
-          })
-          next.set(creators[centerCreatorIdx].id, {
-            position: 'left', isAnimating: true, isFadingOut: false, isTeleporting: false,
-            animation: 'arcCenterToLeft'
-          })
-          next.set(creators[leftCreatorIdx].id, {
-            position: wrapFinalPosition, isAnimating: true, isFadingOut: false, isTeleporting: false,
-            animation: 'fadeOutLeft' // Combined fade-out-teleport-fade-in
-          })
-        }
-
-        return next
-      })
-    }, 500) // Initial delay before movement
-
-    // Step 2: Change active creator when header animation starts (so cards animate together)
-    setTimeout(() => {
-      onCreatorChange(targetIndex)
-    }, 500) // Same time as header animation starts
-
-    // Step 3: Complete animation - reset header states
-    setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setIsRotating(false)
-      // Reset all animation states to final positions
-      setAnimStates(prev => {
-        const next = new Map(prev)
+      setAnimStates(prevMap => {
+        const next = new Map(prevMap)
         creators.forEach((creator, index) => {
-          const relativePos = (index - targetIndex + 3) % 3
+          const relativePos = (index - activeCreatorIndex + creators.length) % creators.length
           const position: PositionKey = relativePos === 0 ? 'center' : relativePos === 1 ? 'right' : 'left'
           next.set(creator.id, { position, isAnimating: false, isFadingOut: false, isTeleporting: false, animation: null })
         })
         return next
       })
-    }, 500 + 1500) // Delay + animation duration
+    }, 1500)
 
-  }, [isRotating, activeCreatorIndex, creators, onCreatorChange])
+    prevActiveIndexRef.current = activeCreatorIndex
+    return () => window.clearTimeout(timer)
+  }, [activeCreatorIndex, creators])
+
+  // Click: just request a creator change; the effect above will animate the header in sync with columns.
+  const handleRotation = useCallback((targetIndex: number) => {
+    if (isRotating || targetIndex === activeCreatorIndex) return
+    onCreatorChange(targetIndex)
+  }, [isRotating, activeCreatorIndex, onCreatorChange])
 
   return (
     <div className="creator-header">
@@ -452,7 +578,8 @@ const CreatorHeader: React.FC<CreatorHeaderProps> = ({
               key={creator.id}
               className={`creator-name ${isCenter ? 'creator-name--active' : 'creator-name--side'}`}
               style={{
-                transform: state.animation ? undefined : `translate(${pos.x}px, ${pos.y}px) scale(${pos.scale})`,
+                // Baseline at true center (independent of button width), then apply position offsets.
+                transform: state.animation ? undefined : `translate(-50%, 0) translate(${pos.x}px, ${pos.y}px) scale(${pos.scale})`,
                 opacity: state.animation ? undefined : pos.opacity,
                 animation: state.animation
                   ? `${state.animation} 1.5s ease-in-out forwards`
@@ -477,20 +604,30 @@ const CreatorHeader: React.FC<CreatorHeaderProps> = ({
 
 const Remember: React.FC = () => {
   const navigate = useNavigate()
-  const [activeCreatorIndex, setActiveCreatorIndex] = useState(1) // Start with Mom
+  const [activeCreatorIndex, setActiveCreatorIndex] = useState(2) // Start with Me
   const [scrollPosition, setScrollPosition] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [isNavigatingToListen, setIsNavigatingToListen] = useState(false)
   const [isVisible, setIsVisible] = useState(false) // Start hidden, fade in after delay
   // Animated positions: [Dad xOffset, Mom xOffset, Me xOffset]
-  // Start: Dad=left(-340), Mom=center(0), Me=right(340)
-  const [animatedXOffsets, setAnimatedXOffsets] = useState<number[]>([-340, 0, 340])
+  // Start: Mom=left, Me=center, Dad=right (per request)
+  const [animatedXOffsets, setAnimatedXOffsets] = useState<number[]>([
+    MAX_COLUMN_X_OFFSET,  // Dad on the right
+    -MAX_COLUMN_X_OFFSET, // Mom on the left
+    0,                    // Me in the center
+  ])
   // centerBlend values for each creator (0 = side styling, 1 = center styling)
-  const [centerBlends, setCenterBlends] = useState<number[]>([0, 1, 0]) // Dad=side, Mom=center, Me=side
+  const [centerBlends, setCenterBlends] = useState<number[]>([0, 0, 1]) // Dad=side, Mom=side, Me=center
   const animationFrameRef = useRef<number | null>(null)
+  const scrollAnimRef = useRef<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const timelineViewportRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef({ x: 0, y: 0, time: 0 })
   const gestureRef = useRef<{ isVertical: boolean | null }>({ isVertical: null })
+
+  // Thread polylines: measured from per-card glow nodes (pixel perfect)
+  const [threadSvgSize, setThreadSvgSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
+  const [threadPaths, setThreadPaths] = useState<Record<string, string>>({})
 
   // Entrance animation: wait 0.5s, then fade in over 2s
   useEffect(() => {
@@ -500,17 +637,86 @@ const Remember: React.FC = () => {
     return () => clearTimeout(timer)
   }, [])
 
+  // Build per-column thread polylines by measuring the actual glow nodes in DOM.
+  // We render the SVG as a fixed overlay (viewport coordinates) to avoid browser quirks with SVG
+  // inside 3D/perspective containers (can show as a "broken image" overlay on some mobile browsers).
+  useLayoutEffect(() => {
+    const viewportEl = timelineViewportRef.current
+    if (!viewportEl) return
+
+    let raf = 0
+
+    const measure = () => {
+      const vv = window.visualViewport
+      const w = Math.max(0, Math.round(vv?.width ?? window.innerWidth))
+      const h = Math.max(0, Math.round(vv?.height ?? window.innerHeight))
+      setThreadSvgSize({ w, h })
+
+      const nodes = Array.from(
+        viewportEl.querySelectorAll<HTMLElement>('[data-thread-node="1"]')
+      )
+
+      type Pt = { x: number; y: number; depthIndex: number }
+      const byCol: Record<string, Pt[]> = {}
+
+      for (const node of nodes) {
+        const col = node.dataset.columnId
+        const depth = Number(node.dataset.depthIndex)
+        if (!col || Number.isNaN(depth)) continue
+
+        const r = node.getBoundingClientRect()
+        const x = (r.left + r.width / 2)
+        const y = (r.top + r.height / 2)
+        if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+        ;(byCol[col] ||= []).push({ x, y, depthIndex: depth })
+      }
+
+      const next: Record<string, string> = {}
+      for (const [col, pts] of Object.entries(byCol)) {
+        if (pts.length < 2) continue
+        // Farther back cards have larger depthIndex; front-most is ~0..1 (and can go slightly negative).
+        pts.sort((a, b) => b.depthIndex - a.depthIndex)
+        next[col] = pts
+          .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`)
+          .join(' ')
+      }
+
+      setThreadPaths(next)
+    }
+
+    raf = requestAnimationFrame(measure)
+    const onResize = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(measure)
+    }
+    window.addEventListener('resize', onResize)
+    window.visualViewport?.addEventListener('resize', onResize)
+    window.visualViewport?.addEventListener('scroll', onResize)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', onResize)
+      window.visualViewport?.removeEventListener('resize', onResize)
+      window.visualViewport?.removeEventListener('scroll', onResize)
+    }
+  }, [scrollPosition, animatedXOffsets, centerBlends])
+
   // Generate memories
   const allMemories = useMemo(() => generateSampleMemories(), [])
 
-  // Get current memory for season display
+  // Get current memory for info bar display.
+  // Important: switch as soon as the current front card is no longer visible.
+  // Cards become non-rendered when depthIndex < -0.5 (see getCardDepthState),
+  // so we advance the active index at ~50% between steps.
   const currentMemory = useMemo(() => {
     const creatorMemories = allMemories
       .filter(m => m.creatorId === creators[activeCreatorIndex].id)
       .sort((a, b) => b.date.getTime() - a.date.getTime())
 
-    const index = Math.floor(scrollPosition / 100)
-    return creatorMemories[Math.max(0, Math.min(index, creatorMemories.length - 1))]
+    // Advance once the current card would drop below the render threshold.
+    // scrollPosition is in 100-unit steps per card; threshold is at +50.
+    const rawIndex = Math.ceil(scrollPosition / 100 - 0.5)
+    const index = Math.max(0, Math.min(rawIndex, creatorMemories.length - 1))
+    return creatorMemories[index]
   }, [allMemories, activeCreatorIndex, scrollPosition])
 
   // Switch to different creator with synchronized animations
@@ -520,7 +726,7 @@ const Remember: React.FC = () => {
     setActiveCreatorIndex(newIndex)
 
     // Calculate target positions based on new active creator
-    // Position 0 = left (-340), Position 1 = center (0), Position 2 = right (340)
+    // Position 0 = left, Position 1 = center, Position 2 = right
     const getTargetXOffset = (creatorIdx: number) => {
       const relativePosition = (creatorIdx - newIndex + 3) % 3
       const positionIndex = relativePosition === 0 ? 1 : relativePosition === 1 ? 2 : 0
@@ -566,6 +772,49 @@ const Remember: React.FC = () => {
 
     animationFrameRef.current = requestAnimationFrame(animate)
   }, [activeCreatorIndex, isAnimating, animatedXOffsets, centerBlends])
+
+  const animateScrollTo = useCallback((target: number, durationMs: number = 650) => {
+    if (scrollAnimRef.current) {
+      cancelAnimationFrame(scrollAnimRef.current)
+      scrollAnimRef.current = null
+    }
+
+    const start = scrollPosition
+    const end = Math.max(0, target)
+    const startTime = performance.now()
+    const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
+
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - startTime) / durationMs)
+      const eased = easeInOut(t)
+      setScrollPosition(start + (end - start) * eased)
+      if (t < 1) {
+        scrollAnimRef.current = requestAnimationFrame(tick)
+      } else {
+        scrollAnimRef.current = null
+      }
+    }
+
+    scrollAnimRef.current = requestAnimationFrame(tick)
+  }, [scrollPosition])
+
+  const handleSelectMemory = useCallback((args: { creatorId: string; sortedIndex: number }) => {
+    const creatorIndex = creators.findIndex(c => c.id === args.creatorId)
+    if (creatorIndex < 0) return
+
+    const targetScroll = args.sortedIndex * 100
+
+    if (creatorIndex !== activeCreatorIndex) {
+      // First swivel to the correct column, then scroll the timeline to bring the clicked memory forward.
+      switchToCreator(creatorIndex)
+      window.setTimeout(() => {
+        animateScrollTo(targetScroll, 750)
+      }, 650)
+      return
+    }
+
+    animateScrollTo(targetScroll, 650)
+  }, [activeCreatorIndex, switchToCreator, animateScrollTo])
 
   // Handle scroll (macOS natural scrolling - content follows finger)
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -667,20 +916,43 @@ const Remember: React.FC = () => {
   useEffect(() => {
     const root = document.getElementById('root')
     if (root) {
-      // Set immediately to prevent white flash
+      // Ensure we don't stomp the galaxy background image applied via CSS.
+      // Keep a dark fallback color only.
       root.style.backgroundColor = 'var(--black)'
     }
   }, [])
 
   return (
     <>
-      <img
-        className="remember-background"
-        src="/stock/ember_purple.png"
-        alt=""
-        aria-hidden="true"
-      />
       <div className={`remember-page ${isNavigatingToListen ? 'remember-page--fading-out' : ''}`}>
+        {isVisible && threadSvgSize.w > 0 && threadSvgSize.h > 0 && (
+          <svg
+            className="remember-threadOverlay remember-threadOverlay--visible"
+            viewBox={`0 0 ${threadSvgSize.w} ${threadSvgSize.h}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <defs>
+              {/* Fade threads into disappearance as they recede upward/back in the cone */}
+              <linearGradient
+                id="rememberThreadFade"
+                gradientUnits="userSpaceOnUse"
+                x1="0"
+                x2="0"
+                y1={threadSvgSize.h}
+                y2="0"
+              >
+                <stop offset="0%" stopColor="rgba(255,255,255,0.20)" />
+                <stop offset="40%" stopColor="rgba(255,255,255,0.10)" />
+                <stop offset="70%" stopColor="rgba(255,255,255,0.04)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0.00)" />
+              </linearGradient>
+            </defs>
+            {Object.entries(threadPaths).map(([col, d]) => (
+              <path key={col} className="timeline-threadPath" d={d} />
+            ))}
+          </svg>
+        )}
         <Header />
 
         <div className={`remember-content ${isVisible ? 'remember-content--visible' : ''} ${isNavigatingToListen ? 'remember-content--fading-out' : ''}`}>
@@ -699,7 +971,7 @@ const Remember: React.FC = () => {
             onTouchEnd={handleTouchEnd}
           >
           {/* Timeline viewport - CSS perspective creates traffic cone effect */}
-          <div className="timeline-viewport">
+          <div ref={timelineViewportRef} className="timeline-viewport">
             {creators.map((creator, index) => {
               const creatorMemories = allMemories.filter(m => m.creatorId === creator.id)
 
@@ -715,6 +987,7 @@ const Remember: React.FC = () => {
                   xOffset={xOffset}
                   isCenter={isCenter}
                   centerBlend={centerBlends[index]}
+                  onSelect={handleSelectMemory}
                   onNavigate={handleNavigateToListen}
                 />
               )
@@ -722,18 +995,44 @@ const Remember: React.FC = () => {
           </div>
 
           {/* UI Controls */}
-          <div className="remember-controls">
-            <button className="remember-btn remember-btn--shuffle" onClick={handleShuffle}>
+        </main>
+        </div>
+
+        {/* Info bar (bottom): delay until page has entered, then slide up */}
+        <div
+          className={`remember-bottomBar ${isVisible ? 'remember-bottomBar--visible' : ''}`}
+          role="region"
+          aria-label="Active memory"
+        >
+          <div className="remember-bottomBar-inner">
+            <div className="remember-bottomBar-left">
+              {currentMemory && (
+                <>
+                  <div className="remember-bottomBar-season">{formatSeason(currentMemory.date)}</div>
+                  <div className="remember-bottomBar-title" title={toTitleCase(currentMemory.title)}>
+                    {toTitleCase(currentMemory.title)}
+                  </div>
+                  <div className="remember-bottomBar-meta">
+                    <div className="remember-bottomBar-metaRow">
+                      <span className="remember-bottomBar-label">Topic</span>
+                      <span className="remember-bottomBar-value">{toTitleCase(currentMemory.topic)}</span>
+                    </div>
+                    <div className="remember-bottomBar-metaRow">
+                      <span className="remember-bottomBar-label">Recorded On</span>
+                      <span className="remember-bottomBar-value">{formatDate(currentMemory.date)}</span>
+                    </div>
+                    <div className="remember-bottomBar-metaRow">
+                      <span className="remember-bottomBar-label">Length Of Memory</span>
+                      <span className="remember-bottomBar-value">{formatDuration(currentMemory.durationSec)}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <button className="remember-btn remember-btn--shuffle" onClick={handleShuffle} aria-label="Shuffle">
               ⤭
             </button>
-
-            {currentMemory && (
-              <div className="remember-season">
-                {formatSeason(currentMemory.date)}
-              </div>
-            )}
           </div>
-        </main>
         </div>
 
         <Footer />

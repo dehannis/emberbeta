@@ -4,40 +4,33 @@
    CSS perspective creates natural convergence
    ============================================ */
 
-/* Static background image layer */
-.remember-background {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  min-width: 100vw !important;
-  min-height: 100vh !important;
-  max-width: none !important;
-  max-height: none !important;
-  object-fit: cover !important;
-  object-position: center center !important;
-  z-index: 0 !important;
-  opacity: 1 !important;
-  pointer-events: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
 .remember-page {
+  /* --- Remember type + spacing system (mobile-first) --- */
+  --r-pad: 1.25rem;
+  --r-max: 760px;
+  /* Reserve space so the 3D card stack never sits under the fixed bottom bar */
+  --r-bottomBar-reserve: 6.75rem;
+  --r-ui: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif);
+  --r-ed: var(--font-serif, 'Source Serif Pro', serif);
+  --r-title: 1.375rem; /* ~22px */
+  --r-h2: 1.0625rem; /* ~17px */
+  --r-body: 0.9375rem; /* ~15px */
+  --r-cap: 0.75rem; /* 12px */
+  --r-creator-side-y: 1rem; /* side labels sit slightly below the active label */
+
   min-height: 100vh;
+  min-height: 100dvh;
   height: 100vh;
-  background:
-    radial-gradient(1100px 780px at 14% 18%, rgba(90, 140, 255, 0.13), rgba(0, 0, 0, 0) 62%),
-    radial-gradient(980px 720px at 86% 20%, rgba(255, 90, 210, 0.10), rgba(0, 0, 0, 0) 64%),
-    radial-gradient(920px 700px at 72% 88%, rgba(80, 255, 220, 0.07), rgba(0, 0, 0, 0) 62%),
-    radial-gradient(860px 660px at 26% 86%, rgba(255, 190, 90, 0.06), rgba(0, 0, 0, 0) 66%),
-    radial-gradient(760px 520px at 50% 54%, rgba(255, 255, 255, 0.016), rgba(0, 0, 0, 0) 62%);
+  height: 100dvh;
+  /* Background is provided by body/html for Remember (more reliable across mobile browsers). */
+  background: transparent;
   display: flex;
   flex-direction: column;
-  padding: 2rem;
+  padding:
+    calc(env(safe-area-inset-top, 0px) + var(--r-pad))
+    calc(env(safe-area-inset-right, 0px) + var(--r-pad))
+    calc(env(safe-area-inset-bottom, 0px) + var(--r-pad))
+    calc(env(safe-area-inset-left, 0px) + var(--r-pad));
   overflow: hidden;
   position: fixed;
   inset: 0;
@@ -64,20 +57,18 @@
   opacity: 0;
 }
 
-/* Glass overlay */
-.remember-page::before {
-  content: '';
-  position: absolute;
-  inset: -18%;
-  pointer-events: none;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.00) 46%, rgba(255, 255, 255, 0.02) 82%, rgba(255, 255, 255, 0.00)),
-    radial-gradient(880px 520px at 18% 14%, rgba(150, 205, 255, 0.07), rgba(0, 0, 0, 0) 64%),
-    radial-gradient(820px 520px at 86% 34%, rgba(205, 165, 255, 0.06), rgba(0, 0, 0, 0) 62%);
-  opacity: 0.9;
-  mix-blend-mode: screen;
-  transform: translateZ(0);
-  z-index: 0;
+/* IMPORTANT: No gradient field. */
+.remember-page::before,
+.remember-page::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+/* Ensure all real content sits above overlays */
+.remember-page > * {
+  position: relative;
+  z-index: 2;
 }
 
 /* ============================================
@@ -88,119 +79,124 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1rem 0;
+  padding: 0.75rem 0 0.5rem;
   z-index: 10;
   position: relative;
-  height: 100px; /* Fixed height to contain carousel */
+  min-height: 72px; /* avoid clipping on small devices */
 }
 
 .creator-header__carousel {
   position: relative;
   width: 100%;
-  height: 80px;
+  height: 72px;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .creator-header__carousel .creator-name {
   position: absolute;
   left: 50%;
   top: 0;
-  margin-left: -50px; /* Half of approximate button width */
-  width: 100px;
+  margin-left: 0;
+  width: auto;
+  max-width: min(18ch, calc(100vw - 6rem));
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Looping arc animations for carousel - smooth curved paths */
 /* Using 3 keyframes with CSS easing for smooth interpolation */
 @keyframes arcLeftToCenter {
   0% {
-    transform: translate(-120px, 46px) scale(0.95);
+    transform: translate(-50%, 0) translate(-120px, var(--r-creator-side-y)) scale(0.95);
     opacity: 0.85;
     animation-timing-function: ease-out;
   }
   45% {
-    transform: translate(-30px, -65px) scale(1.02);
+    transform: translate(-50%, 0) translate(-30px, 0px) scale(1.02);
     opacity: 1;
     animation-timing-function: ease-in;
   }
   100% {
-    transform: translate(0px, 0px) scale(1);
+    transform: translate(-50%, 0) translate(0px, 0px) scale(1);
     opacity: 1;
   }
 }
 
 @keyframes arcCenterToRight {
   0% {
-    transform: translate(0px, 0px) scale(1);
+    transform: translate(-50%, 0) translate(0px, 0px) scale(1);
     opacity: 1;
     animation-timing-function: ease-out;
   }
   55% {
-    transform: translate(50px, -60px) scale(1.01);
+    transform: translate(-50%, 0) translate(50px, 0px) scale(1.01);
     opacity: 0.95;
     animation-timing-function: ease-in;
   }
   100% {
-    transform: translate(120px, 46px) scale(0.95);
+    transform: translate(-50%, 0) translate(120px, var(--r-creator-side-y)) scale(0.95);
     opacity: 0.85;
   }
 }
 
 @keyframes arcRightToCenter {
   0% {
-    transform: translate(120px, 46px) scale(0.95);
+    transform: translate(-50%, 0) translate(120px, var(--r-creator-side-y)) scale(0.95);
     opacity: 0.85;
     animation-timing-function: ease-out;
   }
   45% {
-    transform: translate(30px, -65px) scale(1.02);
+    transform: translate(-50%, 0) translate(30px, 0px) scale(1.02);
     opacity: 1;
     animation-timing-function: ease-in;
   }
   100% {
-    transform: translate(0px, 0px) scale(1);
+    transform: translate(-50%, 0) translate(0px, 0px) scale(1);
     opacity: 1;
   }
 }
 
 @keyframes arcCenterToLeft {
   0% {
-    transform: translate(0px, 0px) scale(1);
+    transform: translate(-50%, 0) translate(0px, 0px) scale(1);
     opacity: 1;
     animation-timing-function: ease-out;
   }
   55% {
-    transform: translate(-50px, -60px) scale(1.01);
+    transform: translate(-50%, 0) translate(-50px, 0px) scale(1.01);
     opacity: 0.95;
     animation-timing-function: ease-in;
   }
   100% {
-    transform: translate(-120px, 46px) scale(0.95);
+    transform: translate(-50%, 0) translate(-120px, var(--r-creator-side-y)) scale(0.95);
     opacity: 0.85;
   }
 }
 
 /* Wrapping element: fade out, then fade in at new position */
 @keyframes fadeOutLeft {
-  0% { transform: translate(-120px, 46px) scale(0.95); opacity: 0.85; }
-  45% { transform: translate(-120px, 46px) scale(0.95); opacity: 0; }
-  55% { transform: translate(120px, 46px) scale(0.95); opacity: 0; }
-  100% { transform: translate(120px, 46px) scale(0.95); opacity: 0.85; }
+  0% { transform: translate(-50%, 0) translate(-120px, var(--r-creator-side-y)) scale(0.95); opacity: 0.85; }
+  45% { transform: translate(-50%, 0) translate(-120px, var(--r-creator-side-y)) scale(0.95); opacity: 0; }
+  55% { transform: translate(-50%, 0) translate(120px, var(--r-creator-side-y)) scale(0.95); opacity: 0; }
+  100% { transform: translate(-50%, 0) translate(120px, var(--r-creator-side-y)) scale(0.95); opacity: 0.85; }
 }
 
 @keyframes fadeOutRight {
-  0% { transform: translate(120px, 46px) scale(0.95); opacity: 0.85; }
-  45% { transform: translate(120px, 46px) scale(0.95); opacity: 0; }
-  55% { transform: translate(-120px, 46px) scale(0.95); opacity: 0; }
-  100% { transform: translate(-120px, 46px) scale(0.95); opacity: 0.85; }
+  0% { transform: translate(-50%, 0) translate(120px, var(--r-creator-side-y)) scale(0.95); opacity: 0.85; }
+  45% { transform: translate(-50%, 0) translate(120px, var(--r-creator-side-y)) scale(0.95); opacity: 0; }
+  55% { transform: translate(-50%, 0) translate(-120px, var(--r-creator-side-y)) scale(0.95); opacity: 0; }
+  100% { transform: translate(-50%, 0) translate(-120px, var(--r-creator-side-y)) scale(0.95); opacity: 0.85; }
 }
 
 .creator-name {
-  font-family: var(--font-serif, 'Source Serif Pro', serif);
-  text-transform: capitalize;
-  letter-spacing: -0.02em;
+  font-family: var(--r-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.72rem;
   background: none;
   border: none;
   cursor: pointer;
@@ -208,16 +204,16 @@
 }
 
 .creator-name--active {
-  font-size: 32px;
-  font-weight: 400;
-  color: #a0a0a0;
-  mix-blend-mode: color-dodge;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(245, 245, 245, 0.72);
+  mix-blend-mode: normal;
 }
 
 .creator-name--side {
-  font-size: 32px;
-  font-weight: 400;
-  color: #666666;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(245, 245, 245, 0.46);
 }
 
 .creator-name--side:hover {
@@ -234,14 +230,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  max-width: 800px;
+  max-width: var(--r-max);
   width: 100%;
   margin: 0 auto;
   position: relative;
   z-index: 1;
   overflow: visible;
   touch-action: none;
-  padding-bottom: 6rem;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--r-bottomBar-reserve));
 }
 
 /* ============================================
@@ -255,6 +251,8 @@
   display: flex;
   justify-content: center;
   align-items: flex-end;
+  /* Reserve actual vertical space so the fixed bottom bar can never overlap cards/text */
+  margin-bottom: var(--r-bottomBar-reserve);
 
   /* CSS Perspective creates the traffic cone effect:
      - Cards with translateZ converge toward vanishing point
@@ -272,11 +270,65 @@
   left: 50%;
   bottom: 0;
   width: 0;
-  height: 0;
+  height: 100%;
 
   /* Enable 3D transforms for cards */
   transform-style: preserve-3d;
   transition: opacity 1s ease-in-out;
+}
+
+/* SVG thread overlay: polylines measured from per-card glow nodes (pixel-perfect). */
+/* Full-viewport overlay so threads are drawn in screen space (pixel-perfect),
+   and not subject to 3D/perspective container rendering quirks. */
+.remember-threadOverlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  pointer-events: none;
+  z-index: 1; /* above background, below UI chrome */
+  background: transparent;
+  opacity: 0;
+  transition: opacity 380ms ease-out;
+}
+
+.remember-threadOverlay--visible {
+  opacity: 1;
+}
+
+.timeline-threadPath {
+  fill: none;
+  stroke: url(#rememberThreadFade);
+  stroke-width: 1;
+  stroke-linecap: butt; /* pixel-perfect end at glow center */
+  stroke-linejoin: round;
+  opacity: 0.75;
+}
+
+/* Pass-through node: shows the thread "going through" the rectangle */
+.memory-thread-node {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  margin-top: -11px;
+  border-radius: 999px;
+  border: none;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.07) 45%,
+    rgba(255, 255, 255, 0.00) 72%
+  );
+  pointer-events: none;
+  transform: translateZ(2px);
+  filter: blur(0.6px);
+}
+
+.memory-thread-node--active {
+  filter: blur(0.45px);
 }
 
 /* ============================================
@@ -335,29 +387,38 @@
   margin-top: 4px;
   text-align: center;
   transition: opacity 0.2s ease;
+  max-width: 26ch;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .memory-card__title {
   display: block;
-  font-family: var(--font-serif, 'Source Serif Pro', serif);
-  font-weight: 400;
-  color: #a0a0a0;
-  letter-spacing: -0.02em;
-  text-transform: lowercase;
+  /* Block labels: smaller, quieter UI sans */
+  font-family: var(--r-ui);
+  font-weight: 300; /* SF Pro Text Light (falls back gracefully) */
+  color: rgba(245, 245, 245, 0.56);
+  letter-spacing: 0.01em;
+  text-transform: none;
+  line-height: 1.15;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .memory-card--active .memory-card__title {
-  color: #ffffff;
+  /* Slight emphasis only */
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .memory-card__date {
   display: block;
-  font-family: var(--font-serif, 'Source Serif Pro', serif);
+  font-family: var(--r-ui);
   font-weight: 400;
-  color: #a0a0a0;
-  margin-top: 0.15rem;
-  text-transform: lowercase;
-  letter-spacing: 0.01em;
+  color: rgba(245, 245, 245, 0.50);
+  margin-top: 0.25rem;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
 }
 
 /* Active card glow */
@@ -368,19 +429,144 @@
 }
 
 /* ============================================
-   Controls (Shuffle, Season)
+   Bottom bar (Season, Topic, Shuffle)
    ============================================ */
 
-.remember-controls {
-  position: absolute;
-  bottom: 2rem;
+.remember-bottomBar {
+  position: fixed;
   left: 0;
   right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding:
+    0.4rem
+    calc(env(safe-area-inset-right, 0px) + var(--r-pad))
+    calc(env(safe-area-inset-bottom, 0px) + 0.4rem)
+    calc(env(safe-area-inset-left, 0px) + var(--r-pad));
+  pointer-events: auto;
+  transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px) + 12px));
+  opacity: 0;
+  transition: transform 420ms cubic-bezier(0.2, 0.9, 0.2, 1), opacity 260ms ease-out;
+}
+
+.remember-bottomBar--visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.remember-bottomBar-inner {
+  max-width: var(--r-max);
+  margin: 0 auto;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-end;
-  padding: 0 1rem;
-  z-index: 10;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Slight grey shade (more solid than glass), still premium */
+  background: rgba(22, 22, 26, 0.88);
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.40),
+    0 0 0 1px rgba(0, 0, 0, 0.18) inset;
+  backdrop-filter: blur(8px);
+}
+
+.remember-bottomBar-left {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.remember-bottomBar-season {
+  font-family: var(--r-ui);
+  font-size: var(--r-cap);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 245, 245, 0.60);
+}
+
+.remember-bottomBar-title {
+  margin-top: 4px;
+  font-family: var(--r-ed);
+  font-size: var(--r-h2);
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remember-bottomBar-meta {
+  margin-top: 4px;
+  display: grid;
+  gap: 2px;
+}
+
+.remember-bottomBar-metaRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.remember-bottomBar-label {
+  font-family: var(--r-ui);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(245, 245, 245, 0.48);
+  flex: 0 0 auto;
+}
+
+.remember-bottomBar-value {
+  font-family: var(--r-ui);
+  font-size: 0.74rem;
+  letter-spacing: 0.01em;
+  color: rgba(245, 245, 245, 0.74);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Bigger shuffle button, centered vertically */
+.remember-bottomBar .remember-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  font-size: 1.65rem;
+  color: rgba(245, 245, 245, 0.74);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(0, 0, 0, 0.10) inset;
+  backdrop-filter: blur(10px);
+}
+
+.remember-bottomBar .remember-btn:hover {
+  transform: translateY(-0.5px);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.065);
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(0, 0, 0, 0.10) inset;
+}
+
+.remember-bottomBar .remember-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(0, 0, 0, 0.12) inset;
+}
+
+.remember-bottomBar .remember-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.45);
+  outline-offset: 3px;
 }
 
 .remember-btn {
@@ -389,7 +575,7 @@
   border: none;
   background: transparent;
   color: var(--text-secondary, #a0a0a0);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -403,15 +589,7 @@
   transform: scale(1.1);
 }
 
-.remember-season {
-  font-family: var(--font-serif, 'Source Serif Pro', serif);
-  font-size: 32px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  color: #f5f5f5;
-  text-transform: lowercase;
-  mix-blend-mode: color-dodge;
-}
+/* (moved) remember-season is now rendered in the bottom bar */
 
 /* ============================================
    Responsive
@@ -419,19 +597,14 @@
 
 @media (max-width: 480px) {
   .remember-page {
-    padding: 1rem;
+    --r-pad: 1rem;
+    --r-bottomBar-reserve: 6.25rem;
   }
 
-  .creator-header__sides {
-    gap: 5rem;
-  }
-
-  .creator-name--active {
-    font-size: 28px;
-  }
-
+  .creator-name,
+  .creator-name--active,
   .creator-name--side {
-    font-size: 28px;
+    font-size: 0.70rem;
   }
 
   .timeline-viewport {
@@ -439,22 +612,44 @@
     perspective: 600px;
   }
 
-  .remember-season {
-    font-size: 28px;
+  .remember-bottomBar-title {
+    font-size: 1rem;
   }
 }
 
 @media (min-width: 769px) {
+  .remember-page {
+    --r-pad: 2rem;
+    /* Desktop: extra clearance so bottom labels never collide with the info bar */
+    --r-bottomBar-reserve: 9rem;
+  }
+
   .timeline-viewport {
-    height: 65vh;
+    /* Slightly less height so the stack sits higher above the fixed info bar on desktop */
+    height: 62vh;
     perspective: 1000px;
   }
 
-  .creator-name--active {
-    font-size: 36px;
-  }
-
+  .creator-name,
+  .creator-name--active,
   .creator-name--side {
-    font-size: 36px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .remember-content,
+  .remember-content--fading-out,
+  .remember-page {
+    transition: none !important;
+  }
+  .creator-name {
+    animation: none !important;
+    transition: none !important;
+  }
+  .remember-bottomBar {
+    transition: none !important;
+    transform: translateY(0) !important;
+    opacity: 1 !important;
   }
 }
