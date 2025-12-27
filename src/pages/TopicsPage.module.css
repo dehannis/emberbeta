@@ -1,0 +1,922 @@
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #000;
+  color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  animation: topicsFadeIn 240ms ease-out both;
+  /* Used for carousel side padding without JS (prevents post-load scroll/jump). */
+  --deck-side-pad: max(16px, calc((100vw - min(86vw, 760px)) / 2));
+}
+
+@keyframes topicsFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page { animation: none; }
+}
+
+.topHeader {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 20px 0;
+}
+
+.header {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 56px 20px 36px;
+  text-align: left;
+}
+
+.title {
+  font-family: var(--font-sans, system-ui);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: rgba(245, 245, 245, 0.55);
+}
+
+.subtext {
+  margin: 18px 0 0;
+  max-width: 44ch;
+  font-family: var(--font-serif, system-ui);
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.22;
+  color: rgba(245, 245, 245, 0.88);
+}
+
+.carouselSection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 16px 0 110px;
+}
+
+.scroller {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  outline: none;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  scroll-padding-left: var(--deck-side-pad);
+  scroll-padding-right: var(--deck-side-pad);
+}
+
+.scroller::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.scrollerHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scroller:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.28);
+  border-radius: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroller {
+    scroll-behavior: auto;
+  }
+}
+
+.track {
+  display: flex;
+  gap: 26px;
+  align-items: stretch;
+  padding: 10px var(--deck-side-pad);
+}
+
+.item {
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+  width: min(86vw, 760px);
+}
+
+/* Actions live below the frame, inside each carousel item */
+.cardActions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.cardButton {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cardButton:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.22);
+  border-radius: 18px;
+}
+
+.actionBtn,
+.actionBtnPrimary {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-family: var(--font-sans, system-ui);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: transparent;
+  color: rgba(245, 245, 245, 0.70);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.actionBtnPrimary {
+  border-color: rgba(245, 245, 245, 0.14);
+  color: rgba(245, 245, 245, 0.70);
+}
+
+.actionBtnShare {
+  /* Slightly brighter to invite clicks, but still minimal. */
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(245, 245, 245, 0.94);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.08);
+}
+
+.actionBtnShare:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.30);
+  color: rgba(245, 245, 245, 0.98);
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.10);
+}
+
+.actionBtn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: rgba(245, 245, 245, 0.86);
+}
+
+.actionBtnPrimary:hover {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(245, 245, 245, 0.18);
+  color: rgba(245, 245, 245, 0.86);
+}
+
+.actionBtn:focus-visible,
+.actionBtnPrimary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.22);
+}
+
+.actionBtn:active,
+.actionBtnPrimary:active {
+  transform: translateY(1px);
+}
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 18px;
+  z-index: 9999;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 720px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 10, 10, 0.78);
+  -webkit-backdrop-filter: blur(12px) saturate(1.05);
+  backdrop-filter: blur(12px) saturate(1.05);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.68);
+  padding: 18px 14px 16px;
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dialogHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dialogKicker {
+  font-family: var(--font-sans, system-ui);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(245, 245, 245, 0.52);
+  margin-top: 4px;
+}
+
+.dialogTopicTitle {
+  font-family: var(--font-serif, system-ui);
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: rgba(245, 245, 245, 0.92);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialogExplain {
+  margin-top: 10px;
+  font-family: var(--font-sans, system-ui);
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(245, 245, 245, 0.66);
+  max-width: 66ch;
+}
+
+.dialogDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin-top: 12px;
+}
+
+.dialogClose {
+  width: 24px;
+  height: 24px;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  color: rgba(245, 245, 245, 0.66);
+  cursor: pointer;
+  line-height: 0;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  margin-top: -6px;
+}
+
+.dialogClose:hover {
+  color: rgba(245, 245, 245, 0.86);
+}
+
+.dialogTabs {
+  display: flex;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.dialogTab,
+.dialogTabActive {
+  padding: 0;
+  border-radius: 0;
+  font-family: var(--font-sans, system-ui);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border: none;
+  background: transparent;
+  color: rgba(245, 245, 245, 0.62);
+  cursor: pointer;
+  padding-bottom: 6px; /* keep height stable */
+  border-bottom: 1px solid transparent; /* prevents layout shift */
+}
+
+.dialogTabActive {
+  color: rgba(245, 245, 245, 0.90);
+  text-decoration: none;
+  border-bottom-color: rgba(245, 245, 245, 0.26);
+}
+
+.dialogTab:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.contactList {
+  margin-top: 6px;
+  max-height: min(44vh, 360px);
+  overflow: auto;
+  scrollbar-width: none;
+  padding-right: 0;
+  font-family: var(--font-sans, system-ui);
+}
+
+.contactList::-webkit-scrollbar {
+  display: none;
+}
+
+.contactRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.contactRow:hover {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.contactRowSelected {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.contactRow::after,
+.contactRowSelected::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.contactMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.contactSelectBtn,
+.contactSelectBtnSelected {
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: rgba(245, 245, 245, 0.72);
+  font-family: var(--font-sans, system-ui);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.contactStatusPill {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: rgba(245, 245, 245, 0.46);
+  font-family: var(--font-sans, system-ui);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: default;
+}
+
+.contactStatusPill:disabled {
+  opacity: 1;
+}
+
+.contactSelectBtn:hover {
+  color: rgba(245, 245, 245, 0.86);
+}
+
+.contactSelectBtnSelected {
+  color: rgba(245, 245, 245, 0.92);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.contactSelectBtnSelected:hover {
+  color: rgba(245, 245, 245, 0.96);
+}
+
+.contactSelectBtn:focus-visible,
+.contactSelectBtnSelected:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
+}
+
+.schedule {
+  margin-top: 12px;
+}
+
+.scheduleSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.scheduleLabel {
+  font-family: var(--font-sans, system-ui);
+  font-size: 10px;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: rgba(245, 245, 245, 0.56);
+}
+
+.scheduleName {
+  font-family: var(--font-sans, system-ui);
+  font-size: 14px;
+  color: rgba(245, 245, 245, 0.90);
+}
+
+.scheduleGrid {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.scheduleGrid::-webkit-scrollbar {
+  display: none;
+}
+
+.scheduleGrid .field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.fieldSelect {
+  position: relative;
+}
+
+.fieldSelect select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 34px;
+}
+
+.fieldSelect::after {
+  content: '▾';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: rgba(245, 245, 245, 0.45);
+  pointer-events: none;
+}
+
+.dialogGhostBtn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: transparent;
+  color: rgba(245, 245, 245, 0.62);
+  font-family: var(--font-sans, system-ui);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.dialogGhostBtn:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(245, 245, 245, 0.78);
+}
+
+.contactName {
+  font-family: var(--font-sans, system-ui);
+  font-size: 12px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: rgba(245, 245, 245, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contactEmpty {
+  margin-top: 6px;
+  font-family: var(--font-sans, system-ui);
+  font-size: 12px;
+  color: rgba(245, 245, 245, 0.60);
+}
+
+.addForm {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-family: var(--font-sans, system-ui);
+  font-size: 10px;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: rgba(245, 245, 245, 0.56);
+}
+
+.fieldInput {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(245, 245, 245, 0.90);
+  font-family: var(--font-sans, system-ui);
+  font-size: 14px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.fieldInputPlaceholder {
+  color: rgba(245, 245, 245, 0.52);
+}
+
+.fieldInput:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0;
+  padding: 14px 2px 0;
+  position: relative;
+}
+
+.dialogActions::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dialogContinueLink {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-sans, system-ui);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 245, 245, 0.62);
+  cursor: pointer;
+}
+
+.dialogContinueLink:hover:not(:disabled) {
+  color: rgba(245, 245, 245, 0.88);
+  text-decoration: none;
+}
+
+.dialogContinueLink:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.dialogContinueLink:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  padding: 2px 6px;
+  margin: -2px -6px;
+}
+
+.dialogPrimaryBtn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 245, 245, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(245, 245, 245, 0.86);
+  font-family: var(--font-sans, system-ui);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.dialogPrimaryBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(245, 245, 245, 0.18);
+  color: rgba(245, 245, 245, 0.94);
+}
+
+.dialogPrimaryBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  .header {
+    padding-top: 42px;
+  }
+
+  .item {
+    width: calc(100vw - 32px);
+  }
+
+  .page {
+    --deck-side-pad: 16px;
+  }
+
+  .cardActions {
+    margin-top: 10px;
+    gap: 8px;
+  }
+
+  .actionBtn,
+  .actionBtnPrimary {
+    height: 28px;
+    padding: 0 11px;
+    font-size: 9.5px;
+  }
+
+  .scheduleGrid {
+    gap: 6px;
+  }
+
+  .fieldInput {
+    height: 36px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #000;
+  border: none;
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.72),
+    0 0 0 0 rgba(255, 255, 255, 0.00) inset,
+    0 0 24px rgba(180, 140, 255, 0.10);
+  transform: translateZ(0);
+}
+
+.cardBg {
+  position: absolute;
+  inset: 0;
+  background-image: var(--card-image);
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.04);
+  filter: blur(1px) saturate(0.95) contrast(1.05) brightness(0.66);
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+/* Liquid glass layer: subtle highlights + backdrop blur over the photo */
+.cardGlass {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(900px 520px at 18% 18%, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 62%),
+    radial-gradient(820px 520px at 84% 26%, rgba(180, 140, 255, 0.07), rgba(0, 0, 0, 0) 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.00) 46%, rgba(0, 0, 0, 0.16));
+  -webkit-backdrop-filter: blur(7px) saturate(1.12);
+  backdrop-filter: blur(7px) saturate(1.12);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 -1px 0 rgba(255, 255, 255, 0.05) inset;
+  pointer-events: none;
+}
+
+/* Dark gradient overlay for cinematic readability */
+.cardOverlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.62) 62%, rgba(0, 0, 0, 0.92) 100%),
+    radial-gradient(800px 500px at 15% 15%, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0) 60%);
+  pointer-events: none;
+}
+
+/* CSS-only film grain */
+.cardGrain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  background-image:
+    repeating-radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.08) 0 1px, rgba(0, 0, 0, 0) 1px 6px),
+    repeating-radial-gradient(circle at 75% 55%, rgba(255, 255, 255, 0.06) 0 1px, rgba(0, 0, 0, 0) 1px 7px);
+  filter: contrast(120%) brightness(85%);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardGrain {
+    opacity: 0.10;
+  }
+
+  .cardGlass {
+    -webkit-backdrop-filter: blur(8px) saturate(1.1);
+    backdrop-filter: blur(8px) saturate(1.1);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  }
+
+  .card {
+    box-shadow:
+      0 18px 42px rgba(0, 0, 0, 0.72),
+      0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  }
+}
+
+.cardText {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  top: 18px;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  overflow: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+.cardText::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.cardTitle {
+  font-family: var(--font-serif, system-ui);
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: rgba(245, 245, 245, 0.96);
+  text-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+}
+
+.cardTitleParen {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+.cardWhy {
+  font-size: 12.5px;
+  line-height: 1.5;
+  font-style: normal;
+  color: rgba(245, 245, 245, 0.72);
+  display: block;
+  overflow: visible;
+}
+
+@media (max-width: 520px) {
+  .cardTitle {
+    font-size: 22px;
+  }
+
+  .subtext {
+    font-size: 22px;
+    line-height: 1.22;
+  }
+
+  .cardWhy {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .cardText {
+    left: 18px;
+    right: 18px;
+    top: 16px;
+    bottom: 16px;
+    gap: 8px;
+  }
+}
+
+.controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  width: 100%;
+  max-width: 980px;
+  margin: 2px auto 0;
+  padding: 0 20px;
+}
+
+/* Desktop: center the left/right controls on the page (mobile stays right-aligned). */
+@media (min-width: 900px) {
+  .controls {
+    justify-content: center;
+    max-width: none;
+    padding: 0 20px;
+  }
+}
+
+.chevronBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.02);
+  -webkit-backdrop-filter: blur(10px) saturate(1.15);
+  backdrop-filter: blur(10px) saturate(1.15);
+  color: rgba(245, 245, 245, 0.70);
+  cursor: pointer;
+  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  letter-spacing: -0.02em;
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+}
+
+.chevronIcon {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.chevronBtn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(245, 245, 245, 0.82);
+}
+
+.chevronBtn:active {
+  transform: translateY(1px);
+}
+
+.chevronBtn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.26),
+    0 10px 24px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+.chevronBtn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevronBtn:active {
+    transform: none;
+  }
+}
+
+

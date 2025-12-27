@@ -11,10 +11,10 @@ const Header: React.FC<HeaderProps> = ({ hidePhone = false }) => {
 
   const handlePhoneClick = (e: React.MouseEvent<HTMLSpanElement>) => {
     e.preventDefault()
-    if (location.pathname === '/account') {
+    if (location.pathname === '/accounts') {
       navigate('/')
     } else {
-      navigate('/account')
+      navigate('/accounts')
     }
   }
 

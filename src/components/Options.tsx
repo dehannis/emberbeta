@@ -15,22 +15,22 @@ const optionsData: OptionData[] = [
     id: 'talk',
     number: '01',
     title: 'Talk',
-    description: 'Record stories & thoughts for you & your loved ones',
+    description: 'Record stories & thoughts for yourself & your loved ones',
     path: '/talk',
   },
   {
     id: 'remember',
     number: '02',
     title: 'Remember',
-    description: 'Transport back in time with your cherished memories',
+    description: 'Transport back in time with cherished memories',
     path: '/remember',
   },
   {
     id: 'share',
     number: '03',
     title: 'Share',
-    description: 'Share the gift of memory with those that matter to you',
-    path: '/share',
+    description: 'Share thought-provoking stories with those that matter',
+    path: '/topics',
   },
 ]
 

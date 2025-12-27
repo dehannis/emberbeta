@@ -5,7 +5,9 @@
 /* Share — holographic glass gradient background (fresh) */
 .share-page {
     position: relative;
-    overflow: hidden;
+    /* Allow page content to scroll normally (previously overflow:hidden caused broken scroll). */
+    overflow-x: hidden;
+    overflow-y: visible;
     background:
         radial-gradient(1100px 760px at 14% 18%, rgba(40, 210, 255, 0.12), rgba(0, 0, 0, 0) 62%),
         radial-gradient(980px 720px at 86% 22%, rgba(255, 120, 80, 0.08), rgba(0, 0, 0, 0) 64%),
@@ -17,8 +19,8 @@
 
 .share-page::before {
     content: '';
-    position: absolute;
-    inset: -18%;
+    position: fixed;
+    inset: 0;
     pointer-events: none;
     background:
         conic-gradient(from 220deg at 50% 40%,
@@ -42,7 +44,7 @@
 
 .share-page::after {
     content: '';
-    position: absolute;
+    position: fixed;
     inset: 0;
     pointer-events: none;
     /* subtle bokeh + glass grain */
@@ -303,13 +305,6 @@
     line-height: 1.35;
     text-transform: none;
     letter-spacing: 0.01em;
-}
-
-.sharing-subtle {
-    color: rgba(255, 255, 255, 0.35);
-    font-weight: 300;
-    display: block;
-    margin-top: 0.25rem;
 }
 
 .sharing-status {
@@ -679,13 +674,91 @@
 }
 
 .sharing-with-card {
-    padding: 0.9rem 0.9rem 0.85rem 0.9rem;
+    /* Keep padding stable between collapsed/expanded to prevent "jump" */
+    padding: 0.75rem 0.85rem;
     background: rgba(18, 18, 18, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.09);
     border-radius: 16px;
     box-shadow: 0 14px 44px rgba(0, 0, 0, 0.38);
     backdrop-filter: blur(10px);
     transition: border-color 180ms ease, background 180ms ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Collapsible contact cards */
+.sharing-with-card.is-collapsed {
+    padding: 0.75rem 0.85rem;
+}
+
+.sharing-card-summary {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+}
+
+.sharing-card-summary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+}
+
+.sharing-summary-name {
+    min-width: 0;
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.92);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sharing-summary-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    white-space: nowrap;
+    font-size: 0.62rem;
+    font-weight: 300;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.38);
+}
+
+.sharing-summary-status {
+    color: rgba(255, 255, 255, 0.62);
+}
+
+.sharing-summary-chevron {
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border-radius: 0;
+    border: none;
+    color: rgba(255, 255, 255, 0.60);
+    background: transparent;
+}
+
+.sharing-summary-icon {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.sharing-card-expanded {
+    width: 100%;
 }
 
 /* Intentionally no “card hover brighten” — keep hover feedback on inputs/buttons instead. */
